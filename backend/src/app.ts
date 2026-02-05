@@ -38,16 +38,33 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
+import { supabase } from './config/supabase';
+
 // Health Check
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+    let dbStatus = 'unknown';
+    let dbError = null;
+    try {
+        const { count, error } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        if (error) throw error;
+        dbStatus = 'connected';
+    } catch (e: any) {
+        dbStatus = 'error';
+        dbError = e.message;
+    }
+
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         env_check: {
             supabase_url: !!process.env.SUPABASE_URL,
-            supabase_key: !!process.env.SUPABASE_KEY, // CRITICAL: Check if this is false
+            supabase_key_set: !!(process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY),
             frontend_url: process.env.FRONTEND_URL
+        },
+        db_check: {
+            status: dbStatus,
+            error: dbError
         }
     });
 });
