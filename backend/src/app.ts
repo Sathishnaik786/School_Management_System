@@ -28,7 +28,9 @@ app.use('/api', limiter);
 app.use(cors({
     origin: [
         'http://localhost:5173',
+        'http://127.0.0.1:5173',
         'https://appsms.netlify.app',
+        'https://appsms-076a.onrender.com',
         process.env.FRONTEND_URL || ''
     ].filter(Boolean), // Allow valid origins
     credentials: true
