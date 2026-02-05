@@ -7,10 +7,14 @@ import { supabase } from './supabase';
  */
 const getBaseUrl = () => {
     const url = import.meta.env.VITE_API_URL;
-    if (!url && import.meta.env.PROD) {
-        console.warn('⚠️ VITE_API_URL is NOT set. API requests will fail in production.');
+    if (url) return url;
+
+    // Fallback for production if Env Var fails
+    if (import.meta.env.PROD) {
+        return 'https://appsms-076a.onrender.com/api';
     }
-    return url || 'http://127.0.0.1:3000/api';
+
+    return 'http://127.0.0.1:3000/api';
 };
 
 export const apiClient = axios.create({

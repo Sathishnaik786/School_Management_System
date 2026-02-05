@@ -92,7 +92,7 @@ export default function Admissions() {
             <AnimatedSection direction="right" className="hidden lg:block">
               <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
                 <h3 className="font-display text-xl font-bold text-white mb-6">
-                  Why Join Westbridge?
+                  Why Join Apex international school?
                 </h3>
                 <ul className="space-y-4">
                   {whyJoin.map((item, index) => (
