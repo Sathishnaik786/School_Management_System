@@ -236,7 +236,7 @@ export default function Faculty() {
               If you're interested in making a difference in students' lives,
               we'd love to hear from you.
             </p>
-            <a href="mailto:careers@westbridgeacademy.edu">
+            <a href="mailto:careers@apexinternationalschool.edu">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold"
