@@ -8,23 +8,16 @@ import { router } from './routes';
 
 export const app = express();
 
+// Enable Trust Proxy (Required for Render/Heroku to get real IP)
+app.set('trust proxy', 1);
+
 // Global Middleware
 app.use(compression()); // Enable Gzip compression
 
 // Security Headers
 app.use(helmet());
 
-// Rate Limiter
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api', limiter);
-
-// CORS Configuration
+// CORS Configuration (MUST be before Rate Limiter to handle 429 errors correctly)
 app.use(cors({
     origin: [
         'http://localhost:5173',
@@ -33,8 +26,19 @@ app.use(cors({
         'https://appsms-076a.onrender.com',
         process.env.FRONTEND_URL || ''
     ].filter(Boolean), // Allow valid origins
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));
+
+// Rate Limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Increased from 100 to 1000 to prevent false positives in dev/demo
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
