@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkPermission } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
@@ -15,7 +15,7 @@ export const studentRouter = Router();
 // GET / - List Students (supports filtering)
 studentRouter.get('/',
     checkPermission(PERMISSIONS.STUDENT_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const sectionId = req.query.sectionId as string;
         const { page, limit, search } = req.query;
@@ -57,7 +57,7 @@ studentRouter.get('/',
 // GET /:id - Detail
 studentRouter.get('/:id',
     checkPermission(PERMISSIONS.STUDENT_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id } = req.params;
         const schoolId = req.context!.user.school_id;
 
@@ -76,7 +76,7 @@ studentRouter.get('/:id',
 // POST /from-admission/:admissionId - Convert Admission to Student
 studentRouter.post('/from-admission/:admissionId',
     checkPermission(PERMISSIONS.STUDENT_CREATE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { admissionId } = req.params;
         const schoolId = req.context!.user.school_id;
 
@@ -160,7 +160,7 @@ studentRouter.post('/from-admission/:admissionId',
 // GET /my - View Own Children
 studentRouter.get('/my/children',
     checkPermission(PERMISSIONS.STUDENT_VIEW_SELF),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
 
         // RLS handles visibility, but we can also explicit filter for clarity/speed
@@ -185,7 +185,7 @@ studentRouter.get('/my/children',
 // POST /my/link - Manual Link for Parents (Debug/Self-Service)
 studentRouter.post('/my/link',
     checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { student_code } = req.body;
         const userId = req.context!.user.id;
 

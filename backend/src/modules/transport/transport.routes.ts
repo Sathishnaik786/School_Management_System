@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkPermission, requireRole } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
@@ -11,7 +11,7 @@ export const transportRouter = Router();
 // ======================================
 transportRouter.post('/stops',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { name, latitude, longitude } = req.body;
 
@@ -25,7 +25,7 @@ transportRouter.post('/stops',
     }
 );
 
-transportRouter.post('/seed-demo', async (req, res) => {
+transportRouter.post('/seed-demo', async (req: Request, res: Response) => {
     try {
         console.log("🌱 Seeding via API...");
         // 1. Get Driver User
@@ -100,7 +100,7 @@ transportRouter.post('/seed-demo', async (req, res) => {
 
 transportRouter.get('/stops',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_stops')
@@ -118,7 +118,7 @@ transportRouter.get('/stops',
 // ======================================
 transportRouter.post('/drivers',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { user_id, license_number, phone, status } = req.body;
 
@@ -134,7 +134,7 @@ transportRouter.post('/drivers',
 
 transportRouter.get('/drivers',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_drivers')
@@ -151,7 +151,7 @@ transportRouter.get('/drivers',
 // ======================================
 transportRouter.post('/routes',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { name } = req.body;
         const { data, error } = await supabase.from('transport_routes').insert({ school_id: schoolId, name }).select().single();
@@ -162,7 +162,7 @@ transportRouter.post('/routes',
 
 transportRouter.get('/routes',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
 
         const { data: routes, error } = await supabase
@@ -223,7 +223,7 @@ const hasActiveTrip = async (routeId: string): Promise<boolean> => {
 
 transportRouter.post('/routes/:id/stops',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: routeId } = req.params;
         const { stops } = req.body;
 
@@ -258,7 +258,7 @@ transportRouter.post('/routes/:id/stops',
 
 transportRouter.post('/vehicles',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { vehicle_no, capacity } = req.body;
         const { data, error } = await supabase.from('transport_vehicles').insert({ school_id: schoolId, vehicle_no, capacity }).select().single();
@@ -269,7 +269,7 @@ transportRouter.post('/vehicles',
 
 transportRouter.get('/vehicles',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase.from('transport_vehicles').select('*').eq('school_id', schoolId);
         if (error) return res.status(500).json({ error: error.message });
@@ -279,7 +279,7 @@ transportRouter.get('/vehicles',
 
 transportRouter.post('/routes/:id/assign-vehicle',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: routeId } = req.params;
         const { vehicle_id, driver_id } = req.body;
 
@@ -303,7 +303,7 @@ transportRouter.post('/routes/:id/assign-vehicle',
 
 transportRouter.post('/assign',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { student_id, route_id, stop_id, pickup_mode } = req.body;
 
         const { data: routeVehicles } = await supabase.from('route_vehicles').select('vehicle:vehicle_id(capacity)').eq('route_id', route_id);
@@ -324,7 +324,7 @@ transportRouter.post('/assign',
 
 transportRouter.post('/assign/bulk',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { student_ids, route_id, stop_id, pickup_mode } = req.body;
 
         if (!student_ids?.length) return res.status(400).json({ error: "No students selected" });
@@ -348,7 +348,7 @@ transportRouter.post('/assign/bulk',
 
 transportRouter.get('/routes/:id/manifest',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: routeId } = req.params;
         const schoolId = req.context!.user.school_id;
         const today = new Date().toISOString().split('T')[0];
@@ -403,7 +403,7 @@ transportRouter.get('/routes/:id/manifest',
 transportRouter.post('/attendance/disable',
     // Parent or Admin can call this (RLS handles security)
     checkPermission(PERMISSIONS.TRANSPORT_VIEW_SELF),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { student_id, trip_date, pickup_disabled, drop_disabled, reason } = req.body;
         const validDate = trip_date || new Date().toISOString().split('T')[0];
 
@@ -436,7 +436,7 @@ transportRouter.post('/attendance/disable',
 // ======================================
 transportRouter.get('/my',
     checkPermission(PERMISSIONS.TRANSPORT_VIEW_SELF),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         const { data: links } = await supabase.from('student_parents').select('student_id').eq('parent_user_id', userId);
         if (!links || links.length === 0) return res.json([]);
@@ -465,7 +465,7 @@ transportRouter.get('/my',
 
 transportRouter.get('/my/timeline',
     checkPermission(PERMISSIONS.TRANSPORT_VIEW_SELF),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         // Parents can see timelines for their children
         const { data: links } = await supabase.from('student_parents').select('student_id').eq('parent_user_id', userId);
@@ -490,7 +490,7 @@ transportRouter.get('/my/timeline',
 // ======================================
 transportRouter.get('/trips/today',
     checkPermission(PERMISSIONS.TRIP_VIEW_SELF),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         const today = new Date().toISOString().split('T')[0];
         const { data: driver } = await supabase.from('transport_drivers').select('id').eq('user_id', userId).single();
@@ -520,7 +520,7 @@ transportRouter.get('/trips/today',
 // ======================================
 transportRouter.post('/trips/check',
     checkPermission(PERMISSIONS.TRIP_EXECUTE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         // trip_id is conceptual here (calculated from schedule) or passed if generated
         const { vehicle_id, fuel_level, tyres_ok, brakes_ok, lights_ok, cleanliness_ok, remarks, trip_identifier_id } = req.body;
@@ -551,7 +551,7 @@ transportRouter.post('/trips/check',
 
 transportRouter.post('/trips/start',
     checkPermission(PERMISSIONS.TRIP_EXECUTE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         const { route_id, vehicle_id, trip_type, trip_identifier_id } = req.body;
         const today = new Date().toISOString().split('T')[0];
@@ -597,7 +597,7 @@ transportRouter.post('/trips/start',
 
 transportRouter.post('/trips/:id/event',
     checkPermission(PERMISSIONS.TRIP_EXECUTE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: tripId } = req.params;
         const { event_type, stop_id, student_id, latitude, longitude } = req.body;
 
@@ -628,7 +628,7 @@ transportRouter.post('/trips/:id/event',
 
 transportRouter.get('/trips/live',
     checkPermission(PERMISSIONS.TRIP_MONITOR),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
             .from('transport_trips')
@@ -645,7 +645,7 @@ transportRouter.get('/trips/live',
 
 transportRouter.get('/analytics/punctuality',
     checkPermission(PERMISSIONS.TRIP_MONITOR),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_route_on_time_stats')
@@ -659,7 +659,7 @@ transportRouter.get('/analytics/punctuality',
 
 transportRouter.get('/analytics/delays',
     checkPermission(PERMISSIONS.TRIP_MONITOR),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_trip_delay_summary')
@@ -673,7 +673,7 @@ transportRouter.get('/analytics/delays',
 
 transportRouter.get('/analytics/pickups',
     checkPermission(PERMISSIONS.TRIP_MONITOR),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_student_pickup_accuracy')
@@ -687,7 +687,7 @@ transportRouter.get('/analytics/pickups',
 );
 transportRouter.get('/incidents/recent',
     checkPermission(PERMISSIONS.TRIP_MONITOR),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { data, error } = await supabase
             .from('transport_trip_events')
             .select('*')
@@ -706,7 +706,7 @@ transportRouter.get('/incidents/recent',
 // DRIVER PING
 transportRouter.post('/trips/:id/location',
     checkPermission(PERMISSIONS.TRIP_EXECUTE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: tripId } = req.params;
         const { latitude, longitude, heading } = req.body;
 
@@ -726,7 +726,7 @@ transportRouter.post('/trips/:id/location',
 // GET LIVE LOCATION (Polled by Parent/Admin)
 transportRouter.get('/trips/:id/location',
     checkPermission(PERMISSIONS.TRANSPORT_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { id: tripId } = req.params;
         const userId = req.context!.user.id;
         const roles = req.context!.user.roles;
@@ -775,7 +775,7 @@ transportRouter.get('/trips/:id/location',
 
 transportRouter.get('/fee-slabs',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('transport_fee_slabs')
@@ -789,7 +789,7 @@ transportRouter.get('/fee-slabs',
 
 transportRouter.post('/fee-slabs',
     requireRole(['ADMIN', 'TRANSPORT_ADMIN']),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { stop_id, academic_year_id, amount, currency } = req.body;
 

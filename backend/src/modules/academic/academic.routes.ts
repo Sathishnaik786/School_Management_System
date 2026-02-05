@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkPermission } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
@@ -16,7 +16,7 @@ export const academicRouter = Router();
 // GET /classes
 academicRouter.get('/classes',
     checkPermission(PERMISSIONS.CLASS_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { data, error } = await supabase
             .from('classes')
@@ -36,7 +36,7 @@ academicRouter.get('/classes',
 // POST /classes
 academicRouter.post('/classes',
     checkPermission(PERMISSIONS.CLASS_CREATE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
         const { name, academic_year_id } = req.body;
 
@@ -60,7 +60,7 @@ academicRouter.post('/classes',
 // GET /sections?classId=...
 academicRouter.get('/sections',
     checkPermission(PERMISSIONS.SECTION_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const classId = req.query.classId as string;
         if (!classId) return res.status(400).json({ error: "classId required" });
 
@@ -81,7 +81,7 @@ academicRouter.get('/sections',
 // POST /sections
 academicRouter.post('/sections',
     checkPermission(PERMISSIONS.SECTION_CREATE),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const { class_id, name } = req.body;
         if (!class_id || !name) return res.status(400).json({ error: "Missing fields" });
 
@@ -103,7 +103,7 @@ academicRouter.post('/sections',
 // GET /academic/faculty (Admin view to list all faculty members)
 academicRouter.get('/faculty',
     checkPermission(PERMISSIONS.STUDENT_VIEW), // Using a general staff view permission or specific if added
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
 
         const { data, error } = await supabase
@@ -127,7 +127,7 @@ academicRouter.get('/faculty',
 // POST /sections/:id/assign-faculty (UPGRADED WITH AUTO-SYNC)
 academicRouter.post('/sections/:id/assign-faculty',
     checkPermission(PERMISSIONS.ACADEMIC_ASSIGN_FACULTY),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const sectionId = req.params.id;
         const { faculty_user_id } = req.body;
         const performedBy = req.context!.user.id;
@@ -160,7 +160,7 @@ academicRouter.post('/sections/:id/assign-faculty',
 // GET /sections/:id/assignments
 academicRouter.get('/sections/:id/assignments',
     checkPermission(PERMISSIONS.SECTION_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const sectionId = req.params.id;
 
         const { data, error } = await supabase
@@ -179,7 +179,7 @@ academicRouter.get('/sections/:id/assignments',
 // POST /sections/:id/assign-student
 academicRouter.post('/sections/:id/assign-student',
     checkPermission(PERMISSIONS.STUDENT_ASSIGN_SECTION),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const sectionId = req.params.id;
         const { student_id } = req.body;
         const userId = req.context!.user.id;
@@ -245,7 +245,7 @@ academicRouter.post('/sections/:id/assign-student',
 
 // GET /academic/my-students (Faculty View - Derived from student_faculty_assignments)
 academicRouter.get('/my-students',
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         const { data, error } = await supabase
             .from('student_faculty_assignments')
@@ -269,7 +269,7 @@ academicRouter.get('/my-students',
 // GET /sections/my (Faculty View)
 academicRouter.get('/sections/my',
     checkPermission(PERMISSIONS.SECTION_VIEW),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         try {
             const { user } = req.context!;
 

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { checkPermission } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
@@ -10,7 +10,7 @@ export const dashboardRouter = Router();
 // ======================================
 dashboardRouter.get('/admin/overview',
     checkPermission(PERMISSIONS.DASHBOARD_VIEW_ADMIN),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const schoolId = req.context!.user.school_id;
 
         try {
@@ -49,7 +49,7 @@ dashboardRouter.get('/admin/overview',
 // ======================================
 dashboardRouter.get('/faculty/overview',
     checkPermission(PERMISSIONS.DASHBOARD_VIEW_FACULTY),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
 
         try {
@@ -89,7 +89,7 @@ dashboardRouter.get('/faculty/overview',
 // ======================================
 // LIVE TIMELINE (Personalized)
 // ======================================
-dashboardRouter.get('/timeline', async (req, res) => {
+dashboardRouter.get('/timeline', async (req: Request, res: Response) => {
     const user = req.context!.user;
     const schoolId = user.school_id;
     const userId = user.id;
@@ -251,7 +251,7 @@ dashboardRouter.get('/timeline', async (req, res) => {
 // ======================================
 dashboardRouter.get('/parent/overview',
     checkPermission(PERMISSIONS.DASHBOARD_VIEW_PARENT),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
         const userId = req.context!.user.id;
         // 1. Fetch children summary (Enrolled Students)
         const { data: children } = await supabase

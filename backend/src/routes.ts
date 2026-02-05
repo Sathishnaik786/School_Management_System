@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate, authenticateOptional, checkLoginApproval } from './auth/auth.middleware';
 import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
@@ -22,7 +22,7 @@ export const router = Router();
 // ======================================
 // PUBLIC
 // ======================================
-router.get('/health', (req, res) => {
+router.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -31,7 +31,8 @@ router.post('/admissions/public-apply', AdmissionController.publicApply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);
 
 // Public lookup for schools
-router.get('/schools', async (req, res) => {
+// Public lookup for schools
+router.get('/schools', async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase.from('schools').select('id, name').limit(10);
         if (error) throw error;
@@ -42,7 +43,8 @@ router.get('/schools', async (req, res) => {
 });
 
 // Public lookup for current year (required for registration if not hardcoded)
-router.get('/public/academic-year', async (req, res) => {
+// Public lookup for current year (required for registration if not hardcoded)
+router.get('/public/academic-year', async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
             .from('academic_years')
@@ -65,14 +67,16 @@ router.use(authenticate);
 router.use(checkLoginApproval);
 
 // 1. GET /me
-router.get('/me', (req, res) => {
+// 1. GET /me
+router.get('/me', (req: Request, res: Response) => {
     res.json({
         user: req.context!.user
     });
 });
 
 // 2. GET /schools/current
-router.get('/schools/current', async (req, res) => {
+// 2. GET /schools/current
+router.get('/schools/current', async (req: Request, res: Response) => {
     const school_id = req.context!.user.school_id;
     if (!school_id) return res.status(404).json({ error: 'User not assigned to a school' });
 
@@ -82,7 +86,8 @@ router.get('/schools/current', async (req, res) => {
 });
 
 // 3. GET /academic-years/current
-router.get('/academic-years/current', async (req, res) => {
+// 3. GET /academic-years/current
+router.get('/academic-years/current', async (req: Request, res: Response) => {
     const school_id = req.context!.user.school_id;
     const { data, error } = await supabase.from('academic_years').select('*').eq('school_id', school_id).eq('is_active', true).maybeSingle();
 
@@ -91,7 +96,8 @@ router.get('/academic-years/current', async (req, res) => {
 });
 
 // 3b. GET /academic-years (All)
-router.get('/academic-years', async (req, res) => {
+// 3b. GET /academic-years (All)
+router.get('/academic-years', async (req: Request, res: Response) => {
     const school_id = req.context!.user.school_id;
     const { data, error } = await supabase
         .from('academic_years')
@@ -104,7 +110,8 @@ router.get('/academic-years', async (req, res) => {
 });
 
 // 4. POST /academic-years
-router.post('/academic-years', async (req, res) => {
+// 4. POST /academic-years
+router.post('/academic-years', async (req: Request, res: Response) => {
     const school_id = req.context!.user.school_id;
     const { year_label, is_active } = req.body;
 
