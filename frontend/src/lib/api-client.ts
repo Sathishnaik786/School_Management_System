@@ -5,8 +5,16 @@ import { supabase } from './supabase';
  * Production-grade API Client using Axios.
  * Automatically handles Supabase JWT injection and global error handling.
  */
+const getBaseUrl = () => {
+    const url = import.meta.env.VITE_API_URL;
+    if (!url && import.meta.env.PROD) {
+        console.warn('⚠️ VITE_API_URL is NOT set. API requests will fail in production.');
+    }
+    return url || 'http://127.0.0.1:3000/api';
+};
+
 export const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000/api',
+    baseURL: getBaseUrl(),
     headers: {
         'Content-Type': 'application/json',
     },

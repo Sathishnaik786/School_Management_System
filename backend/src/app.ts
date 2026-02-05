@@ -2,20 +2,32 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import { router } from './routes';
 
 export const app = express();
 
 // Global Middleware
+app.use(compression()); // Enable Gzip compression
+
+// Security Headers
+app.use(helmet());
+
+// Rate Limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api', limiter);
+
+// CORS Configuration
 app.use(cors({
-    origin: true, // Reflect request origin (Permissive for Dev)
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict to Frontend URL
     credentials: true
-}));
-app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginOpenerPolicy: false
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));

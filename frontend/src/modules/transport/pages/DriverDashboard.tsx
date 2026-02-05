@@ -110,7 +110,7 @@ export const DriverDashboard = () => {
     let statusTitle = "My Trips Console";
     let statusSubtitle = "Welcome back.";
     let statusColor = "bg-blue-600";
-    let statusIcon = ShieldCheck;
+    let StatusIcon = ShieldCheck;
 
     if (loading) {
         statusSubtitle = "Syncing schedule...";
@@ -124,7 +124,7 @@ export const DriverDashboard = () => {
     } else if (!isChecklistDone) {
         statusSubtitle = "Action Required: Complete Checklist";
         statusColor = "bg-amber-600";
-        statusIcon = AlertTriangle;
+        StatusIcon = AlertTriangle;
     } else {
         const count = trips.filter(t => t.status !== 'COMPLETED').length;
         statusSubtitle = count > 0 ? `${count} Upcoming Trip${count > 1 ? 's' : ''}` : "All trips completed";
@@ -143,7 +143,7 @@ export const DriverDashboard = () => {
                             {statusSubtitle}
                         </p>
                     </div>
-                    <statusIcon className="w-8 h-8 opacity-50" />
+                    <StatusIcon className="w-8 h-8 opacity-50" />
                 </div>
             </div>
 

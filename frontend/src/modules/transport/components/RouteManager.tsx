@@ -145,7 +145,7 @@ export const RouteManager = ({ lockedRouteIds = [] }: RouteManagerProps) => {
                                             <div className="flex items-center justify-between">
                                                 <div className="font-bold text-gray-900 flex items-center gap-2">
                                                     {r.name}
-                                                    {isRouteLocked && <Lock className="w-3 h-3 text-amber-600" title="Locked: Active Trip" />}
+                                                    {isRouteLocked && <span title="Locked: Active Trip"><Lock className="w-3 h-3 text-amber-600" /></span>}
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center text-xs text-gray-500 mt-1">

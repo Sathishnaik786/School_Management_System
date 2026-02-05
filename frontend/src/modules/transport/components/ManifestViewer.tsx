@@ -7,6 +7,7 @@ export const ManifestViewer = ({ routeId }: { routeId: string }) => {
     const componentRef = useRef(null);
 
     const handlePrint = useReactToPrint({
+        // @ts-ignore
         content: () => componentRef.current,
         documentTitle: `Manifest-${data?.route_name || 'Route'}`,
     });

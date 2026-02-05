@@ -32,7 +32,7 @@ export const AdmissionForm = () => {
         }
 
         try {
-            const { error } = await apiClient.post('/admissions', {
+            await apiClient.post('/admissions', {
                 ...formData,
                 academic_year_id: academicYearId
             });
