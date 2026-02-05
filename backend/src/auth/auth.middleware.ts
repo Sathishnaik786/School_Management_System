@@ -21,6 +21,7 @@ declare global {
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    console.log(`[AuthMiddleware] Header present: ${!!authHeader}, StartsWithBearer: ${authHeader?.startsWith('Bearer ')}`);
 
     if (!authHeader?.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Missing or invalid Authorization header' });

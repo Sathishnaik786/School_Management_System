@@ -41,7 +41,12 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        env_check: {
+            supabase_url: !!process.env.SUPABASE_URL,
+            supabase_key: !!process.env.SUPABASE_KEY, // CRITICAL: Check if this is false
+            frontend_url: process.env.FRONTEND_URL
+        }
     });
 });
 

@@ -18,7 +18,7 @@ export class SessionService {
             // 1. Verify Auth User (validates JWT)
             const { data: authData, error: authError } = await supabase.auth.getUser(token);
             if (authError || !authData.user) {
-                console.warn('[Session] Supabase Auth validation failed:', authError?.message);
+                console.error('[Session] Supabase Auth validation failed:', authError?.message || 'No user data');
                 return null;
             }
 
