@@ -57,6 +57,7 @@ apiClient.interceptors.request.use(async (config) => {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
+            console.debug('[API] Token attached via fallback');
             currentToken = session.access_token; // Cache it
             config.headers.Authorization = `Bearer ${session.access_token}`;
         }

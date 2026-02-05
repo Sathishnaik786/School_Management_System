@@ -62,9 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { data: { session: initSession } } = await supabase.auth.getSession();
             if (!isMounted) return;
 
-            if (initSession) {
+            if (initSession?.access_token) {
                 setSession(initSession);
                 profileFetchTracker.current = initSession.user.id;
+                // Add short delay to ensure token is ready in interceptor
+                await new Promise(r => setTimeout(r, 100));
                 await fetchUserProfile(initSession.access_token);
             } else {
                 setLoading(false);
