@@ -3,9 +3,19 @@ import { checkPermission } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { supabase } from '../../config/supabase';
 import { z } from 'zod';
+import { ExamScheduleController } from './controllers/examSchedule.controller';
+import { ExamEligibilityController } from './controllers/examEligibility.controller';
+import { ExamEligibilityService } from './services/examEligibility.service';
+import { ResultProcessorService } from './services/resultProcessor.service';
+import { ExamResultController } from './controllers/examResult.controller';
+import { ResultPublishController } from './controllers/resultPublish.controller';
+import { ResultPublishService } from './services/resultPublish.service';
+import { ExamDeliverablesController } from './controllers/examDeliverables.controller';
+import { ExamSeatingController } from './controllers/examSeating.controller';
+import { ExamQuestionPaperController } from './controllers/examQuestionPaper.controller';
+import { ExamAnalyticsController } from './controllers/examAnalytics.controller';
 
 export const examRouter = Router();
-
 // ======================================
 // SUBJECTS
 // ======================================
@@ -185,6 +195,26 @@ examRouter.post('/marks',
                 return res.status(400).json({ error: "Missing required IDs (student, exam, or subject)" });
             }
 
+            // --- PHASE-2 CHECK: ELIGIBILITY ---
+            const eligibility = await ExamEligibilityService.checkEligibility(student_id, exam_id);
+            if (!eligibility.eligible) {
+                return res.status(403).json({
+                    error: "Student is not eligible for this exam.",
+                    reasons: eligibility.reasons
+                });
+            }
+            // ----------------------------------
+
+            // --- PHASE-4 CHECK: LOCK ENFORCEMENT ---
+            const isPublished = await ResultPublishService.isStudentResultPublished(exam_id, student_id);
+            if (isPublished) {
+                return res.status(423).json({
+                    error: "Results for this exam have been published. Marks are locked.",
+                    code: "LOCKED"
+                });
+            }
+            // ---------------------------------------
+
             // TODO: Verify Faculty Section Assignment for Strict Control
 
             const { data, error } = await supabase
@@ -201,10 +231,161 @@ examRouter.post('/marks',
                 .single();
 
             if (error) throw error;
+
+            // --- PHASE-3 HOOK: RESULT PROCESSING ---
+            // Run asynchronously to not delay response
+            // We pass schoolId from context
+            const schoolId = req.context!.user.school_id;
+            ResultProcessorService.processStudentResult(student_id, exam_id, schoolId)
+                .catch(err => console.error("Async Result Calc Failed:", err));
+            // ---------------------------------------
+
             res.json(data);
         } catch (err: any) {
             console.error("POST /marks Error:", err);
             res.status(500).json({ error: err.message });
         }
     }
+);
+
+// ======================================
+// EXAM SCHEDULES
+// ======================================
+
+// GET /exam-schedules?examId=
+examRouter.get('/exam-schedules',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamScheduleController.getSchedules
+);
+
+// POST /exam-schedules
+examRouter.post('/exam-schedules',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamScheduleController.createSchedule
+);
+
+// ======================================
+// ELIGIBILITY
+// ======================================
+
+// GET /exam-eligibility?examId=&studentId=
+examRouter.get('/exam-eligibility',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamEligibilityController.checkEligibility
+);
+
+// ======================================
+// RESULTS
+// ======================================
+
+// GET /exam/results?examId=&studentId=
+examRouter.get('/results',
+    checkPermission(PERMISSIONS.MARKS_VIEW),
+    ExamResultController.getStudentResult
+);
+
+// POST /exam/publish-results
+examRouter.post('/publish-results',
+    checkPermission(PERMISSIONS.EXAM_CREATE), // Admin usually has this
+    ResultPublishController.publishResults
+);
+
+// ======================================
+// DELIVERABLES (READ ONLY)
+// ======================================
+
+// GET /exam/hall-ticket?examId=&studentId=
+examRouter.get('/hall-ticket',
+    checkPermission(PERMISSIONS.EXAM_VIEW), // Or specific permission
+    ExamDeliverablesController.getHallTicket
+);
+
+// GET /exam/report-card?examId=&studentId=
+examRouter.get('/report-card',
+    checkPermission(PERMISSIONS.MARKS_VIEW),
+    ExamDeliverablesController.getReportCard
+);
+
+// ======================================
+// SEATING (ADMIN ONLY)
+// ======================================
+
+// GET /exams/halls (List Halls)
+examRouter.get('/halls',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamSeatingController.getHalls
+);
+
+// POST /exams/halls (Create Hall)
+examRouter.post('/halls',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamSeatingController.createHall
+);
+
+// DELETE /exams/halls/:id
+examRouter.delete('/halls/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamSeatingController.deleteHall
+);
+
+// POST /exams/seating/generate
+examRouter.post('/seating/generate',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamSeatingController.generateSeating
+);
+
+// GET /exams/seating?examScheduleId=
+examRouter.get('/seating',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamSeatingController.getSeatingView
+);
+
+// ======================================
+// QUESTION PAPERS (ADMIN/FACULTY)
+// ======================================
+
+// GET /exams/question-papers?examScheduleId=
+examRouter.get('/question-papers',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamQuestionPaperController.list
+);
+
+// POST /exams/question-papers (Upload)
+examRouter.post('/question-papers',
+    checkPermission(PERMISSIONS.EXAM_CREATE), // Or new QP_UPLOAD permission
+    ExamQuestionPaperController.upload
+);
+
+// POST /exams/question-papers/lock
+examRouter.post('/question-papers/lock',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamQuestionPaperController.lock
+);
+
+// ======================================
+// ANALYTICS (ADMIN ONLY)
+// ======================================
+
+// GET /exams/analytics/overview?examId=
+examRouter.get('/analytics/overview',
+    checkPermission(PERMISSIONS.EXAM_VIEW), // Or ANALYTICS_VIEW if exists
+    ExamAnalyticsController.getOverview
+);
+
+// GET /exams/analytics/grades?examId=
+examRouter.get('/analytics/grades',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getGrades
+);
+
+// GET /exams/analytics/subjects?examId=
+examRouter.get('/analytics/subjects',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getSubjects
+);
+
+// GET /exams/analytics/top-performers?examId=&limit=
+examRouter.get('/analytics/top-performers',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getTopPerformers
 );

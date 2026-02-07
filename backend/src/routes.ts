@@ -26,6 +26,7 @@ router.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+
 // Exposed Admission Route for registration & Guest Drafts
 router.post('/admissions/public-apply', AdmissionController.publicApply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);

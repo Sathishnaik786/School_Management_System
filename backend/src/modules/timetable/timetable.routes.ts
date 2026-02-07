@@ -118,16 +118,6 @@ timetableRouter.get('/my',
         const userId = req.context!.user.id;
         const schoolId = req.context!.user.school_id;
 
-        // Determine Role Context
-        // If Faculty: Get slots where faculty_user_id = userId
-        // If Student: Get slots where section_id IN (sudent's sections)
-        // If Parent: Get slots for children
-
-        // Simpler for MVP: Just fetch ALL slots that RLS allows this user to see? 
-        // Yes, RLS is configured for "Student view own section" and "Faculty view school".
-        // But Faculty wants *their* schedule specifically, not whole school.
-        // We need explicit query filters based on role.
-
         let query = supabase
             .from('timetable_slots')
             .select(`
@@ -142,12 +132,36 @@ timetableRouter.get('/my',
         if (req.context!.user.roles.includes('FACULTY')) {
             query = query.eq('faculty_user_id', userId);
         } else {
-            // Students/Parents relying on RLS is tricky because RLS allows seeing the WHOLE section schedule, which is what we want.
-            // But if Parent has 2 kids in different sections, we want to maybe filter?
-            // For now, let RLS filter valid rows. 
+            // For students, this logic is incomplete in MVP but RLS handles security.
+            // We return empty if not faculty? Or let them see all if RLS permits?
+            // "My" timetable for student = all slots for their section.
+            // We need to find student's section first.
+            // This existing route implementation was partial. Leaving as is, focusing on Faculty.
         }
 
         const { data, error } = await query;
+        if (error) return res.status(500).json({ error: error.message });
+        res.json(data);
+    }
+);
+
+// GET /faculty/:facultyId (Admin View)
+timetableRouter.get('/faculty/:facultyId',
+    checkPermission(PERMISSIONS.TIMETABLE_VIEW), // Admin/Staff perm
+    async (req, res) => {
+        const { facultyId } = req.params;
+
+        const { data, error } = await supabase
+            .from('timetable_slots')
+            .select(`
+                id, day_of_week, start_time, end_time,
+                subject:subject_id(name),
+                section:section_id(name, class:class_id(name))
+            `)
+            .eq('faculty_user_id', facultyId)
+            .order('day_of_week')
+            .order('start_time');
+
         if (error) return res.status(500).json({ error: error.message });
         res.json(data);
     }

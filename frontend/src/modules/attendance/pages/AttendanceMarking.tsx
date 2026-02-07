@@ -55,7 +55,7 @@ export const AttendanceMarking = () => {
             try {
                 // 1. Fetch Students for the section
                 const stuRes = await apiClient.get('/students', { params: { sectionId: selectedSectionId } });
-                setStudents(stuRes.data);
+                setStudents(Array.isArray(stuRes.data) ? stuRes.data : stuRes.data.data || []);
 
                 // 2. Check if session exists and get existing records
                 const sessionRes = await apiClient.get(`/attendance/section/${selectedSectionId}?date=${date}`);
@@ -63,13 +63,20 @@ export const AttendanceMarking = () => {
                 if (sessionRes.data.session) {
                     setSessionId(sessionRes.data.session.id);
                     const existing: any = {};
-                    sessionRes.data.records.forEach((r: any) => existing[r.student_id] = r.status);
+                    if (Array.isArray(sessionRes.data.records)) {
+                        sessionRes.data.records.forEach((r: any) => existing[r.student_id] = r.status);
+                    }
                     setAttendanceMap(existing);
                 } else {
                     setSessionId(null);
                     // Default everyone to present if no session exists
                     const initial: any = {};
-                    stuRes.data.forEach((s: any) => initial[s.id] = 'present');
+                    if (Array.isArray(stuRes.data)) {
+                        stuRes.data.forEach((s: any) => initial[s.id] = 'present');
+                    } else if (stuRes.data && Array.isArray(stuRes.data.data)) {
+                        // Handle paginated response structure if applicable
+                        stuRes.data.data.forEach((s: any) => initial[s.id] = 'present');
+                    }
                     setAttendanceMap(initial);
                 }
             } catch (err) {
@@ -115,9 +122,9 @@ export const AttendanceMarking = () => {
         setAttendanceMap(newMap);
     };
 
-    const filteredStudents = students.filter(s =>
-        s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_code.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredStudents = (Array.isArray(students) ? students : []).filter(s =>
+        s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.student_code?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const stats = {

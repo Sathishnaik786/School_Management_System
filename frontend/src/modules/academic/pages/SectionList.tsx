@@ -40,10 +40,18 @@ export const SectionList = () => {
     useEffect(() => {
         if (classId) {
             fetchData();
-            fetchStudents();
             fetchFaculty();
+            fetchStudents(); // Initial fetch
         }
     }, [classId]);
+
+    // Debounced Search Effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchStudents(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     const fetchData = () => {
         setLoading(true);
@@ -63,8 +71,20 @@ export const SectionList = () => {
             .finally(() => setLoading(false));
     };
 
-    const fetchStudents = () => {
-        apiClient.get('/students').then(res => setStudents(res.data));
+    const fetchStudents = (searchQuery: string = '') => {
+        // Fetch up to 50 students if searching, otherwise 20.
+        // For production, use server-side pagination properly.
+        const params: any = { limit: searchQuery ? 50 : 20 };
+        if (searchQuery) params.search = searchQuery;
+
+        apiClient.get('/students', { params }).then(res => {
+            console.log('Students response:', res.data); // Debug logging
+            const studentList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            setStudents(Array.isArray(studentList) ? studentList : []);
+        }).catch(err => {
+            console.error('Failed to fetch students:', err);
+            setStudents([]);
+        });
     };
 
     const fetchFaculty = () => {
@@ -117,10 +137,7 @@ export const SectionList = () => {
         }
     };
 
-    const filteredStudents = students.filter(s =>
-        s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_code?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 5);
+
 
     const filteredFaculty = facultyMembers.filter(f =>
         f.full_name?.toLowerCase().includes(facultySearch.toLowerCase()) ||
@@ -289,7 +306,7 @@ export const SectionList = () => {
                             </div>
 
                             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                                {filteredStudents.map(s => (
+                                {students.map(s => (
                                     <button
                                         key={s.id}
                                         onClick={() => handleAssignStudent(s.id)}
@@ -311,7 +328,7 @@ export const SectionList = () => {
                                     </button>
                                 ))}
 
-                                {filteredStudents.length === 0 && (
+                                {students.length === 0 && (
                                     <div className="py-12 text-center text-gray-400 font-bold bg-gray-50 rounded-2xl">
                                         Keep typing to find students...
                                     </div>

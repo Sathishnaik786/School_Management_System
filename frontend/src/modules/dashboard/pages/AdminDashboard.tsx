@@ -20,6 +20,7 @@ import {
     Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 
 export const AdminDashboard = () => {
@@ -49,10 +50,18 @@ export const AdminDashboard = () => {
         { label: 'Fee Collection', value: 'Rs.' + (stats?.feeCollection || '0'), icon: Coins, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
 
+    const { hasRole } = useAuth();
+    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
+
     const quickActions = [
         { label: 'Review Admissions', icon: FileCheck, link: '/app/admissions/review', desc: `${stats?.pendingAdmissions || 0} applications pending` },
         { label: 'Academic Setup', icon: GraduationCap, link: '/app/academic/classes', desc: 'Classes & Sections' },
-        { label: 'Exam Management', icon: BookOpen, link: '/app/exams/manage', desc: 'Planning & Results' },
+        ...(isExamAdmin ? [{
+            label: 'Exam Management',
+            icon: BookOpen,
+            link: '/app/exams/manage',
+            desc: 'Planning & Results',
+        }] : []),
         { label: 'Fee Structures', icon: Coins, link: '/app/fees/structures', desc: 'Manage Fees' },
         { label: 'Assign Fees', icon: FileCheck, link: '/app/fees/assign', desc: 'Student Billing' },
         { label: 'Record Payment', icon: CreditCard, link: '/app/fees/payments', desc: 'Cash/Cheque Entry' },
@@ -118,7 +127,7 @@ export const AdminDashboard = () => {
                                 <Link
                                     key={i}
                                     to={action.link}
-                                    className="flex items-center gap-4 p-5 rounded-2xl border border-gray-50 bg-gray-50/30 hover:bg-white hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50/50 transition-all group"
+                                    className={`flex items-center gap-4 p-5 rounded-2xl border border-gray-50 bg-gray-50/30 transition-all group hover:bg-white hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50/50`}
                                 >
                                     <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-600 transition-colors">
                                         <action.icon className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
@@ -143,33 +152,75 @@ export const AdminDashboard = () => {
                 </div>
 
                 {/* System Vitality Panel */}
-                <div className="bg-gradient-to-br from-gray-900 to-blue-900 rounded-3xl p-8 text-white shadow-2xl">
-                    <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-                        <CheckCircle className="text-blue-400 w-6 h-6" />
-                        System Health
-                    </h3>
-                    <div className="space-y-6">
-                        <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-white/60">Server Status</span>
-                                <span className="text-xs font-bold uppercase py-0.5 px-2 bg-green-500/20 text-green-400 rounded">Optimal</span>
-                            </div>
-                            <div className="text-lg font-bold">API Gateway Online</div>
-                        </div>
+                <div className="space-y-6">
+                    {/* Examination Overview Widget (Admin Only) */}
+                    {!isExamAdmin && (
+                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-purple-50 rounded-bl-full -mr-4 -mt-4"></div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 relative z-10">
+                                <BookOpen className="w-5 h-5 text-purple-600" />
+                                Examination Overview
+                            </h3>
 
-                        <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-white/60">Total Applications</span>
-                                <span className="text-xs font-bold uppercase py-0.5 px-2 bg-blue-500/20 text-blue-400 rounded">Live</span>
-                            </div>
-                            <div className="text-lg font-bold">{stats?.totalApplications || 0} Registered</div>
-                        </div>
+                            <div className="space-y-4 relative z-10">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                                    <span className="text-sm text-gray-500 font-medium">Total Exams</span>
+                                    <span className="font-black text-gray-900">{stats?.exams || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                                    <span className="text-sm text-gray-500 font-medium">Ongoing</span>
+                                    <span className="font-black text-amber-600">
+                                        {/* Mocking ongoing count as simplified stat isn't granular here yet, 
+                                            or safely use 0 if undefined. Ideally backend provides this. 
+                                            For now use a placeholder or safe value. 
+                                        */}
+                                        -
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                                    <span className="text-sm text-gray-500 font-medium">Published Results</span>
+                                    <span className="font-black text-emerald-600">-</span>
+                                </div>
 
-                        <div className="pt-4">
-                            <button className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                Maintenance Mode
-                            </button>
+                                <div className="mt-6 pt-4 bg-gray-50 rounded-xl p-4">
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Governance Note</div>
+                                    <div className="text-xs text-gray-500 leading-relaxed">
+                                        Exam operations are currently managed by the <strong className="text-gray-700">Examination Cell</strong>.
+                                        Contact Exam Admin for scheduling or result changes.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-gradient-to-br from-gray-900 to-blue-900 rounded-3xl p-8 text-white shadow-2xl">
+                        <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                            <CheckCircle className="text-blue-400 w-6 h-6" />
+                            System Health
+                        </h3>
+                        <div className="space-y-6">
+                            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm text-white/60">Server Status</span>
+                                    <span className="text-xs font-bold uppercase py-0.5 px-2 bg-green-500/20 text-green-400 rounded">Optimal</span>
+                                </div>
+                                <div className="text-lg font-bold">API Gateway Online</div>
+                            </div>
+
+                            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm text-white/60">Total Applications</span>
+                                    <span className="text-xs font-bold uppercase py-0.5 px-2 bg-blue-500/20 text-blue-400 rounded">Live</span>
+                                </div>
+                                <div className="text-lg font-bold">{stats?.totalApplications || 0} Registered</div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2">
+                                    <Settings className="w-5 h-5" />
+                                    Maintenance Mode
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

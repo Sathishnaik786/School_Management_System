@@ -23,7 +23,7 @@ academicRouter.get('/classes',
             .select(`
                 *,
                 academic_year:academic_year_id(year_label),
-                sections:sections(count)
+                sections:sections(id, name)
             `)
             .eq('school_id', schoolId)
             .order('name');

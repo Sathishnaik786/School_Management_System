@@ -6,8 +6,9 @@ import { FacultyListPage } from '../modules/academic/pages/FacultyListPage';
 import { StaffListPage } from '../modules/academic/pages/StaffListPage';
 // import { SectionDetailsPage } from '../modules/academic/pages/SectionDetailsPage'; // Commented out until created
 import { FacultyMySubjects } from '../modules/dashboard/components/FacultyMySubjects';
-import { ProtectedRoute, PermissionGuard } from '../components/auth/ProtectedRoute';
+import { ProtectedRoute, PermissionGuard, ExamOperationGuard } from '../components/auth/ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { ExamAdminLayout } from '../layouts/ExamAdminLayout';
 import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
 import { MyApplications } from '../modules/admission/pages/MyApplications';
 import { AdmissionReviewList } from '../modules/admission/pages/AdmissionReviewList';
@@ -23,8 +24,26 @@ import { MyAssignments } from '../modules/academic/pages/MyAssignments';
 import { MyStudents } from '../modules/academic/pages/MyStudents';
 import { SubjectManagement } from '../modules/exam/pages/SubjectManagement';
 import { ExamManagement } from '../modules/exam/pages/ExamManagement';
+import { ExamTimeTable } from '../modules/exam/pages/ExamTimeTable';
 import { MarksEntry } from '../modules/exam/pages/MarksEntry';
 import { StudentResults } from '../modules/exam/pages/StudentResults';
+import { MyHallTicket } from '../modules/exam/pages/MyHallTicket';
+import { MyReportCard } from '../modules/exam/pages/MyReportCard';
+import { ExamHallManagement } from '../modules/exam/pages/ExamHallManagement';
+import { ExamSeatingAllocation } from '../modules/exam/pages/ExamSeatingAllocation';
+import { QuestionPaperManager } from '../modules/exam/pages/QuestionPaperManager';
+import { ExamAnalyticsDashboard } from '../modules/exam/pages/ExamAnalyticsDashboard';
+import { FacultyExamDashboard } from '../modules/exam/pages/FacultyExamDashboard';
+import { FacultyInvigilationView } from '../modules/exam/pages/FacultyInvigilationView';
+import { MyExams } from '../modules/exam/pages/MyExams';
+
+// Phase 10A Scaffolds
+import { ExamDashboard } from '../modules/exam/pages/ExamDashboard';
+import { ExamTimetablePage } from '../modules/exam/pages/ExamTimetablePage';
+import { ExamSeating } from '../modules/exam/pages/ExamSeating';
+import { ExamQuestionPapers } from '../modules/exam/pages/ExamQuestionPapers';
+import { ExamResults } from '../modules/exam/pages/ExamResults';
+import { ExamAnalytics } from '../modules/exam/pages/ExamAnalytics';
 import { AttendanceMarking } from '../modules/attendance/pages/AttendanceMarking';
 import { SectionAttendanceView } from '../modules/attendance/pages/SectionAttendanceView';
 import { MyAttendance } from '../modules/attendance/pages/MyAttendance';
@@ -39,6 +58,7 @@ import { TransportBulkAssignmentPage } from '../modules/transport/pages/Transpor
 import { StudentTransportAssignment } from '../modules/transport/pages/StudentTransportAssignment';
 import { MyTransport } from '../modules/transport/pages/MyTransport';
 import { TransportAnalytics } from '../modules/transport/pages/TransportAnalytics';
+import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
 import { TransportAdminDashboard } from '../modules/transport/pages/TransportAdminDashboard';
 import { TransportDiagnostics } from '../modules/transport/pages/TransportDiagnostics';
 import { TransportDebugPage } from '../modules/transport/pages/TransportDebugPage';
@@ -100,6 +120,16 @@ export const AppRouter = () => {
                 <Route path="/app" element={<ProtectedRoute />}>
                     <Route element={<DashboardLayout />}>
                         <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="admin/dashboard" element={
+                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
+                                <AdminDashboard />
+                            </PermissionGuard>
+                        } />
+                        <Route path="exam-admin/dashboard" element={
+                            <PermissionGuard permission="EXAM_VIEW">
+                                <ExamDashboard />
+                            </PermissionGuard>
+                        } />
 
                         {/* Admission Module Routes */}
                         <Route path="admissions/new" element={
@@ -202,24 +232,145 @@ export const AppRouter = () => {
                         } />
 
                         {/* Exam Module Routes */}
+
+                        {/* ADMIN EXAM VIEWS (PHASE 10A) */}
+                        <Route path="admin/exams/dashboard" element={
+                            <PermissionGuard permission="EXAM_VIEW">
+                                <ExamDashboard />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admin/exams/timetable" element={
+                            <ExamOperationGuard>
+                                <ExamTimetablePage />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="admin/exams/seating" element={
+                            <ExamOperationGuard>
+                                <ExamSeating />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="admin/exams/question-papers" element={
+                            <ExamOperationGuard>
+                                <ExamQuestionPapers />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="admin/exams/results" element={
+                            <ExamOperationGuard>
+                                <ExamResults />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="admin/exams/analytics" element={
+                            <ExamOperationGuard>
+                                <ExamAnalytics />
+                            </ExamOperationGuard>
+                        } />
+
                         <Route path="exams/subjects" element={
                             <PermissionGuard permission="SUBJECT_VIEW">
                                 <SubjectManagement />
                             </PermissionGuard>
                         } />
                         <Route path="exams/manage" element={
-                            <PermissionGuard permission="EXAM_VIEW">
+                            <ExamOperationGuard>
                                 <ExamManagement />
-                            </PermissionGuard>
+                            </ExamOperationGuard>
                         } />
+                        <Route path="exams/timetable" element={
+                            <ExamOperationGuard>
+                                <ExamTimeTable />
+                            </ExamOperationGuard>
+                        } />
+                        {/* Marks entry is shared with Faculty, so keep PermissionGuard or handle logic inside. 
+                            If this route is ONLY for admin/exam-cell, use OpGuard.
+                            But usually 'exams/marks' is generic.
+                            Wait, MARK_ENTRY permission is used by Faculty.
+                            ExamOperationGuard BLOCKS admins.
+                            We want Admins BLOCKED from entry? Yes.
+                            We want Faculty ALLOWED?
+                            ExamOperationGuard currently allows ONLY ExamCellAdmin.
+                            It BLOCKS Admin.
+                            It BLOCKS everyone else implicitly (check logic: if !isExamAdmin && !isAdmin -> Denied).
+                            So we CANNOT use ExamOperationGuard for Faculty routes.
+                            We must leave PermissionGuard for faculty routes.
+                        */}
                         <Route path="exams/marks" element={
                             <PermissionGuard permission="MARKS_ENTER">
                                 <MarksEntry />
                             </PermissionGuard>
                         } />
+
+
+                        {/* SEATING & HALLS */}
+                        {/* SEATING & HALLS */}
+                        <Route path="exams/halls" element={
+                            <ExamOperationGuard>
+                                <ExamHallManagement />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="exams/seating" element={
+                            <ExamOperationGuard>
+                                <ExamSeatingAllocation />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="exams/question-papers" element={
+                            <ExamOperationGuard>
+                                <QuestionPaperManager />
+                            </ExamOperationGuard>
+                        } />
+                        <Route path="exams/analytics" element={
+                            <ExamOperationGuard>
+                                <ExamAnalyticsDashboard />
+                            </ExamOperationGuard>
+                        } />
+
+                        {/* DELIVERABLES */}
+                        {/* Student / Parent Exam Routes */}
+                        <Route path="student/exams" element={
+                            <PermissionGuard permission="EXAM_VIEW">
+                                <MyExams />
+                            </PermissionGuard>
+                        } />
+                        <Route path="student/exams/hall-ticket" element={
+                            <PermissionGuard permission="EXAM_VIEW">
+                                <MyHallTicket />
+                            </PermissionGuard>
+                        } />
+                        <Route path="student/exams/report-card" element={
+                            <PermissionGuard permission="MARKS_VIEW">
+                                <MyReportCard />
+                            </PermissionGuard>
+                        } />
+
+                        {/* Legacy Routes - kept for backward compat if any, but redir preferred */}
+                        <Route path="exams/my-hall-ticket" element={<Navigate to="/app/student/exams/hall-ticket" replace />} />
+                        <Route path="exams/my-report-card" element={<Navigate to="/app/student/exams/report-card" replace />} />
+
+
                         <Route path="exams/results" element={
                             <PermissionGuard permission="MARKS_VIEW">
                                 <StudentResults />
+                            </PermissionGuard>
+                        } />
+
+                        {/* Faculty Exam Routes */}
+                        <Route path="faculty/exams" element={
+                            <PermissionGuard permission="MARKS_ENTRY">
+                                <FacultyExamDashboard />
+                            </PermissionGuard>
+                        } />
+                        <Route path="faculty/exams/marks" element={
+                            <PermissionGuard permission="MARKS_ENTRY">
+                                <MarksEntry />
+                            </PermissionGuard>
+                        } />
+                        <Route path="faculty/exams/question-papers" element={
+                            <PermissionGuard permission="MARKS_ENTRY">
+                                <QuestionPaperManager />
+                            </PermissionGuard>
+                        } />
+                        <Route path="faculty/exams/invigilation" element={
+                            <PermissionGuard permission="EXAM_VIEW">
+                                <FacultyInvigilationView />
                             </PermissionGuard>
                         } />
 
@@ -345,6 +496,20 @@ export const AppRouter = () => {
                         <Route path="settings" element={<Settings />} />
 
                         <Route path="unauthorized" element={<UnauthorizedPage />} />
+                    </Route>
+
+                    {/* EXAM ADMIN DASHBOARD (New Role) */}
+                    <Route path="exam-admin" element={
+                        <PermissionGuard permission="EXAM_VIEW">
+                            <ExamAdminLayout />
+                        </PermissionGuard>
+                    }>
+                        <Route path="dashboard" element={<ExamDashboard />} />
+                        <Route path="timetable" element={<ExamTimetablePage />} />
+                        <Route path="seating" element={<ExamSeating />} />
+                        <Route path="question-papers" element={<ExamQuestionPapers />} />
+                        <Route path="results" element={<ExamResults />} />
+                        <Route path="analytics" element={<ExamAnalytics />} />
                     </Route>
                     <Route path="" element={<Navigate to="dashboard" replace />} />
                 </Route>

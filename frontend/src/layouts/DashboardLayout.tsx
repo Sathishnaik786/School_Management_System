@@ -48,11 +48,27 @@ export const DashboardLayout = () => {
     const isParent = hasRole('PARENT');
     const isTransportAdmin = hasRole('TRANSPORT_ADMIN');
     const isDriver = hasRole('BUS_DRIVER');
+    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
 
     // Menu Items based on roles and permissions
     const menuGroups = [
         // Common items for everyone (e.g. Dashboard) can be kept, but User requested specific structures.
         // We will strictly follow the structure requested for Student/Parent and keep Admin/Faculty as is.
+
+        // EXAM CELL ADMIN MENU (Distinct & Independent)
+        ...(isExamAdmin ? [{
+            label: 'Examination Cell',
+            items: [
+                { label: 'Overview', icon: LayoutDashboard, path: '/app/exam-admin/dashboard', permission: 'EXAM_VIEW' },
+                { label: 'Timetable', icon: Calendar, path: '/app/admin/exams/timetable', permission: 'EXAM_VIEW' },
+                { label: 'Seating', icon: Users, path: '/app/admin/exams/seating', permission: 'EXAM_VIEW' },
+                { label: 'Question Papers', icon: ClipboardList, path: '/app/admin/exams/question-papers', permission: 'EXAM_VIEW' },
+                { label: 'Results', icon: GraduationCap, path: '/app/admin/exams/results', permission: 'MARKS_VIEW' },
+                { label: 'Analytics', icon: BarChart3, path: '/app/admin/exams/analytics', permission: 'EXAM_VIEW' },
+                { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
+                { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
+            ]
+        }] : []),
 
         // ADMIN & HEAD_OF_INSTITUTE
         ...(isAdmin ? [
@@ -69,6 +85,7 @@ export const DashboardLayout = () => {
                     { label: 'Staff Management', icon: Briefcase, path: '/app/admin/staff', permission: 'STAFF_PROFILE_MANAGE' },
                 ]
             },
+
             {
                 label: 'Administration',
                 items: [
@@ -77,7 +94,7 @@ export const DashboardLayout = () => {
                     { label: 'Academic Setup', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
                     { label: 'Departments', icon: Building, path: '/app/academic/departments', permission: 'DEPARTMENT_VIEW' },
                     { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
-                    { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
+
                     { label: 'System Settings', icon: Settings, path: '/app/settings' },
                 ]
             },
@@ -316,18 +333,27 @@ export const DashboardLayout = () => {
                 animate={{ width: isSidebarOpen ? 280 : 80 }}
                 className="hidden lg:flex flex-col bg-white border-r border-gray-100 sticky top-0 h-screen z-30 transition-all duration-300 overflow-hidden"
             >
-                <div className="p-6 flex items-center gap-3 h-20">
-                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200 shrink-0">
-                        E
+                <div className="p-6 flex flex-col gap-1">
+                    <div className="flex items-center gap-3 h-12">
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200 shrink-0">
+                            E
+                        </div>
+                        {isSidebarOpen && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="font-black text-xl text-gray-900 tracking-tight"
+                            >
+                                EduFlow
+                            </motion.div>
+                        )}
                     </div>
-                    {isSidebarOpen && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="font-black text-xl text-gray-900 tracking-tight"
-                        >
-                            EduFlow
-                        </motion.div>
+                    {/* Part 2: Exam Cell Identity Banner */}
+                    {isExamAdmin && isSidebarOpen && (
+                        <div className="mt-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
+                            <h4 className="text-xs font-black text-purple-900 uppercase tracking-wide">Examination Cell</h4>
+                            <p className="text-[10px] text-purple-600 font-medium">Controller of Examinations</p>
+                        </div>
                     )}
                 </div>
 

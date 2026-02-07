@@ -130,8 +130,24 @@ export const ClassList = () => {
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{cls.academic_year?.year_label}</span>
                         </div>
                         <h3 className="text-xl font-black text-gray-900 mb-2">{cls.name}</h3>
+
+                        {/* Section List */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {cls.sections && cls.sections.length > 0 ? (
+                                cls.sections
+                                    .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                                    .map((sec: any) => (
+                                        <span key={sec.id} className="px-2.5 py-1 bg-gray-50 hover:bg-blue-50 text-gray-600 hover:text-blue-600 border border-gray-100 hover:border-blue-100 rounded-lg text-xs font-bold transition-colors">
+                                            {sec.name}
+                                        </span>
+                                    ))
+                            ) : (
+                                <span className="text-xs text-gray-400 italic font-medium px-2 py-1">No sections yet</span>
+                            )}
+                        </div>
+
                         <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-50">
-                            <span className="text-gray-500 font-medium">Sections: <span className="text-blue-600">{cls.sections?.count || 0}</span></span>
+                            <span className="text-gray-500 font-medium">Total Sections: <span className="text-blue-600 font-bold">{cls.sections?.length || 0}</span></span>
                             <Link to={`/app/academic/classes/${cls.id}`} className="flex items-center gap-1 text-blue-600 font-bold hover:gap-2 transition-all">
                                 Manage
                                 <ChevronRight className="w-4 h-4" />

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { checkPermission } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { StaffController } from './staff.controller';
+import { supabase } from '../../config/supabase';
 
 export const staffRouter = Router();
 
@@ -36,6 +37,49 @@ staffRouter.post('/staff-profiles',
 staffRouter.put('/staff-profiles/:id',
     checkPermission(PERMISSIONS.STAFF_PROFILE_MANAGE),
     StaffController.updateProfile
+);
+
+
+// ======================================
+// USER LOOKUP (Generic, used for Dropdowns)
+// ======================================
+staffRouter.get('/users',
+    checkPermission(PERMISSIONS.STAFF_PROFILE_MANAGE), // Reusing generic staff view perm
+    async (req, res) => {
+        const schoolId = req.context!.user.school_id;
+        const { role } = req.query; // e.g. 'FACULTY'
+
+        // Supabase Auth/Users join is tricky via API (users table is profile).
+        let query = supabase
+            .from('users')
+            .select('id, full_name, email')
+            .eq('school_id', schoolId);
+
+        // Filter by Role requires joining user_roles -> roles
+        // Helper function in DB? Or simpler Application-side join?
+        // Since we don't have deeply nested filtering easily on 'users' without foreign key set up perfectly:
+        // Use 'user_roles' as base if role is present.
+
+        if (role) {
+            // Find Role ID
+            const { data: roleData } = await supabase.from('roles').select('id').eq('name', role).single();
+            if (!roleData) return res.json([]);
+
+            const { data: userRoles } = await supabase
+                .from('user_roles')
+                .select('user_id')
+                .eq('role_id', roleData.id);
+
+            if (!userRoles || userRoles.length === 0) return res.json([]);
+
+            const userIds = userRoles.map((ur: any) => ur.user_id);
+            query = query.in('id', userIds);
+        }
+
+        const { data, error } = await query;
+        if (error) return res.status(500).json({ error: error.message });
+        res.json(data);
+    }
 );
 
 staffRouter.patch('/staff-profiles/:id/status',

@@ -22,10 +22,13 @@ export const StudentFeeAssignment = () => {
 
     useEffect(() => {
         apiClient.get('/fees/structures').then(res => setStructures(res.data));
-        apiClient.get('/students').then(res => setStudents(res.data));
+        apiClient.get('/students').then(res => {
+            const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            setStudents(Array.isArray(list) ? list : []);
+        }).catch(() => setStudents([]));
     }, []);
 
-    const selectedStudent = students.find(s => s.id === studentId);
+    const selectedStudent = Array.isArray(students) ? students.find(s => s.id === studentId) : undefined;
 
     const handleStructureToggle = (id: string, amount: number) => {
         setSelectedStructureIds(prev => {
@@ -73,7 +76,7 @@ export const StudentFeeAssignment = () => {
         }
     };
 
-    const filteredStudents = students.filter(s =>
+    const filteredStudents = (Array.isArray(students) ? students : []).filter(s =>
         s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.student_code?.toLowerCase().includes(searchTerm.toLowerCase())
     ).slice(0, 5);
