@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/api-client';
-import { Calendar, Plus, Trash2, Save, X, Eye, Info, AlertTriangle } from 'lucide-react';
+import { Calendar, Plus, Trash2, Save, X, Info, AlertTriangle, BookOpen } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { ExamProgressGuide } from '../components/ExamProgressGuide';
 
 export const ExamTimetablePage = () => {
+    // --- State ---
     const [exams, setExams] = useState<any[]>([]);
-    const [selectedExamId, setSelectedExamId] = useState('');
-    const [schedules, setSchedules] = useState<any[]>([]);
+    const [classes, setClasses] = useState<any[]>([]);
     const [subjects, setSubjects] = useState<any[]>([]);
+
+    // Selections
+    const [selectedExamId, setSelectedExamId] = useState('');
+    const [selectedClassId, setSelectedClassId] = useState('');
+
+    // Data
+    const [schedules, setSchedules] = useState<any[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const { register, handleSubmit, reset } = useForm();
 
+    // --- Effects ---
     useEffect(() => {
         loadInitData();
     }, []);
@@ -26,16 +34,36 @@ export const ExamTimetablePage = () => {
         }
     }, [selectedExamId]);
 
+    // Fetch subjects when Class changes
+    useEffect(() => {
+        if (selectedClassId) {
+            loadSubjects(selectedClassId);
+            setIsCreating(false); // Reset creation mode to prevent stale subject data
+        } else {
+            setSubjects([]);
+        }
+    }, [selectedClassId]);
+
+    // --- Loading Functions ---
     const loadInitData = async () => {
         try {
-            const [exRes, subRes] = await Promise.all([
+            const [exRes, clRes] = await Promise.all([
                 apiClient.get('/exams'),
-                apiClient.get('/academic/subjects')
+                apiClient.get('/academic/classes')
             ]);
             setExams(exRes.data);
-            setSubjects(subRes.data || []);
+            setClasses(clRes.data);
         } catch (e) {
             console.error("Init Error", e);
+        }
+    };
+
+    const loadSubjects = async (classId: string) => {
+        try {
+            const res = await apiClient.get('/exams/subjects', { params: { classId } });
+            setSubjects(res.data);
+        } catch (e) {
+            console.error("Subject Load Error", e);
         }
     };
 
@@ -51,7 +79,28 @@ export const ExamTimetablePage = () => {
         }
     };
 
+    // --- Validations & Submission ---
     const onSubmit = async (data: any) => {
+        // UI Validations
+        if (Number(data.passing_marks) >= Number(data.max_marks)) {
+            return alert("Error: Passing marks must be strictly less than maximum marks.");
+        }
+
+        if (data.start_time >= data.end_time) {
+            return alert("Error: End time must be after start time.");
+        }
+
+        // Prevent Duplicates
+        const isDuplicate = schedules.some(s =>
+            s.subject?.id === data.subject_id &&
+            s.subject?.class_id === selectedClassId
+            // Note: Safe duplicate check usually also checks exam_id (implicit here)
+        );
+
+        if (isDuplicate) {
+            return alert("Error: This subject is already scheduled for this exam.");
+        }
+
         try {
             await apiClient.post('/exams/exam-schedules', {
                 ...data,
@@ -60,10 +109,29 @@ export const ExamTimetablePage = () => {
             setIsCreating(false);
             reset();
             loadSchedules(selectedExamId);
+            alert("Schedule saved successfully!");
         } catch (err: any) {
             alert(err.response?.data?.error || "Failed to add schedule");
         }
     };
+
+    // Derived state for filtering displayed schedules by class if possible
+    // We try to match subject.class_id if available, or just show all if not.
+    const filteredSchedules = selectedClassId
+        ? schedules.filter(s => s.subject?.class_id === selectedClassId || s.subject?.class?.id === selectedClassId)
+        : schedules;
+
+    // Use filteredSchedules only if we have confidence data structure supports it.
+    // If Subject relation includes class, it works. Based on previous audit, subject has class_id.
+    // To be safe, if filteredSchedules is empty but schedules is not, and we are unsure, we might show all?
+    // User requested "Scheduling ALWAYS happens in a Class context". Filtering is safer UX.
+    const displaySchedules = selectedClassId ? filteredSchedules : schedules;
+
+    // Phase-B: Validate Exam Applicability
+    const selectedExam = exams.find(e => e.id === selectedExamId);
+    const isClassApplicable = !selectedExamId || !selectedClassId || !selectedExam?.applicable_classes ||
+        selectedExam.applicable_classes.length === 0 ||
+        selectedExam.applicable_classes.includes(selectedClassId);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -79,157 +147,193 @@ export const ExamTimetablePage = () => {
             </div>
 
             {/* Selection Bar */}
-            <div className="bg-white p-4 rounded-xl border border-gray-100 flex flex-wrap gap-4 items-center shadow-sm">
-                <select
-                    className="p-3 border rounded-lg min-w-[250px] bg-gray-50 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={selectedExamId}
-                    onChange={e => setSelectedExamId(e.target.value)}
-                >
-                    <option value="">Select Exam to Schedule...</option>
-                    {exams.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-
-                {selectedExamId && (
-                    <button
-                        onClick={() => setIsCreating(true)}
-                        className="ml-auto flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+            <div className="bg-white p-6 rounded-xl border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6 items-end shadow-sm">
+                <div className="w-full">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">1. Select Exam Window</label>
+                    <select
+                        className="w-full p-4 border rounded-xl bg-gray-50 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        value={selectedExamId}
+                        onChange={e => setSelectedExamId(e.target.value)}
                     >
-                        <Plus className="w-4 h-4" /> Add Subject Schedule
-                    </button>
-                )}
-            </div>
+                        <option value="">-- Choose Exam --</option>
+                        {exams.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                    </select>
+                </div>
 
-            {/* Helper Info */}
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                    <p className="font-bold">Scheduling Tip</p>
-                    <p className="opacity-90">Ensure no two subjects overlap in timing for the same class. Seating generation depends on accurate schedules.</p>
+                <div className="w-full">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">2. Select Class Context</label>
+                    <select
+                        className="w-full p-4 border rounded-xl bg-gray-50 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
+                        value={selectedClassId}
+                        onChange={e => setSelectedClassId(e.target.value)}
+                        disabled={!selectedExamId}
+                    >
+                        <option value="">-- Choose Class --</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                 </div>
             </div>
 
-            {/* Create Form */}
-            {isCreating && (
-                <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl ring-4 ring-indigo-50 animate-in zoom-in-95 duration-200">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
-                        <span>New Schedule Entry</span>
-                        <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                    </h3>
-                    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject</label>
-                            <select {...register('subject_id', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option value="">Select Subject</option>
-                                {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                            <input type="date" {...register('exam_date', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
-                                <input type="time" {...register('start_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
-                                <input type="time" {...register('end_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+            {selectedExamId && selectedClassId ? (
+                <>
+                    {/* Content Area */}
+                    {!isClassApplicable ? (
+                        <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl flex items-center justify-center text-center">
+                            <div className="max-w-md">
+                                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                                <h3 className="text-lg font-bold text-amber-800 mb-1">Class Not Applicable</h3>
+                                <p className="text-amber-700">
+                                    The exam <strong>{selectedExam?.name}</strong> is not scheduled for the selected class context.
+                                    Please select a different class or exam.
+                                </p>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Marks</label>
-                            <input type="number" {...register('max_marks')} defaultValue={100} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Passing Marks</label>
-                            <input type="number" {...register('passing_marks')} defaultValue={35} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                        </div>
-
-                        <div className="md:col-span-3 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-50">
-                            <button type="button" onClick={() => setIsCreating(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
-                            <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center gap-2">
-                                <Save className="w-4 h-4" /> Save Schedule
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* Timetable List */}
-            {selectedExamId ? (
-                <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                    {loading ? (
-                        <div className="p-12 text-center text-gray-400 flex flex-col items-center">
-                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                            Loading schedules...
-                        </div>
-                    ) : schedules.length > 0 ? (
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase text-xs">
-                                <tr>
-                                    <th className="p-5 pl-6">Subject</th>
-                                    <th className="p-5">Date & Time</th>
-                                    <th className="p-5 text-center">Marks</th>
-                                    <th className="p-5 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {schedules.map(sch => (
-                                    <tr key={sch.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                        <td className="p-5 pl-6">
-                                            <div className="font-bold text-gray-900 text-base">{sch.subject?.name}</div>
-                                            <div className="text-xs text-gray-400 font-mono mt-0.5">{sch.subject?.code}</div>
-                                        </td>
-                                        <td className="p-5">
-                                            <div className="flex items-center gap-2 font-medium text-gray-700">
-                                                <Calendar className="w-4 h-4 text-gray-400" />
-                                                {new Date(sch.exam_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-1 ml-6 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                                                {sch.start_time.slice(0, 5)} - {sch.end_time.slice(0, 5)}
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-center">
-                                            <div className="font-mono font-bold text-gray-700 bg-gray-50 inline-block px-3 py-1 rounded">
-                                                {sch.max_marks}
-                                            </div>
-                                            <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wide">
-                                                Pass: {sch.passing_marks}
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-center">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${sch.status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' :
-                                                    'bg-blue-50 text-blue-600'
-                                                }`}>
-                                                {sch.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     ) : (
-                        <div className="p-16 text-center text-gray-400 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <Calendar className="w-8 h-8 text-gray-300" />
+                        <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
+                                    {classes.find(c => c.id === selectedClassId)?.name?.substring(0, 2) || 'CL'}
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Current Context</p>
+                                    <p className="font-bold text-gray-900">{classes.find(c => c.id === selectedClassId)?.name}</p>
+                                </div>
                             </div>
-                            <h3 className="font-bold text-gray-900 mb-1">No Schedules Added Yet</h3>
-                            <p className="max-w-xs mx-auto text-sm opacity-80 mb-6">Start by adding subjects, dates, and timings for this exam.</p>
                             <button
                                 onClick={() => setIsCreating(true)}
-                                className="px-5 py-2 border border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
                             >
-                                + Add First Schedule
+                                <Plus className="w-4 h-4" /> Add Subject Schedule
                             </button>
                         </div>
                     )}
-                </div>
+
+                    {/* Create Form */}
+                    {isCreating && isClassApplicable && (
+                        <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl ring-4 ring-indigo-50 animate-in zoom-in-95 duration-200">
+                            <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-indigo-600" /> New Schedule Entry</span>
+                                <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                            </h3>
+                            <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject</label>
+                                    <select {...register('subject_id', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none font-bold">
+                                        <option value="">Select Subject</option>
+                                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+                                    </select>
+                                    {subjects.length === 0 && <p className="text-xs text-amber-600 mt-1 font-medium">No subjects found for this class.</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                                    <input type="date" {...register('exam_date', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
+                                        <input type="time" {...register('start_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
+                                        <input type="time" {...register('end_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Marks</label>
+                                    <input type="number" {...register('max_marks')} defaultValue={100} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Passing Marks</label>
+                                    <input type="number" {...register('passing_marks')} defaultValue={35} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                </div>
+
+                                <div className="md:col-span-3 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-50">
+                                    <button type="button" onClick={() => setIsCreating(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
+                                    <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center gap-2">
+                                        <Save className="w-4 h-4" /> Save Schedule
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* Timetable List */}
+                    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                        {loading ? (
+                            <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+                                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                                Loading schedules...
+                            </div>
+                        ) : displaySchedules.length > 0 ? (
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="p-5 pl-6">Subject</th>
+                                        <th className="p-5">Date & Time</th>
+                                        <th className="p-5 text-center">Marks</th>
+                                        <th className="p-5 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {displaySchedules.map(sch => (
+                                        <tr key={sch.id} className="hover:bg-indigo-50/30 transition-colors group">
+                                            <td className="p-5 pl-6">
+                                                <div className="font-bold text-gray-900 text-base">{sch.subject?.name}</div>
+                                                <div className="text-xs text-gray-400 font-mono mt-0.5">{sch.subject?.code}</div>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="flex items-center gap-2 font-medium text-gray-700">
+                                                    <Calendar className="w-4 h-4 text-gray-400" />
+                                                    {new Date(sch.exam_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1 ml-6 flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                                                    {sch.start_time.slice(0, 5)} - {sch.end_time.slice(0, 5)}
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <div className="font-mono font-bold text-gray-700 bg-gray-50 inline-block px-3 py-1 rounded">
+                                                    {sch.max_marks}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wide">
+                                                    Pass: {sch.passing_marks}
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${sch.status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' :
+                                                    'bg-blue-50 text-blue-600'
+                                                    }`}>
+                                                    {sch.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className="p-16 text-center text-gray-400 flex flex-col items-center">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <Calendar className="w-8 h-8 text-gray-300" />
+                                </div>
+                                <h3 className="font-bold text-gray-900 mb-1">No Schedules for this Class</h3>
+                                <p className="max-w-xs mx-auto text-sm opacity-80 mb-6">Select a valid class and add subjects to the exam timetable.</p>
+                                <button
+                                    onClick={() => setIsCreating(true)}
+                                    className="px-5 py-2 border border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors"
+                                >
+                                    + Add First Schedule
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </>
             ) : (
                 <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-12 flex flex-col items-center justify-center text-center">
-                    <Calendar className="w-10 h-10 text-gray-300 mb-3" />
-                    <p className="font-bold text-gray-500">Select an exam from the dropdown above to manage its timetable.</p>
+                    <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                        <AlertTriangle className="w-8 h-8 text-indigo-300" />
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 mb-2">Setup Required</h3>
+                    <p className="font-bold text-gray-500 max-w-md mx-auto">Please select both an <span className="text-indigo-600 underline">Exam Window</span> and a <span className="text-indigo-600 underline">Class Context</span> to view or manage the timetable.</p>
                 </div>
             )}
         </div>

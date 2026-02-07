@@ -24,7 +24,7 @@ import { MyAssignments } from '../modules/academic/pages/MyAssignments';
 import { MyStudents } from '../modules/academic/pages/MyStudents';
 import { SubjectManagement } from '../modules/exam/pages/SubjectManagement';
 import { ExamManagement } from '../modules/exam/pages/ExamManagement';
-import { ExamTimeTable } from '../modules/exam/pages/ExamTimeTable';
+
 import { MarksEntry } from '../modules/exam/pages/MarksEntry';
 import { StudentResults } from '../modules/exam/pages/StudentResults';
 import { MyHallTicket } from '../modules/exam/pages/MyHallTicket';
@@ -277,7 +277,7 @@ export const AppRouter = () => {
                         } />
                         <Route path="exams/timetable" element={
                             <ExamOperationGuard>
-                                <ExamTimeTable />
+                                <ExamTimetablePage />
                             </ExamOperationGuard>
                         } />
                         {/* Marks entry is shared with Faculty, so keep PermissionGuard or handle logic inside. 

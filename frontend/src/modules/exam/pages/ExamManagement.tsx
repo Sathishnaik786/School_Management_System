@@ -3,12 +3,7 @@ import { apiClient } from '../../../lib/api-client';
 // @ts-ignore
 import { useAuth } from '../../../context/AuthContext';
 import { SubjectManagement } from './SubjectManagement';
-// We import these dynamically or use simple links to avoid heavy nesting compatibility issues if any
-// But since they are pages, we can render them conditionally.
 import { MarksEntry } from './MarksEntry';
-// Note: MarksEntry is a full page with its own Layout assumptions (back button etc).
-// We might just link to it, or wrap it.
-// For "Implement all exam related things", embedding is best if styling permits.
 import { StudentResults } from './StudentResults';
 import { Calendar, BookOpen, FileText, BarChart2 } from 'lucide-react';
 
@@ -25,19 +20,23 @@ export const ExamManagement = () => {
 
     // --- Tab 1: Exam Terms Logic ---
     const [exams, setExams] = useState<any[]>([]);
+    const [classes, setClasses] = useState<any[]>([]);
     const [name, setName] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [examType, setExamType] = useState('UNIT_TEST');
+    const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
     const [activeYear, setActiveYear] = useState<any>(null);
-
-    useEffect(() => {
-        apiClient.get('/academic-years/current').then(res => setActiveYear(res.data));
-        fetchExams();
-    }, []);
 
     const fetchExams = () => {
         apiClient.get('/exams').then(res => setExams(res.data));
     };
+
+    useEffect(() => {
+        apiClient.get('/academic-years/current').then(res => setActiveYear(res.data));
+        apiClient.get('/academic/classes').then(res => setClasses(res.data));
+        fetchExams();
+    }, []);
 
     const handleCreateExam = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,11 +47,14 @@ export const ExamManagement = () => {
                 name,
                 academic_year_id: activeYear.id,
                 start_date: startDate,
-                end_date: endDate
+                end_date: endDate,
+                type: examType,
+                applicable_classes: selectedClasses.length > 0 ? selectedClasses : null
             });
             setName('');
             setStartDate('');
             setEndDate('');
+            setSelectedClasses([]);
             fetchExams();
             alert("Exam created successfully!");
         } catch (err: any) {
@@ -135,9 +137,51 @@ export const ExamManagement = () => {
                                         />
                                     </div>
 
-                                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 active:scale-95 h-[50px]">
-                                        Create Exam
-                                    </button>
+                                    <div className="col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Exam Type</label>
+                                            <select
+                                                className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-indigo-100 outline-none font-bold text-gray-700"
+                                                value={examType}
+                                                onChange={e => setExamType(e.target.value)}
+                                            >
+                                                <option value="UNIT_TEST">Unit Test</option>
+                                                <option value="QUARTERLY">Quarterly</option>
+                                                <option value="HALF_YEARLY">Half Yearly</option>
+                                                <option value="ANNUAL">Annual</option>
+                                                <option value="PRE_BOARD">Pre-Board</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
+                                                Applicable Classes <span className="text-gray-400 font-normal normal-case">(Default: All)</span>
+                                            </label>
+                                            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border border-gray-100 p-2 rounded-xl bg-gray-50">
+                                                {classes.map(cls => (
+                                                    <label key={cls.id} className="inline-flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:border-indigo-200 transition-colors">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                                                            checked={selectedClasses.includes(cls.id)}
+                                                            onChange={e => {
+                                                                if (e.target.checked) setSelectedClasses([...selectedClasses, cls.id]);
+                                                                else setSelectedClasses(selectedClasses.filter(id => id !== cls.id));
+                                                            }}
+                                                        />
+                                                        <span className="text-xs font-bold text-gray-700">{cls.name}</span>
+                                                    </label>
+                                                ))}
+                                                {classes.length === 0 && <span className="text-xs text-gray-400 p-1">Loading classes...</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-4 flex justify-end pt-4 border-t border-gray-50">
+                                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 active:scale-95">
+                                            Create Exam
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
                         )}
@@ -151,6 +195,18 @@ export const ExamManagement = () => {
                                             <span>{exam.start_date} — {exam.end_date}</span>
                                             <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide">
                                                 {exam.academic_year?.year_label}
+                                            </span>
+                                            {exam.type && (
+                                                <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide">
+                                                    {exam.type.replace('_', ' ')}
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-gray-400 font-medium mt-2">
+                                            Classes: <span className="text-gray-600">
+                                                {!exam.applicable_classes || exam.applicable_classes.length === 0
+                                                    ? "All Classes"
+                                                    : exam.applicable_classes.length + " Selected"}
                                             </span>
                                         </p>
                                     </div>
@@ -170,8 +226,6 @@ export const ExamManagement = () => {
 
                 {activeTab === 'marks' && (
                     <div>
-                        {/* We render MarksEntry but we should ideally hide its header or adjust it if it has a 'Back to Dashboard' link that might look weird here. 
-                             However, reuse is key. */}
                         <MarksEntry />
                     </div>
                 )}

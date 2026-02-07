@@ -66,9 +66,15 @@ export const ExamDashboard = () => {
                     <div className="relative z-10">
                         <div className="text-sm font-bold uppercase tracking-wider text-indigo-100 mb-2">Upcoming Exams</div>
                         <div className="text-4xl font-black">{stats.upcoming}</div>
-                        <Link to="/app/exam-admin/timetable" className="inline-flex items-center gap-2 mt-4 text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors">
-                            Manage Schedules <ChevronRight className="w-3 h-3" />
-                        </Link>
+
+                        <div className="flex gap-2 mt-4">
+                            <Link to="/app/exams/manage" className="inline-flex items-center gap-2 text-xs font-bold bg-white text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                                + Create New Exam <ChevronRight className="w-3 h-3" />
+                            </Link>
+                            <Link to="/app/exam-admin/timetable" className="inline-flex items-center gap-2 text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors">
+                                TimeTable <ChevronRight className="w-3 h-3" />
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
@@ -210,8 +216,8 @@ export const ExamDashboard = () => {
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className="font-bold text-gray-900 text-lg">{exam.name}</h4>
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${exam.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' :
-                                                    exam.status === 'SCHEDULED' ? 'bg-indigo-100 text-indigo-700' :
-                                                        'bg-gray-200 text-gray-600'
+                                                exam.status === 'SCHEDULED' ? 'bg-indigo-100 text-indigo-700' :
+                                                    'bg-gray-200 text-gray-600'
                                                 }`}>
                                                 {exam.status}
                                             </span>
@@ -240,9 +246,14 @@ export const ExamDashboard = () => {
                                     </div>
                                     <h3 className="text-gray-900 font-bold mb-1">No Exams Found</h3>
                                     <p className="text-gray-500 text-sm mb-4">Get started by creating your first exam schedule.</p>
-                                    <Link to="/app/exam-admin/timetable" className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100">
-                                        Create Exam Schedule
-                                    </Link>
+                                    <div className="flex gap-3 justify-center">
+                                        <Link to="/app/exams/manage" className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100">
+                                            1. Create Exam
+                                        </Link>
+                                        <Link to="/app/exam-admin/timetable" className="inline-flex items-center gap-2 px-5 py-2 bg-white text-gray-700 font-bold rounded-xl hover:bg-gray-50 border border-gray-200">
+                                            2. Schedule
+                                        </Link>
+                                    </div>
                                 </div>
                             )}
                         </div>
