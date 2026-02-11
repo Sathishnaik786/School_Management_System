@@ -11,8 +11,36 @@ export const ExamScheduleService = {
         passing_marks?: number;
     }) {
         // ========================================================
-        // ARCHITECTURE ENFORCEMENT: CONFLICT DETECTION
+        // ARCHITECTURE ENFORCEMENT: DATE RANGE & CONFLICT DETECTION
         // ========================================================
+
+        // 0. Fetch Exam Date Range & Status
+        const { data: exam, error: examError } = await supabase
+            .from('exams')
+            .select('start_date, end_date, status')
+            .eq('id', payload.exam_id)
+            .single();
+
+        if (examError || !exam) {
+            throw new Error("Invalid Exam ID or exam not found.");
+        }
+
+        if (!exam.start_date || !exam.end_date) {
+            throw new Error("Exam date range not configured. Please set start and end dates for the exam first.");
+        }
+
+        const examDate = payload.exam_date;
+        if (examDate < exam.start_date || examDate > exam.end_date) {
+            const error: any = new Error(`Exam date must be between ${exam.start_date} and ${exam.end_date}`);
+            error.code = '400';
+            throw error;
+        }
+
+        if (exam.status !== 'DRAFT') {
+            const error: any = new Error("Cannot add schedules to an exam that is not in DRAFT status.");
+            error.code = '403';
+            throw error;
+        }
 
         // 1. Get Class ID for the subject being scheduled
         const { data: subjectData, error: subjectError } = await supabase
@@ -117,6 +145,32 @@ export const ExamScheduleService = {
         max_marks?: number;
         passing_marks?: number;
     }) {
+        // 0. Fetch Exam Date Range & Status
+        const { data: exam, error: examError } = await supabase
+            .from('exams')
+            .select('start_date, end_date, status')
+            .eq('id', payload.exam_id)
+            .single();
+
+        if (examError || !exam) throw new Error("Exam not found");
+
+        if (!exam.start_date || !exam.end_date) {
+            throw new Error("Exam date range not configured.");
+        }
+
+        const examDate = payload.exam_date;
+        if (examDate < exam.start_date || examDate > exam.end_date) {
+            const error: any = new Error(`Exam date must be between ${exam.start_date} and ${exam.end_date}`);
+            error.code = '400';
+            throw error;
+        }
+
+        if (exam.status !== 'DRAFT') {
+            const error: any = new Error("Cannot update schedules for an exam that is not in DRAFT status.");
+            error.code = '403';
+            throw error;
+        }
+
         // 1. Conflict Check (Exclude current ID)
 
         // Get Class ID
