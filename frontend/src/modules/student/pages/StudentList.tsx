@@ -14,6 +14,8 @@ import {
     Calendar,
     ChevronRight,
     ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
     ArrowUpCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -38,6 +40,24 @@ export const StudentList = () => {
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (columnKey: string) => {
+        if (sortConfig?.key === columnKey) {
+            return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4 ml-1" /> : <ArrowDown className="w-4 h-4 ml-1" />;
+        }
+        return <ArrowUpDown className="w-4 h-4 ml-1 text-gray-300" />;
+    };
+
     // Reset page when search changes
     useEffect(() => {
         setPage(1);
@@ -48,11 +68,17 @@ export const StudentList = () => {
             fetchData();
         }, 500); // Debounce
         return () => clearTimeout(timeoutId);
-    }, [page, limit, searchTerm]);
+    }, [page, limit, searchTerm, sortConfig]);
 
     const fetchData = () => {
         setLoading(true);
-        apiClient.get('/students', { params: { page, limit, search: searchTerm } })
+        const params: any = { page, limit, search: searchTerm };
+        if (sortConfig) {
+            params.sortBy = sortConfig.key;
+            params.sortOrder = sortConfig.direction;
+        }
+
+        apiClient.get('/students', { params })
             .then(res => {
                 setData(res.data.data || []);
                 setTotalPages(res.data.meta?.totalPages || 1);
@@ -154,15 +180,64 @@ export const StudentList = () => {
                         <thead className="bg-gray-100/50 border-b border-gray-200">
                             <tr>
                                 <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">S.No</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Student Code</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">DOB</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('student_code')}
+                                >
+                                    <div className="flex items-center">
+                                        Student Code {getSortIcon('student_code')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('full_name')}
+                                >
+                                    <div className="flex items-center">
+                                        Full Name {getSortIcon('full_name')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('date_of_birth')}
+                                >
+                                    <div className="flex items-center">
+                                        DOB {getSortIcon('date_of_birth')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('gender')}
+                                >
+                                    <div className="flex items-center">
+                                        Gender {getSortIcon('gender')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('email')}
+                                >
+                                    <div className="flex items-center">
+                                        Email {getSortIcon('email')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('phone')}
+                                >
+                                    <div className="flex items-center">
+                                        Phone {getSortIcon('phone')}
+                                    </div>
+                                </th>
                                 <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Class</th>
                                 <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Section</th>
-                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Address</th>
+                                <th
+                                    className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('address')}
+                                >
+                                    <div className="flex items-center">
+                                        Address {getSortIcon('address')}
+                                    </div>
+                                </th>
                                 <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>

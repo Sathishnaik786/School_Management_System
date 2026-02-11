@@ -73,7 +73,20 @@ studentRouter.get('/',
         }
 
         const { from, to } = getPaginationRange(Number(page), Number(limit));
-        query = query.order('full_name').range(from, to);
+
+        // Default sort
+        const sortColumn = (req.query.sortBy as string) || 'full_name';
+        const sortOrder = (req.query.sortOrder as string) === 'desc' ? false : true; // visual 'asc' = true (ascending), 'desc' = false (descending) for supabase
+
+        // Allow-list for reachable columns to prevent injection or errors
+        const allowedSorts = ['student_code', 'full_name', 'date_of_birth', 'gender', 'email', 'phone', 'address', 'created_at'];
+        if (allowedSorts.includes(sortColumn)) {
+            query = query.order(sortColumn, { ascending: sortOrder });
+        } else {
+            query = query.order('full_name', { ascending: true });
+        }
+
+        query = query.range(from, to);
 
         const { data, count, error } = await query;
 
