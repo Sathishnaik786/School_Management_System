@@ -248,11 +248,46 @@ export const AdminFeeLedger = () => {
                                     Student {getSortIcon('full_name')}
                                 </div>
                             </th>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Class/Sec</th>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Total Assigned</th>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Paid</th>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Balance</th>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase text-center">Fin. Status</th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('class_name')}
+                            >
+                                <div className="flex items-center">
+                                    Class/Sec {getSortIcon('class_name')}
+                                </div>
+                            </th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('total_fee')}
+                            >
+                                <div className="flex items-center justify-end">
+                                    Total Assigned {getSortIcon('total_fee')}
+                                </div>
+                            </th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('total_paid')}
+                            >
+                                <div className="flex items-center justify-end">
+                                    Paid {getSortIcon('total_paid')}
+                                </div>
+                            </th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('balance')}
+                            >
+                                <div className="flex items-center justify-end">
+                                    Balance {getSortIcon('balance')}
+                                </div>
+                            </th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase text-center cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('balance')}
+                            >
+                                <div className="flex items-center justify-center">
+                                    Fin. Status {getSortIcon('balance')}
+                                </div>
+                            </th>
                             <th className="p-4 text-xs font-bold text-gray-500 uppercase text-center">Exam Status</th>
                         </tr>
                     </thead>

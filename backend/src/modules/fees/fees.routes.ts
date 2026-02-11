@@ -177,42 +177,28 @@ feesRouter.get('/admin/ledger',
         const offset = (Number(page) - 1) * Number(limit);
 
         try {
-            // 1. Fetch Students (with pagination)
-            // Note: leveraging student_sections to get class info.
-            let query = supabase
+            // 1. Fetch ALL matching Students (removed range limit)
+            let studentsQuery = supabase
                 .from('students')
                 .select(`
                     id, full_name, student_code, 
                     sections:student_sections!inner(
                         section:section_id(name, class:class_id(name))
                     )
-                `, { count: 'exact' })
+                `)
                 .eq('school_id', schoolId)
                 .eq('status', 'active');
 
             if (sectionId) {
-                query = query.eq('sections.section_id', sectionId);
+                studentsQuery = studentsQuery.eq('sections.section_id', sectionId);
             }
 
             if (search) {
-                query = query.or(`full_name.ilike.%${search}%,student_code.ilike.%${search}%`);
+                studentsQuery = studentsQuery.or(`full_name.ilike.%${search}%,student_code.ilike.%${search}%`);
             }
 
-            // Sorting
-            const sortBy = (req.query.sortBy as string) || 'full_name';
-            const sortOrder = (req.query.sortOrder as string) === 'desc' ? { ascending: false } : { ascending: true };
-
-            const allowedSorts = ['full_name', 'student_code'];
-            if (allowedSorts.includes(sortBy)) {
-                query = query.order(sortBy, sortOrder);
-            } else {
-                query = query.order('full_name', { ascending: true });
-            }
-
-            query = query.range(offset, offset + Number(limit) - 1);
-
-            const { data: students, count, error } = await query;
-            if (error) throw error;
+            const { data: students, error: stuError } = await studentsQuery;
+            if (stuError) throw stuError;
 
             if (!students || students.length === 0) {
                 return res.json({ data: [], meta: { total: 0, page: Number(page), limit: Number(limit) } });
@@ -220,12 +206,16 @@ feesRouter.get('/admin/ledger',
 
             const studentIds = students.map(s => s.id);
 
-            // 2. Bulk Fetch Fees with Structure Name
+            // 2. Fetch ALL Fees and Payments for these students
             const { data: fees } = await supabase
                 .from('student_fees')
                 .select('student_id, assigned_amount, fee_structure:fee_structure_id(name)')
                 .in('student_id', studentIds);
-            const { data: payments } = await supabase.from('payments').select('student_id, amount_paid, remarks').in('student_id', studentIds);
+
+            const { data: payments } = await supabase
+                .from('payments')
+                .select('student_id, amount_paid, remarks')
+                .in('student_id', studentIds);
 
             // 3. Aggregate
             const feeMap: Record<string, number> = {};
@@ -238,6 +228,7 @@ feesRouter.get('/admin/ledger',
                     testDataMap[f.student_id] = true;
                 }
             });
+
             payments?.forEach((p: any) => {
                 payMap[p.student_id] = (payMap[p.student_id] || 0) + Number(p.amount_paid);
                 if (p.remarks === 'ADMIN_TEST_SEED') {
@@ -245,15 +236,15 @@ feesRouter.get('/admin/ledger',
                 }
             });
 
-            // 4. Map Results
-            const ledger = students.map((s: any) => {
+            // 4. Map and Calculate Ledger
+            let fullLedger = students.map((s: any) => {
                 const total = feeMap[s.id] || 0;
                 const paid = payMap[s.id] || 0;
-                // Just take the first section found (current active)
                 const sectionData = s.sections?.[0]?.section;
 
                 return {
                     id: s.id,
+                    student_id: s.id,
                     full_name: s.full_name,
                     student_code: s.student_code,
                     class_name: sectionData?.class?.name || '-',
@@ -265,10 +256,47 @@ feesRouter.get('/admin/ledger',
                 };
             });
 
+            // 5. Global Sorting
+            const sortBy = (req.query.sortBy as string) || 'full_name';
+            const sortOrder = (req.query.sortOrder as string) === 'desc' ? -1 : 1;
+
+            fullLedger.sort((a: any, b: any) => {
+                let valA, valB;
+
+                switch (sortBy) {
+                    case 'student_code':
+                        valA = a.student_code; valB = b.student_code;
+                        break;
+                    case 'class_name':
+                        valA = a.class_name; valB = b.class_name;
+                        break;
+                    case 'total_fee':
+                        valA = a.total_fee; valB = b.total_fee;
+                        break;
+                    case 'total_paid':
+                        valA = a.total_paid; valB = b.total_paid;
+                        break;
+                    case 'balance':
+                        valA = a.balance; valB = b.balance;
+                        break;
+                    default:
+                        valA = a.full_name.toLowerCase(); valB = b.full_name.toLowerCase();
+                }
+
+                if (valA < valB) return -1 * sortOrder;
+                if (valA > valB) return 1 * sortOrder;
+                return 0;
+            });
+
+            // 6. Pagination (Local Slicing)
+            const total = fullLedger.length;
+            const start = (Number(page) - 1) * Number(limit);
+            const paginatedData = fullLedger.slice(start, start + Number(limit));
+
             res.json({
-                data: ledger,
+                data: paginatedData,
                 meta: {
-                    total: count,
+                    total,
                     page: Number(page),
                     limit: Number(limit)
                 }
