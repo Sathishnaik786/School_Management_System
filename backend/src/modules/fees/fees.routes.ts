@@ -198,6 +198,17 @@ feesRouter.get('/admin/ledger',
                 query = query.or(`full_name.ilike.%${search}%,student_code.ilike.%${search}%`);
             }
 
+            // Sorting
+            const sortBy = (req.query.sortBy as string) || 'full_name';
+            const sortOrder = (req.query.sortOrder as string) === 'desc' ? { ascending: false } : { ascending: true };
+
+            const allowedSorts = ['full_name', 'student_code'];
+            if (allowedSorts.includes(sortBy)) {
+                query = query.order(sortBy, sortOrder);
+            } else {
+                query = query.order('full_name', { ascending: true });
+            }
+
             query = query.range(offset, offset + Number(limit) - 1);
 
             const { data: students, count, error } = await query;

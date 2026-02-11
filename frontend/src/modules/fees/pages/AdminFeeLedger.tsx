@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../lib/api-client';
-import { Search, ChevronLeft, ChevronRight, FileDown, Filter } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, FileDown, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 export const AdminFeeLedger = () => {
     const [loading, setLoading] = useState(true);
@@ -16,6 +16,24 @@ export const AdminFeeLedger = () => {
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
     const [dueOnly, setDueOnly] = useState(false); // Client-side filter for now or add to API?
+
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (columnKey: string) => {
+        if (sortConfig?.key === columnKey) {
+            return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4 ml-1" /> : <ArrowDown className="w-4 h-4 ml-1" />;
+        }
+        return <ArrowUpDown className="w-4 h-4 ml-1 text-gray-300" />;
+    };
 
     // Load initial metadata (Classes)
     useEffect(() => {
@@ -88,7 +106,7 @@ export const AdminFeeLedger = () => {
     // Load Ledger Data
     useEffect(() => {
         fetchLedger(1);
-    }, [selectedSection, search]); // Note: If class selected but no section, we might need to handle filtering by class in API (which we skipped for simplicity).
+    }, [selectedSection, search, sortConfig]); // Note: If class selected but no section, we might need to handle filtering by class in API (which we skipped for simplicity).
     // Let's rely on Section Selection for now as per API design, or Search.
 
     const fetchLedger = (page: number) => {
@@ -96,6 +114,10 @@ export const AdminFeeLedger = () => {
         const params: any = { page, limit: 50 };
         if (selectedSection) params.sectionId = selectedSection;
         if (search) params.search = search;
+        if (sortConfig) {
+            params.sortBy = sortConfig.key;
+            params.sortOrder = sortConfig.direction;
+        }
 
         apiClient.get('/fees/admin/ledger', { params })
             .then(res => {
@@ -218,7 +240,14 @@ export const AdminFeeLedger = () => {
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th className="p-4 text-xs font-bold text-gray-500 uppercase">Student</th>
+                            <th
+                                className="p-4 text-xs font-bold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('full_name')}
+                            >
+                                <div className="flex items-center">
+                                    Student {getSortIcon('full_name')}
+                                </div>
+                            </th>
                             <th className="p-4 text-xs font-bold text-gray-500 uppercase">Class/Sec</th>
                             <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Total Assigned</th>
                             <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Paid</th>
