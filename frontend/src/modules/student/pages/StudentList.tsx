@@ -13,11 +13,14 @@ import {
     CheckCircle2,
     Calendar,
     ChevronRight,
-    ArrowUpDown
+    ArrowUpDown,
+    ArrowUpCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { ImportWizard } from '../../../components/import/ImportWizard';
+
+import { AssignSectionModal } from '../components/AssignSectionModal';
 
 export const StudentList = () => {
     const { hasPermission, user } = useAuth(); // Assuming useAuth provides 'user.roles' or 'hasPermission'
@@ -30,6 +33,10 @@ export const StudentList = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isImportOpen, setIsImportOpen] = useState(false);
+
+    // Assign Modal States
+    const [isAssignOpen, setIsAssignOpen] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
     // Reset page when search changes
     useEffect(() => {
@@ -74,6 +81,14 @@ export const StudentList = () => {
                 title="Students"
             />
 
+            {/* Assign Section Modal */}
+            <AssignSectionModal
+                isOpen={isAssignOpen}
+                student={selectedStudent}
+                onClose={() => { setIsAssignOpen(false); setSelectedStudent(null); }}
+                onSuccess={() => { fetchData(); }}
+            />
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
@@ -98,6 +113,14 @@ export const StudentList = () => {
                             Import CSV
                         </button>
                     )}
+
+                    <Link
+                        to="/app/students/promote"
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100"
+                    >
+                        <ArrowUpCircle className="w-5 h-5" />
+                        Academic Promotion
+                    </Link>
 
                     <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-100">
                         <UserPlus className="w-5 h-5" />
@@ -127,78 +150,97 @@ export const StudentList = () => {
             {/* Student Table */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-100/50 border-b border-gray-200">
                             <tr>
-                                <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                    <div className="flex items-center gap-2">
-                                        RECORDS <ArrowUpDown className="w-3 h-3" />
-                                    </div>
-                                </th>
-                                <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest text-center">STATUS</th>
-                                <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest">PERSONAL DETAILS</th>
-                                <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">ACTIONS</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">S.No</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Student Code</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">DOB</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Class</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Section</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Address</th>
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredStudents.length > 0 ? filteredStudents.map(student => (
-                                <tr key={student.id} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                                {student.full_name?.charAt(0)}
+                            {filteredStudents.length > 0 ? filteredStudents.map((student, index) => {
+                                const admission = student.admission;
+                                const section = student.sections?.[0]?.section;
+                                const className = section?.class?.name || 'Not Assigned';
+                                const sectionName = section?.name || 'Not Assigned';
+
+                                // Map fields with fallback to admission data for backward compatibility or display
+                                const displayEmail = student.email || admission?.parent_email || '-';
+                                const displayPhone = student.phone || admission?.parent_phone || '-';
+                                const displayAddress = student.address || admission?.address || '-';
+
+                                return (
+                                    <tr key={student.id} className="group hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-gray-600 font-medium">
+                                            {(page - 1) * limit + index + 1}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900 font-bold">
+                                            {student.student_code}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold uppercase">
+                                                    {student.full_name?.charAt(0)}
+                                                </div>
+                                                <span className="text-sm font-semibold text-gray-900">{student.full_name}</span>
                                             </div>
-                                            <div>
-                                                <div className="text-sm font-black text-gray-900 uppercase">{student.full_name}</div>
-                                                <div className="text-xs font-bold text-gray-400 mt-0.5 tracking-tight">{student.student_code}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                            {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600 capitalize">
+                                            {student.gender || '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                            {displayEmail}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                            {displayPhone}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                            {className}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                            {sectionName}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={displayAddress}>
+                                            {displayAddress}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => { setSelectedStudent(student); setIsAssignOpen(true); }}
+                                                    className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                    title="Assign Class & Section"
+                                                >
+                                                    <GraduationCap className="w-4 h-4" />
+                                                </button>
+                                                <Link
+                                                    to={`/app/students/${student.id}`}
+                                                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="View Profile"
+                                                >
+                                                    <Info className="w-4 h-4" />
+                                                </Link>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-center">
-                                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest 
-                                        ${student.status === 'active' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
-                                            {student.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                                                <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                                                Born: {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                                                <GraduationCap className="w-3.5 h-3.5 text-purple-500" />
-                                                Gender: {student.gender}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Link
-                                                to={`/app/students/${student.id}`}
-                                                className="p-2.5 bg-white text-gray-400 hover:text-blue-600 rounded-xl border border-gray-100 shadow-sm transition-all"
-                                                title="View Profile"
-                                            >
-                                                <Info className="w-5 h-5" />
-                                            </Link>
-                                            <Link
-                                                to={`/app/academic/classes`} // Direct to assignment
-                                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-blue-100 transition-all uppercase"
-                                            >
-                                                Assign Section
-                                                <ChevronRight className="w-4 h-4" />
-                                            </Link>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
+                                        </td>
+                                    </tr>
+                                );
+                            }) : (
                                 <tr>
-                                    <td colSpan={4} className="px-8 py-20 text-center">
-                                        <div className="max-w-xs mx-auto space-y-3">
-                                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                                                <Search className="w-8 h-8 text-gray-200" />
-                                            </div>
-                                            <p className="text-gray-400 font-bold text-sm">No students matched your search criteria.</p>
+                                    <td colSpan={11} className="px-8 py-12 text-center">
+                                        <div className="flex flex-col items-center justify-center text-gray-400">
+                                            <Search className="w-8 h-8 mb-2 opacity-20" />
+                                            <p className="text-sm font-medium">No students found matching your criteria.</p>
                                         </div>
                                     </td>
                                 </tr>

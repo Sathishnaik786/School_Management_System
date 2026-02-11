@@ -17,7 +17,8 @@ import {
     Coins,
     CreditCard,
     Bus,
-    Activity
+    Activity,
+    Database
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -56,6 +57,8 @@ export const AdminDashboard = () => {
     const quickActions = [
         { label: 'Review Admissions', icon: FileCheck, link: '/app/admissions/review', desc: `${stats?.pendingAdmissions || 0} applications pending` },
         { label: 'Academic Setup', icon: GraduationCap, link: '/app/academic/classes', desc: 'Classes & Sections' },
+        { label: 'Academic Governance', icon: Calendar, link: '/app/academic/years', desc: 'Session Lifecycle' },
+        { label: 'Bulk Operations', icon: Database, link: '/app/admin/bulk', desc: 'Mass Assignment/Promotion' },
         ...(isExamAdmin ? [{
             label: 'Exam Management',
             icon: BookOpen,

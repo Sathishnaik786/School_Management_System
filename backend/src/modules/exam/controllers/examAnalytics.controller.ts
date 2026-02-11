@@ -48,5 +48,41 @@ export const ExamAnalyticsController = {
         } catch (err: any) {
             res.status(500).json({ error: err.message });
         }
+    },
+
+    async getCompliance(req: Request, res: Response) {
+        try {
+            const { examId } = req.query;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const data = await ExamAnalyticsService.getComplianceReport(examId as string);
+            res.json(data);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getSectionAnalytics(req: Request, res: Response) {
+        try {
+            const { examId } = req.query;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const data = await ExamAnalyticsService.getSectionAnalytics(examId as string);
+            res.json(data);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getAuditTrails(req: Request, res: Response) {
+        try {
+            const { examId } = req.query;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const data = await ExamAnalyticsService.getAuditTrails(examId as string);
+            res.json(data);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
     }
 };

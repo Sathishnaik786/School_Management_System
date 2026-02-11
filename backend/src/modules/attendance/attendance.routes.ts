@@ -24,7 +24,23 @@ attendanceRouter.post('/session',
         if (!academic_year_id || !section_id || !date) return res.status(400).json({ error: "Missing fields" });
 
         try {
-            // SECURITY: ABAC Enforcement
+            // 0. SECURITY: Current Year Only
+            const { data: activeYear } = await supabase
+                .from('academic_years')
+                .select('id, status')
+                .eq('school_id', schoolId)
+                .eq('is_active', true)
+                .single();
+
+            if (!activeYear || activeYear.id !== academic_year_id) {
+                return res.status(403).json({ error: "Attendance can only be marked for the active academic year." });
+            }
+
+            if (activeYear.status === 'CLOSED') {
+                return res.status(403).json({ error: "Cannot mark attendance in a CLOSED academic year." });
+            }
+
+            // 1. SECURITY: ABAC Enforcement
             // "Use timetable_slots as source of truth"
             // If marking a Subject period, verify User teaches this Subject to this Section at this Time (or generally).
             if (subject_id) {
@@ -157,6 +173,139 @@ attendanceRouter.post('/session/:id/records',
 );
 
 // ======================================
+// ADMIN INTELLIGENCE
+// ======================================
+attendanceRouter.get('/admin/summary',
+    checkPermission(PERMISSIONS.DASHBOARD_VIEW_ADMIN),
+    async (req, res) => {
+        const schoolId = req.context!.user.school_id;
+        try {
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. Total Active Students
+            const { count: totalStudents } = await supabase
+                .from('students')
+                .select('*', { count: 'exact', head: true })
+                .eq('school_id', schoolId)
+                .eq('status', 'active');
+
+            // 2. Today's Stats (Sessions & Records)
+            const { data: sessions } = await supabase
+                .from('attendance_sessions')
+                .select('id')
+                .eq('school_id', schoolId)
+                .eq('date', today);
+
+            const sessionIds = sessions?.map(s => s.id) || [];
+            let presentCount = 0;
+            let absentCount = 0;
+
+            if (sessionIds.length > 0) {
+                const { data: records } = await supabase
+                    .from('attendance_records')
+                    .select('status')
+                    .in('session_id', sessionIds);
+
+                records?.forEach(r => {
+                    if (r.status?.toLowerCase() === 'present') presentCount++;
+                    else absentCount++;
+                });
+            }
+
+            const markedTotal = presentCount + absentCount;
+            const rate = markedTotal > 0 ? ((presentCount / markedTotal) * 100).toFixed(1) : 0;
+
+            res.json({
+                totalStudents: totalStudents || 0,
+                presentToday: presentCount,
+                absentToday: absentCount,
+                attendanceRateToday: rate,
+                sessionsMarked: sessionIds.length
+            });
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+attendanceRouter.get('/admin/class-summary',
+    checkPermission(PERMISSIONS.DASHBOARD_VIEW_ADMIN),
+    async (req, res) => {
+        const schoolId = req.context!.user.school_id;
+        try {
+            const today = new Date().toISOString().split('T')[0];
+
+            const { data: sessions } = await supabase
+                .from('attendance_sessions')
+                .select(`
+                    id, 
+                    section:section_id(name, class:class_id(name)),
+                    records:attendance_records(status)
+                `)
+                .eq('school_id', schoolId)
+                .eq('date', today);
+
+            if (!sessions) return res.json([]);
+
+            const summary = sessions.map((s: any) => {
+                const total = s.records?.length || 0;
+                const present = s.records?.filter((r: any) => r.status?.toLowerCase() === 'present').length || 0;
+                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : 0;
+
+                return {
+                    class_name: s.section?.class?.name || 'Unknown',
+                    section_name: s.section?.name || 'Unknown',
+                    present_count: present,
+                    total_students: total,
+                    attendance_rate: percent
+                };
+            });
+
+            res.json(summary);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+attendanceRouter.get('/admin/defaulters',
+    checkPermission(PERMISSIONS.DASHBOARD_VIEW_ADMIN),
+    async (req, res) => {
+        try {
+            const { data: defaulters, error } = await supabase
+                .from('student_attendance_summary')
+                .select(`
+                    student_id, 
+                    attendance_percentage,
+                    total_sessions,
+                    present_sessions,
+                    student:student_id(full_name, student_code, student_sections(section:section_id(name, class:class_id(name))))
+                `)
+                .lt('attendance_percentage', 75)
+                .order('attendance_percentage', { ascending: true })
+                .limit(100);
+
+            if (error) throw error;
+
+            const result = defaulters?.map((d: any) => ({
+                id: d.student_id,
+                name: d.student?.full_name,
+                code: d.student?.student_code,
+                class_name: d.student?.student_sections?.[0]?.section?.class?.name || '-',
+                section_name: d.student?.student_sections?.[0]?.section?.name || '-',
+                percent: d.attendance_percentage,
+                present: d.present_sessions,
+                total: d.total_sessions
+            }));
+
+            res.json(result || []);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// ======================================
 // VIEWS
 // ======================================
 
@@ -172,7 +321,7 @@ attendanceRouter.get('/section/:sectionId',
         // 1. Get Session
         const { data: session } = await supabase
             .from('attendance_sessions')
-            .select('*')
+            .select('*, marker:marked_by(user_roles(role:role_id(name)))')
             .eq('section_id', sectionId)
             .eq('date', date)
             .single();

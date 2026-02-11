@@ -11,7 +11,6 @@ export const studentRouter = Router();
 // ADMIN / FACULTY ROUTES
 // ======================================
 
-// GET / - List Students
 // GET / - List Students (supports filtering)
 studentRouter.get('/',
     checkPermission(PERMISSIONS.STUDENT_VIEW),
@@ -20,9 +19,31 @@ studentRouter.get('/',
         const sectionId = req.query.sectionId as string;
         const { page, limit, search } = req.query;
 
+        // 1. Get Active Academic Year
+        const { data: activeYear } = await supabase
+            .from('academic_years')
+            .select('id')
+            .eq('school_id', schoolId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        // 2. Build Query
+        // We filter student_sections to only show the one for the active academic year
         let query = supabase
             .from('students')
-            .select('*, parents:student_parents(user:parent_user_id(full_name, email)), sections:student_sections(section_id)', { count: 'exact' })
+            .select(`
+                *,
+                admission:admission_id(*),
+                sections:student_sections(
+                    academic_year_id,
+                    section:section_id(
+                        id,
+                        name,
+                        class_id,
+                        class:class_id(id, name)
+                    )
+                )
+            `, { count: 'exact' })
             .eq('school_id', schoolId)
             .eq('status', 'active');
 
@@ -31,16 +52,23 @@ studentRouter.get('/',
         }
 
         if (sectionId) {
-            // Filter via join is tricky in simple Supabase select string without foreign key embedding in a specific way.
-            // Alternative: Fetch students in section first.
             const { data: sectionStudents, error: secError } = await supabase
                 .from('student_sections')
                 .select('student_id')
                 .eq('section_id', sectionId);
 
-            if (secError) return res.status(500).json({ error: secError.message });
+            if (secError) {
+                console.error("[StudentRoute] Section Error", secError);
+                return res.status(500).json({ error: secError.message });
+            }
 
             const ids = sectionStudents.map(s => s.student_id);
+            console.log(`[StudentRoute] Section ${sectionId} has ${ids.length} students`);
+
+            if (ids.length === 0) {
+                return res.json(createPaginatedResult([], 0, Number(page) || 1, Number(limit) || 10));
+            }
+
             query = query.in('id', ids);
         }
 
@@ -50,7 +78,21 @@ studentRouter.get('/',
         const { data, count, error } = await query;
 
         if (error) return res.status(500).json({ error: error.message });
-        res.json(createPaginatedResult(data, count, Number(page) || 1, Number(limit) || 10));
+
+        // 3. Post-Process to ensure 'sections' only contains the active year (LEFT JOIN logic)
+        const enrichedData = (data || []).map(student => {
+            const currentYearSection = activeYear
+                ? student.sections?.find((s: any) => s.academic_year_id === activeYear.id)
+                : null;
+
+            return {
+                ...student,
+                // Override sections with just the current one or empty array to maintain compatibility
+                sections: currentYearSection ? [currentYearSection] : []
+            };
+        });
+
+        res.json(createPaginatedResult(enrichedData, count, Number(page) || 1, Number(limit) || 10));
     }
 );
 
@@ -225,6 +267,100 @@ studentRouter.post('/my/link',
             if (linkError) throw linkError;
 
             res.json({ message: "Linked successfully", student: student.full_name });
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// ======================================
+// ACADEMIC HISTORY (Student/Parent)
+// ======================================
+
+// GET /academic-history?studentId=...
+studentRouter.get('/academic-history',
+    checkPermission(PERMISSIONS.STUDENT_VIEW_SELF),
+    async (req: Request, res: Response) => {
+        const studentId = req.query.studentId as string;
+        if (!studentId) return res.status(400).json({ error: "studentId is required" });
+
+        try {
+            // RLS handles visibility but we can order by year start_date
+            const { data: history, error } = await supabase
+                .from('student_sections')
+                .select(`
+                    academic_year_id,
+                    academic_year:academic_year_id(id, year_label, status),
+                    section:section_id(
+                        name,
+                        class:class_id(name)
+                    )
+                `)
+                .eq('student_id', studentId);
+
+            if (error) throw error;
+
+            // Format and sort by year label or we could fetch dates if needed. 
+            // Since we don't have start_date here and don't want to change schema, 
+            // we'll assume year_label order is alphabetical/logical for now or sort in code.
+            const formatted = history.map((h: any) => ({
+                academic_year_id: h.academic_year_id,
+                academic_year_label: h.academic_year.year_label,
+                year_status: h.academic_year.status || 'ACTIVE',
+                class_name: h.section.class.name,
+                section_name: h.section.name
+            })).sort((a, b) => b.academic_year_label.localeCompare(a.academic_year_label));
+
+            res.json(formatted);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// GET /exam-history?academic_year_id=...&studentId=...
+studentRouter.get('/exam-history',
+    checkPermission(PERMISSIONS.MARKS_VIEW),
+    async (req: Request, res: Response) => {
+        const { academic_year_id, studentId } = req.query;
+
+        if (!academic_year_id || !studentId) {
+            return res.status(400).json({ error: "academic_year_id and studentId are required" });
+        }
+
+        try {
+            // 1. Get Exams for that year
+            const { data: exams, error: examError } = await supabase
+                .from('exams')
+                .select('id, name')
+                .eq('academic_year_id', academic_year_id);
+
+            if (examError) throw examError;
+            if (!exams || exams.length === 0) return res.json([]);
+
+            // 2. Get Published Summaries
+            const { data: summaries, error: sumError } = await supabase
+                .from('student_result_summaries')
+                .select('*')
+                .eq('student_id', studentId)
+                .in('exam_id', exams.map(e => e.id));
+
+            if (sumError) throw sumError;
+
+            // 3. Map result
+            const results = exams.map(exam => {
+                const summary = summaries?.find(s => s.exam_id === exam.id);
+                return {
+                    exam_id: exam.id,
+                    exam_name: exam.name,
+                    result_status: summary?.result_status || 'NOT_PROCESSED',
+                    is_published: summary?.is_published || false,
+                    published_at: summary?.published_at,
+                    report_card_id: summary?.id
+                };
+            });
+
+            res.json(results);
         } catch (err: any) {
             res.status(500).json({ error: err.message });
         }

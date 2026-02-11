@@ -21,4 +21,5 @@ export const env = {
     SUPABASE_URL: process.env.SUPABASE_URL!,
     // Prioritize the specific Service Role variable if set (common user pattern)
     SUPABASE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY!,
+    SYSTEM_MODE: (process.env.SYSTEM_MODE || 'UAT') as 'UAT' | 'PRODUCTION',
 };

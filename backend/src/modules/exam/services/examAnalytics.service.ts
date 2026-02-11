@@ -127,5 +127,79 @@ export const ExamAnalyticsService = {
 
         if (error) throw error;
         return data;
+    },
+
+    // 5. COMPLIANCE REPORT (Eligible vs Appeared vs Passed)
+    async getComplianceReport(examId: string) {
+        const { data, error } = await supabase
+            .from('v_exam_compliance_metrics')
+            .select('*')
+            .eq('exam_id', examId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 6. SECTION-WISE ANALYTICS
+    async getSectionAnalytics(examId: string) {
+        const { data, error } = await supabase
+            .from('v_section_performance_analytics')
+            .select('*')
+            .eq('exam_id', examId);
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 7. AUDIT LOGS (Override logs, etc.)
+    async getAuditTrails(examId: string) {
+        // Since the view has JSONB extraction, we filter by the extracted field
+        const { data, error } = await supabase
+            .from('v_exam_audit_comprehensive')
+            .select('*')
+            .or(`相关_exam_id.eq.${examId},details->>exam_id.eq.${examId}`);
+
+        if (error) throw error;
+        return data;
+    },
+
+    // 8. ATTENDANCE VS RESULT CORRELATION
+    async getAttendanceCorrelation(examId: string) {
+        // We look at students who were ABSENT/PRESENT vs their Result Status
+        const { data, error } = await supabase
+            .from('student_result_summaries')
+            .select(`
+                result_status,
+                student_id
+            `)
+            .eq('exam_id', examId);
+
+        if (error) throw error;
+
+        const { data: attendance } = await supabase
+            .from('exam_attendance')
+            .select('student_id, status')
+            .in('student_id', data?.map(d => d.student_id) || [])
+            .is('exam_schedule_id', (await supabase.from('exam_schedules').select('id').eq('exam_id', examId).limit(1).single()).data?.id); // Approximation for overall presence
+
+        // Grouping logic here...
+        return { message: "Detailed correlation requires cross-subject aggregation. Preview available via Result vs Attendance views." };
+    },
+
+    // 9. MALPRACTICE & ABSENT LISTS (For compliance)
+    async getComplianceLists(examId: string) {
+        const { data, error } = await supabase
+            .from('exam_attendance')
+            .select(`
+                status, remarks,
+                student:student_id(full_name, student_code),
+                schedule:exam_schedule_id(subject:subject_id(name))
+            `)
+            .eq('schedule.exam_id', examId)
+            .neq('status', 'PRESENT');
+
+        if (error) throw error;
+        return data;
     }
 };

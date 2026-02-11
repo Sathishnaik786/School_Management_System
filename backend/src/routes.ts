@@ -16,6 +16,11 @@ import { transportRouter } from './modules/transport/transport.routes';
 import { importRouter } from './modules/import/import.routes';
 import { staffRouter } from './modules/staff/staff.routes';
 import departmentRouter from './modules/departments/department.routes';
+import { adminRouter } from './modules/admin/admin.routes';
+import { bulkRouter } from './modules/admin/bulk.routes';
+import { testRouter } from './modules/admin/test.routes';
+
+import { env } from './config/env';
 
 export const router = Router();
 
@@ -24,6 +29,10 @@ export const router = Router();
 // ======================================
 router.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+router.get('/system/info', (req: Request, res: Response) => {
+    res.json({ mode: env.SYSTEM_MODE });
 });
 
 
@@ -146,6 +155,11 @@ router.use('/dashboard', dashboardRouter);
 router.use('/fees', feesRouter);
 router.use('/transport', transportRouter);
 router.use('/import', importRouter);
-router.use('/admin', staffRouter); // Mounting at /admin to match requirement /admin/staff-profiles
+
+
+router.use('/admin', staffRouter);
+router.use('/admin', adminRouter);
+router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);
+router.use('/admin/test', testRouter);
 

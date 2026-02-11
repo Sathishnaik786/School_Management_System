@@ -324,7 +324,7 @@ export const MarksEntry = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left min-w-[800px]">
                         <thead>
                             <tr className="border-b border-gray-100">
                                 <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
@@ -363,8 +363,8 @@ export const MarksEntry = () => {
                                                     placeholder="-"
                                                     disabled={isLocked}
                                                     className={`w-full bg-gray-50 border p-2.5 rounded-xl outline-none transition-all font-black text-right text-lg pr-8 ${!hasMarks ? 'border-gray-200 text-gray-400' :
-                                                            currentMarks > 100 || currentMarks < 0 ? 'border-red-300 text-red-600 bg-red-50 focus:ring-red-200' :
-                                                                'border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50'
+                                                        currentMarks > 100 || currentMarks < 0 ? 'border-red-300 text-red-600 bg-red-50 focus:ring-red-200' :
+                                                            'border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50'
                                                         }`}
                                                     value={marksBuffer[stu.id] ?? ''}
                                                     onChange={e => setMarksBuffer({ ...marksBuffer, [stu.id]: parseFloat(e.target.value) })}
@@ -378,8 +378,8 @@ export const MarksEntry = () => {
                                         <td className="px-8 py-4 text-center">
                                             {hasMarks ? (
                                                 <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${isPassing
-                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                        : 'bg-red-50 text-red-600 border-red-100'
+                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                    : 'bg-red-50 text-red-600 border-red-100'
                                                     }`}>
                                                     {isPassing ? 'Pass' : 'Fail'}
                                                 </span>
@@ -393,7 +393,7 @@ export const MarksEntry = () => {
                                                     onClick={() => handleSaveSingle(stu.id)}
                                                     disabled={savingId === stu.id || !hasMarks}
                                                     className={`p-2 rounded-lg transition-all ${savingId === stu.id ? 'text-emerald-500 bg-emerald-50' :
-                                                            hasMarks ? 'text-indigo-600 hover:bg-indigo-50' : 'text-gray-300'
+                                                        hasMarks ? 'text-indigo-600 hover:bg-indigo-50' : 'text-gray-300'
                                                         }`}
                                                     title="Save"
                                                 >

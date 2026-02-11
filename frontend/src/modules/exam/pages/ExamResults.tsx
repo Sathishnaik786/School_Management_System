@@ -182,7 +182,7 @@ export const ExamResults = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 p-24 flex flex-col items-center justify-center text-center opacity-70">
+                <div className="bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 p-8 sm:p-24 flex flex-col items-center justify-center text-center opacity-70">
                     <Award className="w-16 h-16 text-gray-300 mb-4" />
                     <p className="font-bold text-gray-500 text-xl">Select an exam to manage results</p>
                 </div>

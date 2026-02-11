@@ -23,7 +23,7 @@ export const StudentResults = () => {
                 <div className="grid gap-6">
                     {marks.map((m, idx) => (
                         <div key={idx} className="bg-white p-6 rounded shadow border-l-4 border-indigo-500">
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h3 className="text-xl font-bold text-gray-800">{m.subject?.name}</h3>
                                     <p className="text-sm text-gray-500">{m.exam?.name}</p>

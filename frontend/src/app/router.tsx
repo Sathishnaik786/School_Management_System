@@ -15,7 +15,9 @@ import { AdmissionReviewList } from '../modules/admission/pages/AdmissionReviewL
 import { ApplicationDetails } from '../modules/admission/pages/ApplicationDetails';
 import { AdmissionReviewPage } from '../modules/admission/pages/AdmissionReviewPage';
 import { StudentList } from '../modules/student/pages/StudentList';
+import { StudentPromotion } from '../modules/student/pages/StudentPromotion';
 import { MyChildren } from '../modules/student/pages/MyChildren';
+import { AcademicHistory } from '../modules/student/pages/AcademicHistory';
 import { ClassList } from '../modules/academic/pages/ClassList';
 import { SectionList } from '../modules/academic/pages/SectionList';
 import { DepartmentsListPage } from '../modules/academic/pages/DepartmentsListPage';
@@ -24,6 +26,8 @@ import { MyAssignments } from '../modules/academic/pages/MyAssignments';
 import { MyStudents } from '../modules/academic/pages/MyStudents';
 import { SubjectManagement } from '../modules/exam/pages/SubjectManagement';
 import { ExamManagement } from '../modules/exam/pages/ExamManagement';
+import { AcademicYearManagement } from '../modules/academic/pages/AcademicYearManagement';
+import { BulkOperations } from '../modules/admin/pages/BulkOperations';
 
 import { MarksEntry } from '../modules/exam/pages/MarksEntry';
 import { StudentResults } from '../modules/exam/pages/StudentResults';
@@ -40,11 +44,15 @@ import { MyExams } from '../modules/exam/pages/MyExams';
 // Phase 10A Scaffolds
 import { ExamDashboard } from '../modules/exam/pages/ExamDashboard';
 import { ExamTimetablePage } from '../modules/exam/pages/ExamTimetablePage';
+import { ExamEligibilityPage } from '../modules/exam/pages/ExamEligibilityPage';
+import { ExamHallTickets } from '../modules/exam/pages/ExamHallTickets';
 import { ExamSeating } from '../modules/exam/pages/ExamSeating';
 import { ExamQuestionPapers } from '../modules/exam/pages/ExamQuestionPapers';
 import { ExamResults } from '../modules/exam/pages/ExamResults';
 import { ExamAnalytics } from '../modules/exam/pages/ExamAnalytics';
 import { AttendanceMarking } from '../modules/attendance/pages/AttendanceMarking';
+import { AdminAttendanceDashboard } from '../modules/attendance/pages/AdminAttendanceDashboard';
+import { AttendanceBridgeManager } from '../modules/attendance/pages/AttendanceBridgeManager';
 import { SectionAttendanceView } from '../modules/attendance/pages/SectionAttendanceView';
 import { MyAttendance } from '../modules/attendance/pages/MyAttendance';
 import { TimetableBuilder } from '../modules/timetable/pages/TimetableBuilder';
@@ -53,6 +61,7 @@ import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManage
 import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
 import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
 import { MyFees } from '../modules/fees/pages/MyFees';
+import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
 import { TransportSetup } from '../modules/transport/pages/TransportSetup';
 import { TransportBulkAssignmentPage } from '../modules/transport/pages/TransportBulkAssignmentPage';
 import { StudentTransportAssignment } from '../modules/transport/pages/StudentTransportAssignment';
@@ -169,9 +178,21 @@ export const AppRouter = () => {
                             </PermissionGuard>
                         } />
 
+                        <Route path="students/promote" element={
+                            <PermissionGuard permission="STUDENT_ASSIGN_SECTION">
+                                <StudentPromotion />
+                            </PermissionGuard>
+                        } />
+
                         <Route path="students/my-children" element={
                             <PermissionGuard permission="STUDENT_VIEW_SELF">
                                 <MyChildren />
+                            </PermissionGuard>
+                        } />
+
+                        <Route path="student/academic-history" element={
+                            <PermissionGuard permission="STUDENT_VIEW_SELF">
+                                <AcademicHistory />
                             </PermissionGuard>
                         } />
 
@@ -179,6 +200,18 @@ export const AppRouter = () => {
                         <Route path="academic/classes" element={
                             <PermissionGuard permission="CLASS_VIEW">
                                 <ClassList />
+                            </PermissionGuard>
+                        } />
+
+                        <Route path="academic/years" element={
+                            <PermissionGuard permission="CLASS_CREATE">
+                                <AcademicYearManagement />
+                            </PermissionGuard>
+                        } />
+
+                        <Route path="admin/bulk" element={
+                            <PermissionGuard permission="STUDENT_ASSIGN_SECTION">
+                                <BulkOperations />
                             </PermissionGuard>
                         } />
 
@@ -375,6 +408,16 @@ export const AppRouter = () => {
                         } />
 
                         {/* Attendance Module Routes */}
+                        <Route path="attendance/admin/dashboard" element={
+                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
+                                <AdminAttendanceDashboard />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/admin/bridge" element={
+                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN"> {/* Or EXAM_CREATE */}
+                                <AttendanceBridgeManager />
+                            </PermissionGuard>
+                        } />
                         <Route path="attendance/mark" element={
                             <PermissionGuard permission="ATTENDANCE_MARK">
                                 <AttendanceMarking />
@@ -422,6 +465,11 @@ export const AppRouter = () => {
                         <Route path="fees/my" element={
                             <PermissionGuard permission="PAYMENT_VIEW_SELF">
                                 <MyFees />
+                            </PermissionGuard>
+                        } />
+                        <Route path="fees/ledger" element={
+                            <PermissionGuard permission="FEES_VIEW">
+                                <AdminFeeLedger />
                             </PermissionGuard>
                         } />
 
@@ -506,7 +554,9 @@ export const AppRouter = () => {
                     }>
                         <Route path="dashboard" element={<ExamDashboard />} />
                         <Route path="timetable" element={<ExamTimetablePage />} />
+                        <Route path="eligibility" element={<ExamEligibilityPage />} />
                         <Route path="seating" element={<ExamSeating />} />
+                        <Route path="hall-tickets" element={<ExamHallTickets />} />
                         <Route path="question-papers" element={<ExamQuestionPapers />} />
                         <Route path="results" element={<ExamResults />} />
                         <Route path="analytics" element={<ExamAnalytics />} />

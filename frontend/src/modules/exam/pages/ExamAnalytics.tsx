@@ -66,7 +66,7 @@ export const ExamAnalytics = () => {
 
             {selectedExamId ? (
                 loading ? (
-                    <div className="p-24 text-center text-gray-400 flex flex-col items-center">
+                    <div className="p-8 sm:p-24 text-center text-gray-400 flex flex-col items-center">
                         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
                         <span className="font-bold text-lg text-gray-900">Crunching Numbers...</span>
                         <span className="text-sm mt-1">Analyzing student performance data.</span>
@@ -101,7 +101,7 @@ export const ExamAnalytics = () => {
                                                     innerRadius={60}
                                                     outerRadius={100}
                                                     paddingAngle={5}
-                                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                                                 >
                                                     {grades.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
@@ -237,7 +237,7 @@ export const ExamAnalytics = () => {
                         </div>
                     </>
                 ) : (
-                    <div className="bg-white p-24 rounded-3xl border-2 border-dashed border-gray-200 text-center flex flex-col items-center opacity-70">
+                    <div className="bg-white p-8 sm:p-24 rounded-3xl border-2 border-dashed border-gray-200 text-center flex flex-col items-center opacity-70">
                         <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
                         <h3 className="font-bold text-gray-900 text-lg">No Analytics Available</h3>
                         <p className="max-w-xs mx-auto text-sm mt-2 text-gray-500">
@@ -246,7 +246,7 @@ export const ExamAnalytics = () => {
                     </div>
                 )
             ) : (
-                <div className="bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 p-24 flex flex-col items-center justify-center text-center opacity-70">
+                <div className="bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 p-8 sm:p-24 flex flex-col items-center justify-center text-center opacity-70">
                     <BarChart3 className="w-16 h-16 text-gray-300 mb-4" />
                     <p className="font-bold text-gray-500 text-xl">Select an exam to view insights</p>
                 </div>

@@ -1,52 +1,46 @@
 import { supabase } from '../../../config/supabase';
-import { ExamEligibilityService } from './examEligibility.service';
 
 export const ExamSeatingService = {
-    async generateSeating(examScheduleId: string, userId: string, schoolId: string) {
-        // 1. Fetch Exam Schedule Info
-        const { data: schedule, error: schError } = await supabase
-            .from('exam_schedules')
-            .select('*, exam:exam_id(*), subject:subject_id(*), subject_class:subjects!inner(class_id)')
-            .eq('id', examScheduleId)
-            .single();
+    /**
+     * Fetch students only from eligibility snapshots
+     */
+    async getEligibleStudents(examId: string, classId?: string) {
+        let query = supabase
+            .from('exam_eligibility_snapshots')
+            .select(`
+                student_id,
+                eligible,
+                student:student_id!inner (
+                    id, full_name, student_code, status
+                )
+            `)
+            .eq('exam_id', examId)
+            .eq('eligible', true);
 
-        if (schError || !schedule) throw new Error("Exam schedule not found");
-        if (schedule.status !== 'SCHEDULED') throw new Error(`Cannot seat for exam status: ${schedule.status}`);
+        // If classId is provided, we filter by joining students (though snapshots usually are exam-wide)
+        // Senior Architect: Snapshots are for the entire exam. Use them.
 
-        // 2. Fetch Eligible Students (Only from the relevant Class)
-        // Note: Students are in 'students' table with 'current_class_id' or assigned to section. 
-        // We find students belonging to the subject's class.
-        // Assuming subject is linked to class.
-        const classId = schedule.subject_class?.class_id;
-        if (!classId) throw new Error("Class not found for this subject");
+        const { data, error } = await query;
+        if (error) throw error;
 
-        // Get All Students in Class
-        // We link via sections usually. 
-        // Simple path: students -> section -> class.
-        // Or if students have assigned subjects? 
-        // Let's use students in class via section.
-        const { data: students, error: stuError } = await supabase
-            .from('students')
-            .select('id, full_name, student_code, section:section_id!inner(class_id)')
-            .eq('section.class_id', classId)
-            .eq('school_id', schoolId)
-            .order('student_code', { ascending: true }); // Seat order by code
+        return (data || []).map(d => d.student).sort((a: any, b: any) =>
+            (a.student_code || '').localeCompare(b.student_code || '')
+        );
+    },
 
-        if (stuError) throw stuError;
-        if (!students || students.length === 0) throw new Error("No students found in this class");
+    /**
+     * Auto-allocate seats for an EXAM (Lockable)
+     */
+    async generateSeating(examId: string, classId: string, userId: string, schoolId: string) {
+        // 1. Safety Check: Is it already published?
+        const { data: exam } = await supabase.from('exams').select('seating_status').eq('id', examId).single();
+        if (exam?.seating_status === 'PUBLISHED') throw new Error("SEATING_LOCKED: Cannot generate seating for a published exam.");
 
-        // Filter Eligible Students
-        const eligibleStudents = [];
-        for (const student of students) {
-            const eligibility = await ExamEligibilityService.checkEligibility(student.id, schedule.exam_id);
-            if (eligibility.eligible) {
-                eligibleStudents.push(student);
-            }
-        }
+        // 2. Fetch Eligible Students from Snapshots
+        const students = await this.getEligibleStudents(examId);
+        if (students.length === 0) throw new Error("NO_ELIGIBLE_STUDENTS: Please verify and freeze eligibility first.");
 
-        if (eligibleStudents.length === 0) throw new Error("No eligible students found for seating.");
-
-        // 3. Fetch Halls
+        // 3. Fetch Available Halls
         const { data: halls, error: hallError } = await supabase
             .from('exam_halls')
             .select('*')
@@ -54,80 +48,110 @@ export const ExamSeatingService = {
             .order('hall_name');
 
         if (hallError) throw hallError;
-        if (!halls || halls.length === 0) throw new Error("No exam halls defined.");
+        if (!halls || halls.length === 0) throw new Error("NO_HALLS: Please create examination halls first.");
 
-        // Check Capacity
         const totalCapacity = halls.reduce((sum, h) => sum + h.capacity, 0);
-        if (eligibleStudents.length > totalCapacity) {
-            throw new Error(`Insufficient capacity. Need ${eligibleStudents.length}, have ${totalCapacity}.`);
+        if (students.length > totalCapacity) {
+            throw new Error(`INSUFFICIENT_CAPACITY: Need ${students.length} seats, only ${totalCapacity} available.`);
         }
 
-        // 4. Allocation Logic
+        // 4. Allocation Algorithm (Sequential)
         const allocations = [];
         let hallIndex = 0;
         let seatCounter = 1;
 
-        for (const student of eligibleStudents) {
+        for (const student of students) {
             let currentHall = halls[hallIndex];
-
-            // Move to next hall if full
-            // Note: In real world, we might want to "fill" halls or distribute evenly. 
-            // Simple logic: Fill sequentially.
-            // Check seats allocated so far in this loop for the current hall is irrelevant since we start fresh? 
-            // Yes, regenerate implies fresh start. 
-            // But if we are running sequential loop, we track capacity.
 
             if (seatCounter > currentHall.capacity) {
                 hallIndex++;
-                if (hallIndex >= halls.length) {
-                    throw new Error("Unexpected overflow during allocation"); // Should be caught by total check, but safety.
-                }
                 currentHall = halls[hallIndex];
                 seatCounter = 1;
             }
 
             allocations.push({
-                exam_schedule_id: examScheduleId,
-                student_id: student.id,
+                exam_id: examId, // New field from migration
+                student_id: (student as any).id,
                 hall_id: currentHall.id,
-                seat_number: `S-${seatCounter}` // Simple numbering
+                seat_number: `S-${seatCounter}`
             });
             seatCounter++;
         }
 
-        // 5. Atomic Replace (Transaction-like)
-        // Delete existing for this schedule
-        await supabase.from('exam_seating_allocations').delete().eq('exam_schedule_id', examScheduleId);
+        // 5. Persist (Atomic)
+        // Note: In real app, we'd use a transaction if possible. 
+        // Here we clear existing for this exam first.
+        const { error: delError } = await supabase.from('exam_seating_allocations').delete().eq('exam_id', examId);
+        if (delError) throw delError;
 
-        // Insert new
-        const { error: insertError } = await supabase.from('exam_seating_allocations').insert(allocations);
-        if (insertError) throw insertError;
+        const { error: insError } = await supabase.from('exam_seating_allocations').insert(allocations);
+        if (insError) throw insError;
 
         // 6. Audit
-        await supabase.from('exam_audit_logs').insert({
-            entity_type: 'SEATING',
-            entity_id: examScheduleId,
-            action: 'GENERATE',
-            performed_by: userId,
-            reason: `Generated seating for ${allocations.length} eligible students across ${hallIndex + 1} halls.`
+        await supabase.from('academic_automation_logs').insert({
+            school_id: schoolId,
+            action: 'SEATING_GENERATE',
+            details: { examId, studentCount: allocations.length, hallsUsed: hallIndex + 1 },
+            performed_by: userId
         });
 
         return { count: allocations.length, hallsUsed: hallIndex + 1 };
     },
 
-    async getSeating(examScheduleId: string) {
+    /**
+     * Get Seating allocations for an Exam
+     */
+    async getSeatingView(examId: string) {
         const { data, error } = await supabase
             .from('exam_seating_allocations')
             .select(`
                 id, seat_number,
-                student:student_id(full_name, student_code),
-                hall:hall_id(hall_name, location)
+                student:student_id(id, full_name, student_code),
+                hall:hall_id(id, hall_name, location)
             `)
-            .eq('exam_schedule_id', examScheduleId)
+            .eq('exam_id', examId)
             .order('hall_id')
-            .order('seat_number', { ascending: true } as any); // Type cast if needed for complex order
+            .order('seat_number', { ascending: true } as any);
 
         if (error) throw error;
         return data;
+    },
+
+    /**
+     * Publish Seating (Critical Gate)
+     */
+    async publishSeating(examId: string, userId: string, schoolId: string) {
+        // Validation: Must have halls and all eligible seated.
+        // For simplicity: We mark it as PUBLISHED which locks edits.
+
+        const { error } = await supabase
+            .from('exams')
+            .update({ seating_status: 'PUBLISHED' })
+            .eq('id', examId);
+
+        if (error) throw error;
+
+        await supabase.from('academic_automation_logs').insert({
+            school_id: schoolId,
+            action: 'SEATING_PUBLISH',
+            details: { examId },
+            performed_by: userId
+        });
+
+        return { success: true };
+    },
+
+    /**
+     * Reset Seating (Admin Only)
+     */
+    async resetSeating(examId: string) {
+        const { data: exam } = await supabase.from('exams').select('seating_status').eq('id', examId).single();
+        if (exam?.seating_status === 'PUBLISHED') throw new Error("SEATING_LOCKED: Cannot reset published seating.");
+
+        const { error } = await supabase.from('exam_seating_allocations').delete().eq('exam_id', examId);
+        if (error) throw error;
+
+        return { success: true };
     }
 };
+

@@ -22,6 +22,39 @@ export const MyExams = () => {
         loadExams();
     }, []);
 
+    // Eligibility State
+    const [eligibilityMap, setEligibilityMap] = useState<Record<string, any>>({});
+    const [checkingEligibility, setCheckingEligibility] = useState(false);
+
+    useEffect(() => {
+        const checkAllEligibility = async () => {
+            const upcoming = exams.filter(e => ['SCHEDULED', 'ONGOING'].includes(e.status));
+            if (upcoming.length === 0) return;
+
+            setCheckingEligibility(true);
+            const newMap: Record<string, any> = {};
+
+            await Promise.all(upcoming.map(async (exam) => {
+                try {
+                    const res = await apiClient.get('/exams/exam-eligibility', {
+                        params: { examId: exam.id, studentId: user?.id }
+                    });
+                    newMap[exam.id] = res.data;
+                } catch (e) {
+                    // If error, assume not eligible
+                    newMap[exam.id] = { eligible: false, reasons: ['Status Check Failed'] };
+                }
+            }));
+
+            setEligibilityMap(newMap);
+            setCheckingEligibility(false);
+        };
+
+        if (exams.length > 0 && user?.id) {
+            checkAllEligibility();
+        }
+    }, [exams, user?.id]);
+
     const loadExams = async () => {
         try {
             // Fetch all exams - Assuming backend filters for visibility or we filter here
@@ -112,13 +145,22 @@ export const MyExams = () => {
                                     </div>
                                 </div>
 
-                                <Link
-                                    to={`/app/student/exams/hall-ticket?examId=${exam.id}&studentId=${user?.id}`}
-                                    className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 w-full md:w-auto justify-center"
-                                >
-                                    <Ticket className="w-5 h-5" />
-                                    View Hall Ticket
-                                </Link>
+                                {checkingEligibility ? (
+                                    <div className="h-12 w-full bg-gray-100 rounded-2xl animate-pulse"></div>
+                                ) : eligibilityMap[exam.id]?.eligible ? (
+                                    <Link
+                                        to={`/app/student/exams/hall-ticket?examId=${exam.id}&studentId=${user?.id}`}
+                                        className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 w-full md:w-auto justify-center"
+                                    >
+                                        <Ticket className="w-5 h-5" />
+                                        View Hall Ticket
+                                    </Link>
+                                ) : (
+                                    <div className="px-6 py-4 bg-gray-50 text-gray-400 font-bold rounded-2xl border border-gray-200 flex items-center gap-3 w-full md:w-auto justify-center cursor-not-allowed">
+                                        <AlertCircle className="w-5 h-5" />
+                                        {eligibilityMap[exam.id] ? 'Not Eligible / Not Seated' : 'Checking...'}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

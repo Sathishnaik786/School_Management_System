@@ -137,8 +137,8 @@ export const AssignmentManagement = () => {
                         <button
                             onClick={() => setShowForm(!showForm)}
                             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg ${showForm
-                                    ? 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
+                                ? 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
                                 }`}
                         >
                             {showForm ? <ArrowLeft className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -161,8 +161,8 @@ export const AssignmentManagement = () => {
                                     setShowForm(false);
                                 }}
                                 className={`group flex items-center justify-between p-4 rounded-2xl transition-all text-left ${selectedSection?.id === item.section.id
-                                        ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 ring-4 ring-indigo-50'
-                                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100 hover:border-indigo-100'
+                                    ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 ring-4 ring-indigo-50'
+                                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100 hover:border-indigo-100'
                                     }`}
                             >
                                 <div>
@@ -286,7 +286,7 @@ export const AssignmentManagement = () => {
                                 </div>
 
                                 {assignments.length === 0 ? (
-                                    <div className="bg-white p-24 rounded-[3rem] border border-dashed border-gray-200 text-center shadow-sm">
+                                    <div className="bg-white p-8 sm:p-24 rounded-[3rem] border border-dashed border-gray-200 text-center shadow-sm">
                                         <div className="inline-flex p-8 bg-indigo-50 rounded-[2rem] mb-8 text-indigo-400 animate-pulse">
                                             <FileText className="w-16 h-16" />
                                         </div>

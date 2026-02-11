@@ -18,8 +18,8 @@ export interface PaginatedResult<T> {
 
 export const getPaginationRange = (page: number = 1, limit: number = 10) => {
     // Ensure positive integers
-    const p = Math.max(1, Number(page));
-    const l = Math.max(1, Number(limit));
+    const p = Math.max(1, Number(page) || 1);
+    const l = Math.max(1, Number(limit) || 10);
 
     const from = (p - 1) * l;
     const to = from + l - 1;

@@ -1,5 +1,19 @@
-// DEPRECATED: This component is being replaced by ExamTimetablePage.tsx
-// Please do not modify this file further. 
+// ----------------------------------------------------------------------
+// DEPRECATED COMPONENT
+// ----------------------------------------------------------------------
+//
+// REASON FOR DEPRECATION:
+// This component lacked mandatory class-scoped scheduling context and
+// server-side conflict validation. It has been replaced by the
+// architecture-compliant `ExamTimetablePage.tsx`.
+//
+// DO NOT USE, IMPORT, OR MODIFY THIS FILE.
+//
+// SAFE REPLACEMENT:
+// Use `ExamTimetablePage` found in `frontend/src/modules/exam/pages/ExamTimetablePage.tsx`.
+//
+// ----------------------------------------------------------------------
+
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 

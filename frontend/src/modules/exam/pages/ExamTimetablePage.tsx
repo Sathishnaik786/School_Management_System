@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../../../lib/api-client';
-import { Calendar, Plus, Trash2, Save, X, Info, AlertTriangle, BookOpen } from 'lucide-react';
+import { Calendar, Plus, Trash2, Save, X, Info, AlertTriangle, BookOpen, Check, Loader2, ArrowRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { ExamProgressGuide } from '../components/ExamProgressGuide';
+import { ExamTimetableMatrix } from '../components/ExamTimetableMatrix';
+
+// =========================================================================================
+// ARCHITECTURE GUARD: CLASS-SCOPED SCHEDULING
+// =========================================================================================
+// 1. Scheduling MUST always occur within a specific Class Context.
+// 2. Conflicting logical checks are enforced by the Backend (HTTP 409).
+// 3. Do NOT bypass the Class Selection step. Global scheduling is explicitly forbidden.
+// =========================================================================================
 
 export const ExamTimetablePage = () => {
     // --- State ---
@@ -18,8 +28,13 @@ export const ExamTimetablePage = () => {
     const [schedules, setSchedules] = useState<any[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [publishing, setPublishing] = useState(false);
 
-    const { register, handleSubmit, reset } = useForm();
+    const [stagingData, setStagingData] = useState<Record<string, any>>({});
+    const [savingSubjectId, setSavingSubjectId] = useState<string | null>(null);
+
+    const { register, handleSubmit, reset, setError, formState: { errors } } = useForm();
+    const navigate = useNavigate();
 
     // --- Effects ---
     useEffect(() => {
@@ -43,6 +58,34 @@ export const ExamTimetablePage = () => {
             setSubjects([]);
         }
     }, [selectedClassId]);
+
+    // Sync Staging Data when Schedules or Subjects change
+    useEffect(() => {
+        if (!selectedClassId) return;
+
+        const newStaging: Record<string, any> = {};
+        subjects.forEach(sub => {
+            const existing = schedules.find(s => s.subject?.id === sub.id || s.subject_id === sub.id);
+            if (existing) {
+                newStaging[sub.id] = {
+                    ...existing,
+                    exam_date: existing.exam_date ? new Date(existing.exam_date).toISOString().split('T')[0] : '',
+                    // Ensure HH:MM format
+                    start_time: existing.start_time?.slice(0, 5) || '',
+                    end_time: existing.end_time?.slice(0, 5) || ''
+                };
+            } else {
+                newStaging[sub.id] = {
+                    exam_date: '',
+                    start_time: '',
+                    end_time: '',
+                    max_marks: 100,
+                    passing_marks: 35
+                };
+            }
+        });
+        setStagingData(newStaging);
+    }, [schedules, subjects, selectedClassId]);
 
     // --- Loading Functions ---
     const loadInitData = async () => {
@@ -81,6 +124,12 @@ export const ExamTimetablePage = () => {
 
     // --- Validations & Submission ---
     const onSubmit = async (data: any) => {
+        // ARCHITECTURE SAFETY CHECK
+        if (!selectedClassId) {
+            console.error("CRITICAL: Attempted to schedule without Class Context.");
+            return alert("Internal Error: Class context is missing. Please refresh.");
+        }
+
         // UI Validations
         if (Number(data.passing_marks) >= Number(data.max_marks)) {
             return alert("Error: Passing marks must be strictly less than maximum marks.");
@@ -111,7 +160,14 @@ export const ExamTimetablePage = () => {
             loadSchedules(selectedExamId);
             alert("Schedule saved successfully!");
         } catch (err: any) {
-            alert(err.response?.data?.error || "Failed to add schedule");
+            if (err.response?.status === 409) {
+                setError('root', {
+                    type: 'server',
+                    message: err.response.data.error || "Schedule conflict detected."
+                });
+            } else {
+                alert(err.response?.data?.error || "Failed to add schedule");
+            }
         }
     };
 
@@ -169,173 +225,312 @@ export const ExamTimetablePage = () => {
                         disabled={!selectedExamId}
                     >
                         <option value="">-- Choose Class --</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {(() => {
+                            const selectedExam = exams.find(e => e.id === selectedExamId);
+                            const applicableClassIds = selectedExam?.applicable_classes;
+
+                            // If no exam selected, or exam has no specific classes (implies ALL), show all.
+                            // Otherwise, filter.
+                            const availableClasses = (!applicableClassIds || applicableClassIds.length === 0)
+                                ? classes
+                                : classes.filter(c => applicableClassIds.includes(c.id));
+
+                            return availableClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>);
+                        })()}
                     </select>
                 </div>
             </div>
 
-            {selectedExamId && selectedClassId ? (
-                <>
-                    {/* Content Area */}
-                    {!isClassApplicable ? (
-                        <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl flex items-center justify-center text-center">
-                            <div className="max-w-md">
-                                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-                                <h3 className="text-lg font-bold text-amber-800 mb-1">Class Not Applicable</h3>
-                                <p className="text-amber-700">
-                                    The exam <strong>{selectedExam?.name}</strong> is not scheduled for the selected class context.
-                                    Please select a different class or exam.
-                                </p>
-                            </div>
+            {selectedExamId ? (
+                <div className="space-y-8">
+
+                    {/* 1. MATRIX VIEW (ALWAYS VISIBLE FOR EXAM) */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <ExamTimetableMatrix
+                            exam={selectedExam}
+                            classes={classes}
+                            schedules={schedules}
+                        />
+                    </div>
+
+                    {/* 2. CLASS SPECIFIC ACTIONS (ADD / LIST) */}
+                    {selectedClassId ? (
+                        <div className="border-t border-gray-200 pt-8 animate-in fade-in duration-500">
+                            {/* Class Header & Add Button */}
+                            {!isClassApplicable ? (
+                                <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl flex items-center justify-center text-center">
+                                    <div className="max-w-md">
+                                        <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                                        <h3 className="text-lg font-bold text-amber-800 mb-1">Class Not Applicable</h3>
+                                        <p className="text-amber-700">
+                                            The exam <strong>{selectedExam?.name}</strong> is not scheduled for the selected class context.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
+                                                {classes.find(c => c.id === selectedClassId)?.name?.substring(0, 2) || 'CL'}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-gray-500 uppercase">Managing Context</p>
+                                                <p className="font-bold text-gray-900">{classes.find(c => c.id === selectedClassId)?.name}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                            {subjects.length} Subjects Found
+                                        </div>
+                                    </div>
+
+                                    {/* Inline Class Timetable Editor */}
+                                    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm min-w-[1000px]">
+                                                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase text-xs tracking-wider">
+                                                    <tr>
+                                                        <th className="p-4 pl-6 w-1/4">Subject</th>
+                                                        <th className="p-4 w-40">Date</th>
+                                                        <th className="p-4 w-32">Start Time</th>
+                                                        <th className="p-4 w-32">End Time</th>
+                                                        <th className="p-4 w-24">Max</th>
+                                                        <th className="p-4 w-24">Pass</th>
+                                                        <th className="p-4 text-center w-32">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {subjects.length > 0 ? (
+                                                        subjects.map(sub => {
+                                                            const data = stagingData[sub.id] || {};
+                                                            const existingSchedule = schedules.find(s => s.subject?.id === sub.id || s.subject_id === sub.id);
+                                                            const isSaved = !!existingSchedule;
+                                                            // Determine if modified (naive check)
+                                                            // For now, simpler: user clicks save to upsert
+
+                                                            return (
+                                                                <tr key={sub.id} className={`hover:bg-gray-50/50 transition-colors ${isSaved ? 'bg-white' : 'bg-gray-50/20'}`}>
+                                                                    <td className="p-4 pl-6">
+                                                                        <div className="font-bold text-gray-900 text-base">{sub.name}</div>
+                                                                        <div className="text-xs text-gray-400 font-mono mt-0.5">{sub.code}</div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <div className="relative">
+                                                                            <input
+                                                                                type="date"
+                                                                                value={data.exam_date || ''}
+                                                                                onChange={e => setStagingData(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], exam_date: e.target.value } }))}
+                                                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                                                            />
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <input
+                                                                            type="time"
+                                                                            value={data.start_time || ''}
+                                                                            onChange={e => setStagingData(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], start_time: e.target.value } }))}
+                                                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <input
+                                                                            type="time"
+                                                                            value={data.end_time || ''}
+                                                                            onChange={e => setStagingData(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], end_time: e.target.value } }))}
+                                                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={data.max_marks || ''}
+                                                                            onChange={e => setStagingData(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], max_marks: e.target.value } }))}
+                                                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                                                            placeholder="100"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={data.passing_marks || ''}
+                                                                            onChange={e => setStagingData(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], passing_marks: e.target.value } }))}
+                                                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                                                            placeholder="35"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-4 text-center">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                setSavingSubjectId(sub.id);
+                                                                                try {
+                                                                                    // Validation
+                                                                                    if (!data.exam_date || !data.start_time || !data.end_time) {
+                                                                                        alert("Please fill in Date, Start Time and End Time.");
+                                                                                        return;
+                                                                                    }
+                                                                                    if (data.start_time >= data.end_time) {
+                                                                                        alert("End time must be after start time");
+                                                                                        return;
+                                                                                    }
+
+                                                                                    // ---------------------------------------------------------
+                                                                                    // UPDATE OR CREATE
+                                                                                    // ---------------------------------------------------------
+                                                                                    if (isSaved && existingSchedule?.id) {
+                                                                                        // UPDATE (PUT)
+                                                                                        await apiClient.put(`/exams/exam-schedules/${existingSchedule.id}`, {
+                                                                                            exam_id: selectedExamId,
+                                                                                            subject_id: sub.id,
+                                                                                            exam_date: data.exam_date,
+                                                                                            start_time: data.start_time,
+                                                                                            end_time: data.end_time,
+                                                                                            max_marks: data.max_marks,
+                                                                                            passing_marks: data.passing_marks
+                                                                                        });
+                                                                                    } else {
+                                                                                        // CREATE (POST)
+                                                                                        await apiClient.post('/exams/exam-schedules', {
+                                                                                            exam_id: selectedExamId,
+                                                                                            subject_id: sub.id,
+                                                                                            exam_date: data.exam_date,
+                                                                                            start_time: data.start_time,
+                                                                                            end_time: data.end_time,
+                                                                                            max_marks: data.max_marks,
+                                                                                            passing_marks: data.passing_marks
+                                                                                        });
+                                                                                    }
+                                                                                    // ---------------------------------------------------------
+
+                                                                                    // Success
+                                                                                    await loadSchedules(selectedExamId); // Refresh
+
+                                                                                } catch (err: any) {
+                                                                                    if (err.response?.status === 409) {
+                                                                                        alert("Schedule Conflict: " + (err.response.data.error || "Please check times."));
+                                                                                    } else {
+                                                                                        alert("Failed to save: " + (err.response?.data?.error || err.message));
+                                                                                    }
+                                                                                } finally {
+                                                                                    setSavingSubjectId(null);
+                                                                                }
+                                                                            }}
+                                                                            disabled={savingSubjectId === sub.id}
+                                                                            className={`
+                                                                                flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all shadow-sm w-full
+                                                                                ${isSaved
+                                                                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                                                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                                                                                }
+                                                                                disabled:opacity-50 disabled:cursor-not-allowed
+                                                                            `}
+                                                                        >
+                                                                            {savingSubjectId === sub.id ? (
+                                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                                            ) : isSaved ? (
+                                                                                <>
+                                                                                    <Check className="w-4 h-4" /> Updated
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Save className="w-4 h-4" /> Save
+                                                                                </>
+                                                                            )}
+                                                                        </button>
+                                                                        {/* Simple Delete if exists for quick fix */}
+                                                                        {isSaved && (
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    if (!confirm("Remove this schedule?")) return;
+                                                                                    setSavingSubjectId(sub.id); // Block
+                                                                                    try {
+                                                                                        // Need DELETE endpoint. 
+                                                                                        // Assuming we can't easily delete from here without route info?
+                                                                                        // Wait, `schedules` has `id`.
+                                                                                        // I need a DELETE schedule endpoint. 
+                                                                                        // ExamScheduleService has deleteSchedule. Routes? Not exposed?
+                                                                                        // I'll skip Delete in this "One Line" request to stay safe, user just wants entry.
+                                                                                    } catch (e) { }
+                                                                                    setSavingSubjectId(null);
+                                                                                }}
+                                                                                className="hidden text-red-400 hover:text-red-600 ml-2"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={7} className="p-12 text-center text-gray-400 font-bold">
+                                                                No subjects found for this class. Please assign subjects first.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
-                                    {classes.find(c => c.id === selectedClassId)?.name?.substring(0, 2) || 'CL'}
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-gray-500 uppercase">Current Context</p>
-                                    <p className="font-bold text-gray-900">{classes.find(c => c.id === selectedClassId)?.name}</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsCreating(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
-                            >
-                                <Plus className="w-4 h-4" /> Add Subject Schedule
-                            </button>
+                        <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-8 text-center">
+                            <h3 className="text-sm font-bold text-gray-900">Want to add or manage schedules?</h3>
+                            <p className="text-xs text-gray-500 mt-1">Select a Class Context above to open the management form and detailed list.</p>
                         </div>
                     )}
-
-                    {/* Create Form */}
-                    {isCreating && isClassApplicable && (
-                        <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl ring-4 ring-indigo-50 animate-in zoom-in-95 duration-200">
-                            <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-indigo-600" /> New Schedule Entry</span>
-                                <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                            </h3>
-                            <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject</label>
-                                    <select {...register('subject_id', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none font-bold">
-                                        <option value="">Select Subject</option>
-                                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-                                    </select>
-                                    {subjects.length === 0 && <p className="text-xs text-amber-600 mt-1 font-medium">No subjects found for this class.</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                                    <input type="date" {...register('exam_date', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
-                                        <input type="time" {...register('start_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
-                                        <input type="time" {...register('end_time', { required: true })} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Marks</label>
-                                    <input type="number" {...register('max_marks')} defaultValue={100} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Passing Marks</label>
-                                    <input type="number" {...register('passing_marks')} defaultValue={35} className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                </div>
-
-                                <div className="md:col-span-3 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-50">
-                                    <button type="button" onClick={() => setIsCreating(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
-                                    <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center gap-2">
-                                        <Save className="w-4 h-4" /> Save Schedule
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {/* Timetable List */}
-                    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                        {loading ? (
-                            <div className="p-12 text-center text-gray-400 flex flex-col items-center">
-                                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                                Loading schedules...
-                            </div>
-                        ) : displaySchedules.length > 0 ? (
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase text-xs">
-                                    <tr>
-                                        <th className="p-5 pl-6">Subject</th>
-                                        <th className="p-5">Date & Time</th>
-                                        <th className="p-5 text-center">Marks</th>
-                                        <th className="p-5 text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {displaySchedules.map(sch => (
-                                        <tr key={sch.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                            <td className="p-5 pl-6">
-                                                <div className="font-bold text-gray-900 text-base">{sch.subject?.name}</div>
-                                                <div className="text-xs text-gray-400 font-mono mt-0.5">{sch.subject?.code}</div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="flex items-center gap-2 font-medium text-gray-700">
-                                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                                    {new Date(sch.exam_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                                </div>
-                                                <div className="text-xs text-gray-500 mt-1 ml-6 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                                                    {sch.start_time.slice(0, 5)} - {sch.end_time.slice(0, 5)}
-                                                </div>
-                                            </td>
-                                            <td className="p-5 text-center">
-                                                <div className="font-mono font-bold text-gray-700 bg-gray-50 inline-block px-3 py-1 rounded">
-                                                    {sch.max_marks}
-                                                </div>
-                                                <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wide">
-                                                    Pass: {sch.passing_marks}
-                                                </div>
-                                            </td>
-                                            <td className="p-5 text-center">
-                                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${sch.status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' :
-                                                    'bg-blue-50 text-blue-600'
-                                                    }`}>
-                                                    {sch.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="p-16 text-center text-gray-400 flex flex-col items-center">
-                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                    <Calendar className="w-8 h-8 text-gray-300" />
-                                </div>
-                                <h3 className="font-bold text-gray-900 mb-1">No Schedules for this Class</h3>
-                                <p className="max-w-xs mx-auto text-sm opacity-80 mb-6">Select a valid class and add subjects to the exam timetable.</p>
-                                <button
-                                    onClick={() => setIsCreating(true)}
-                                    className="px-5 py-2 border border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors"
-                                >
-                                    + Add First Schedule
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </>
+                </div>
             ) : (
                 <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-12 flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
-                        <AlertTriangle className="w-8 h-8 text-indigo-300" />
+                        <Calendar className="w-8 h-8 text-indigo-300" />
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 mb-2">Setup Required</h3>
-                    <p className="font-bold text-gray-500 max-w-md mx-auto">Please select both an <span className="text-indigo-600 underline">Exam Window</span> and a <span className="text-indigo-600 underline">Class Context</span> to view or manage the timetable.</p>
+                    <h3 className="text-xl font-black text-gray-900 mb-2">Select Exam Window</h3>
+                    <p className="font-bold text-gray-500 max-w-md mx-auto">Please select an Exam Window to view the consolidated timetable matrix.</p>
                 </div>
             )}
+
+
+            {/* Navigation Footer */}
+            <div className="flex justify-between items-center pt-8 border-t border-gray-200 mt-8">
+                <Link to="/app/exam-admin/dashboard" className="text-gray-500 font-bold hover:text-gray-700 transition-colors text-sm flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4 rotate-180" /> Back to Exam Dashboard
+                </Link>
+
+                <div className="flex items-center gap-4">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {schedules.length} Schedules Ready
+                    </div>
+                    <button
+                        onClick={async () => {
+                            if (!selectedExamId) return;
+                            if (schedules.length === 0) {
+                                alert("Please add at least one schedule before publishing.");
+                                return;
+                            }
+                            if (!confirm("Are you sure you want to PUBLISH this timetable? This will enable eligibility checks and lock the schedule structure.")) return;
+
+                            setPublishing(true);
+                            try {
+                                await apiClient.put(`/exams/${selectedExamId}`, { status: 'PUBLISHED' });
+                                alert("Timetable Published Successfully! You can now proceed to Eligibility checks.");
+                                navigate('/app/exam-admin/eligibility');
+                            } catch (e: any) {
+                                alert("Failed to publish: " + (e.response?.data?.error || e.message));
+                            } finally {
+                                setPublishing(false);
+                            }
+                        }}
+                        disabled={publishing || schedules.length === 0}
+                        className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                        {publishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                        Publish Timetable
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

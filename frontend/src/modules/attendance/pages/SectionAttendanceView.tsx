@@ -62,6 +62,13 @@ export const SectionAttendanceView = () => {
                                 </tr>
                             </thead>
                             <tbody>
+                                {viewData.session?.marker?.user_roles?.some((ur: any) => ur.role?.name === 'ADMIN') && (
+                                    <tr>
+                                        <td colSpan={3} className="bg-amber-50 text-amber-800 text-xs font-bold text-center py-2 border-b border-amber-100">
+                                            ⚠️ TEST DATA (ADMIN SEEDED)
+                                        </td>
+                                    </tr>
+                                )}
                                 {viewData.records.map((r: any) => (
                                     <tr key={r.id} className="border-t">
                                         <td className="px-6 py-4 font-medium">{r.student.full_name}</td>

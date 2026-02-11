@@ -3,6 +3,26 @@ import { ExamScheduleService } from '../services/examSchedule.service';
 import { ExamNotificationService } from '../services/examNotification.service';
 
 export const ExamScheduleController = {
+    async updateSchedule(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const payload = req.body;
+
+            // Basic ID check
+            if (!id) return res.status(400).json({ error: "Schedule ID missing" });
+
+            const updated = await ExamScheduleService.updateSchedule(id, payload);
+            res.json(updated);
+        } catch (err: any) {
+            console.error("Update Schedule Error:", err);
+            // Handle duplicate constraint error
+            if (err.code === '23505' || err.code === '409') {
+                return res.status(409).json({ error: err.message || "Schedule conflict." });
+            }
+            res.status(500).json({ error: err.message });
+        }
+    },
+
     async createSchedule(req: Request, res: Response) {
         try {
             const { exam_id, subject_id, exam_date, start_time, end_time, max_marks, passing_marks } = req.body;
@@ -38,6 +58,9 @@ export const ExamScheduleController = {
             // Handle duplicate constraint error
             if (err.code === '23505') {
                 return res.status(409).json({ error: "Schedule already exists for this subject in this exam" });
+            }
+            if (err.code === '409') {
+                return res.status(409).json({ error: err.message });
             }
             res.status(500).json({ error: err.message });
         }

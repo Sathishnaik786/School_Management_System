@@ -13,6 +13,7 @@ interface AuthContextType {
     hasPermission: (code: string) => boolean;
     hasRole: (role: string) => boolean;
     refreshProfile: () => Promise<void>;
+    systemMode: 'UAT' | 'PRODUCTION';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<EnrichedUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [systemMode, setSystemMode] = useState<'UAT' | 'PRODUCTION'>('UAT');
 
     // Using Ref to track the user ID we are currently "loading" to prevent redundant fetches
     const profileFetchTracker = useRef<string | null>(null);
@@ -59,6 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 1. Initial State Sync
         const initialize = async () => {
+            // Fetch System Mode (Public)
+            try {
+                const sysRes = await apiClient.get('/system/info');
+                if (isMounted) setSystemMode(sysRes.data.mode);
+            } catch (e) {
+                console.error("[Auth] System Info fetch failed");
+            }
+
             const { data: { session: initSession } } = await supabase.auth.getSession();
             if (!isMounted) return;
 
@@ -142,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         hasPermission,
         hasRole,
+        systemMode,
         refreshProfile: () => fetchUserProfile()
     };
 

@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../../../config/supabase';
 import { ExamSeatingService } from '../services/examSeating.service';
-import { ExamNotificationService } from '../services/examNotification.service';
 
 export const ExamSeatingController = {
     // HALLS MANAGEMENT
@@ -19,11 +18,18 @@ export const ExamSeatingController = {
     async createHall(req: Request, res: Response) {
         try {
             const schoolId = req.context!.user.school_id;
-            const { hall_name, capacity, location } = req.body;
+            const { hall_name, capacity, location, rows_count, cols_count } = req.body;
 
             const { data, error } = await supabase
                 .from('exam_halls')
-                .insert({ school_id: schoolId, hall_name, capacity, location })
+                .insert({
+                    school_id: schoolId,
+                    hall_name,
+                    capacity,
+                    location,
+                    rows_count,
+                    cols_count
+                })
                 .select()
                 .single();
 
@@ -48,19 +54,14 @@ export const ExamSeatingController = {
     // ALLOCATION
     async generateSeating(req: Request, res: Response) {
         try {
-            const { examScheduleId } = req.body;
+            const { examId, classId } = req.body;
             const userId = req.context!.user.id;
             const schoolId = req.context!.user.school_id;
 
-            if (!examScheduleId) return res.status(400).json({ error: "Exam Schedule ID required" });
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
 
-            const result = await ExamSeatingService.generateSeating(examScheduleId, userId, schoolId);
+            const result = await ExamSeatingService.generateSeating(examId, classId, userId, schoolId);
             res.json({ message: "Seating Generated Successfully", ...result });
-
-            // Hook: Notify
-            ExamNotificationService.notifyHallTicketReady(examScheduleId);
-
-
         } catch (err: any) {
             console.error("Seating Gen Error:", err);
             res.status(500).json({ error: err.message });
@@ -69,13 +70,53 @@ export const ExamSeatingController = {
 
     async getSeatingView(req: Request, res: Response) {
         try {
-            const { examScheduleId } = req.query;
-            if (!examScheduleId) return res.status(400).json({ error: "Exam Schedule ID required" });
+            const { examId } = req.query;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
 
-            const data = await ExamSeatingService.getSeating(examScheduleId as string);
+            const data = await ExamSeatingService.getSeatingView(examId as string);
             res.json(data);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getEligibleStudents(req: Request, res: Response) {
+        try {
+            const { examId } = req.query;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const data = await ExamSeatingService.getEligibleStudents(examId as string);
+            res.json(data);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    },
+
+    async publishSeating(req: Request, res: Response) {
+        try {
+            const { examId } = req.body;
+            const userId = req.context!.user.id;
+            const schoolId = req.context!.user.school_id;
+
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const result = await ExamSeatingService.publishSeating(examId, userId, schoolId);
+            res.json(result);
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    },
+
+    async resetSeating(req: Request, res: Response) {
+        try {
+            const { examId } = req.body;
+            if (!examId) return res.status(400).json({ error: "Exam ID required" });
+
+            const result = await ExamSeatingService.resetSeating(examId);
+            res.json(result);
         } catch (err: any) {
             res.status(500).json({ error: err.message });
         }
     }
 }
+

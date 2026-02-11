@@ -14,6 +14,11 @@ import { ExamDeliverablesController } from './controllers/examDeliverables.contr
 import { ExamSeatingController } from './controllers/examSeating.controller';
 import { ExamQuestionPaperController } from './controllers/examQuestionPaper.controller';
 import { ExamAnalyticsController } from './controllers/examAnalytics.controller';
+import { ExamConductController } from './controllers/examConduct.controller';
+import { ExamEvaluationController } from './controllers/examEvaluation.controller';
+import { ExamExportController } from './controllers/examExport.controller';
+import { ExamAdminBridgeController } from './controllers/examAdminBridge.controller';
+import { ExamHallTicketController } from './controllers/examHallTicket.controller';
 
 export const examRouter = Router();
 // ======================================
@@ -101,17 +106,122 @@ examRouter.get('/',
 examRouter.post('/',
     checkPermission(PERMISSIONS.EXAM_CREATE),
     async (req, res) => {
-        const schoolId = req.context!.user.school_id;
-        const { name, academic_year_id, start_date, end_date } = req.body;
+        try {
+            const schoolId = req.context!.user.school_id;
+            const { name, academic_year_id, start_date, end_date, term, applicable_classes, type } = req.body;
 
-        const { data, error } = await supabase
-            .from('exams')
-            .insert({ school_id: schoolId, name, academic_year_id, start_date, end_date })
-            .select()
-            .single();
+            // 1. Mandatory Fields (Hardened Phase-5)
+            if (!academic_year_id || !term || !name) {
+                return res.status(400).json({ error: "Missing required fields (academic_year_id, term, name)" });
+            }
 
-        if (error) return res.status(500).json({ error: error.message });
-        res.status(201).json(data);
+            // 2. Check Year Status
+            const { data: year } = await supabase
+                .from('academic_years')
+                .select('status')
+                .eq('id', academic_year_id)
+                .single();
+
+            if (year?.status === 'CLOSED') {
+                return res.status(403).json({ error: "Cannot create exams in a CLOSED academic year." });
+            }
+
+            const { data, error } = await supabase
+                .from('exams')
+                .insert({
+                    school_id: schoolId,
+                    name,
+                    academic_year_id,
+                    start_date,
+                    end_date,
+                    term,
+                    applicable_classes,
+                    type,
+                    status: 'DRAFT',
+                    created_by: req.context!.user.id
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.status(201).json(data);
+        } catch (err: any) {
+            console.error("POST /exams Error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// PUT /:id (Update Exam)
+examRouter.put('/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    async (req, res) => {
+        try {
+            const { id } = req.params;
+            const schoolId = req.context!.user.school_id;
+            const { name, start_date, end_date, applicable_classes, type, status } = req.body;
+
+            const updates: any = {};
+            if (name) updates.name = name;
+            if (start_date) updates.start_date = start_date;
+            if (end_date) updates.end_date = end_date;
+            if (applicable_classes !== undefined) updates.applicable_classes = applicable_classes; // Allow empty array or null
+            if (type) updates.type = type;
+            if (status) updates.status = status;
+
+            const { data, error } = await supabase
+                .from('exams')
+                .update(updates)
+                .eq('id', id)
+                .eq('school_id', schoolId)
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.json(data);
+        } catch (err: any) {
+            console.error("PUT /exams Error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// DELETE /:id (Delete Exam)
+examRouter.delete('/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    async (req, res) => {
+        try {
+            const { id } = req.params;
+            const schoolId = req.context!.user.school_id;
+
+            // Simple delete attempt
+            const { error } = await supabase
+                .from('exams')
+                .delete()
+                .eq('id', id)
+                .eq('school_id', schoolId);
+
+            if (error) {
+                // If generic constraint error (common in PG for FK violations)
+                if (error.code === '23503') {
+                    return res.status(409).json({
+                        error: "Cannot delete this exam because it has associated data (schedules, results, etc.). Please delete dependent data first."
+                    });
+                }
+                throw error;
+            }
+
+            res.json({ success: true, message: "Exam deleted successfully" });
+        } catch (err: any) {
+            console.error("DELETE /exams Error:", err);
+            // Detect Supabase/Postgrest constraint error if thrown
+            if (err?.code === '23503') {
+                return res.status(409).json({
+                    error: "Cannot delete this exam because it has associated data (schedules, results, etc.). Please delete dependent data first."
+                });
+            }
+            res.status(500).json({ error: err.message || "Deletion failed" });
+        }
     }
 );
 
@@ -195,25 +305,31 @@ examRouter.post('/marks',
                 return res.status(400).json({ error: "Missing required IDs (student, exam, or subject)" });
             }
 
-            // --- PHASE-2 CHECK: ELIGIBILITY ---
-            const eligibility = await ExamEligibilityService.checkEligibility(student_id, exam_id);
-            if (!eligibility.eligible) {
-                return res.status(403).json({
-                    error: "Student is not eligible for this exam.",
-                    reasons: eligibility.reasons
-                });
-            }
-            // ----------------------------------
+            // --- PHASE-4 CHECK: ELIGIBILITY & SEATING ---
+            const { data: sch } = await supabase
+                .from('exam_schedules')
+                .select('id')
+                .eq('exam_id', exam_id)
+                .eq('subject_id', subject_id)
+                .single();
 
-            // --- PHASE-4 CHECK: LOCK ENFORCEMENT ---
+            const { data: seating } = await supabase
+                .from('exam_seating_allocations')
+                .select('id')
+                .eq('student_id', student_id)
+                .eq('exam_schedule_id', sch?.id)
+                .single();
+
+            if (!seating) {
+                return res.status(403).json({ error: "Student is not seated for this subject. Only snapshot-eligible students can have marks entered." });
+            }
+
+            // Results Lock check (Pre-Publication)
             const isPublished = await ResultPublishService.isStudentResultPublished(exam_id, student_id);
             if (isPublished) {
-                return res.status(423).json({
-                    error: "Results for this exam have been published. Marks are locked.",
-                    code: "LOCKED"
-                });
+                return res.status(423).json({ error: "Results published. Marks locked.", code: "LOCKED" });
             }
-            // ---------------------------------------
+            // ----------------------------------------------
 
             // TODO: Verify Faculty Section Assignment for Strict Control
 
@@ -264,6 +380,12 @@ examRouter.post('/exam-schedules',
     ExamScheduleController.createSchedule
 );
 
+// PUT /exam-schedules/:id (Update)
+examRouter.put('/exam-schedules/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    (req, res) => ExamScheduleController.updateSchedule(req, res)
+);
+
 // ======================================
 // ELIGIBILITY
 // ======================================
@@ -272,6 +394,80 @@ examRouter.post('/exam-schedules',
 examRouter.get('/exam-eligibility',
     checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamEligibilityController.checkEligibility
+);
+
+// GET /class-eligibility/exam/:examId/class/:classId
+examRouter.get('/class-eligibility/exam/:examId/class/:classId',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamEligibilityController.getClassEligibility
+);
+
+// Freeze Eligibility (Persists LIVE status into Snapshots)
+examRouter.post('/eligibility/freeze',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamEligibilityController.freezeEligibility
+);
+
+// Override Eligibility (Audited correction)
+examRouter.post('/eligibility/override',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamEligibilityController.overrideEligibility
+);
+
+// Bootstrap Eligibility (Architect Bootstrapper)
+examRouter.post('/eligibility/bootstrap',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamEligibilityController.bootstrapEligibility
+);
+
+// ======================================
+// ADMIN BRIDGE (MANUAL OVERRIDES)
+// ======================================
+
+// GET /admin/bridge/:classId/status?academicYearId=
+examRouter.get('/admin/bridge/:classId/status',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamAdminBridgeController.getClassBridgeData
+);
+
+// POST /admin/bridge/attendance
+examRouter.post('/admin/bridge/attendance',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamAdminBridgeController.setAttendance
+);
+
+// POST /admin/bridge/fees
+examRouter.post('/admin/bridge/fees',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamAdminBridgeController.setFeeStatus
+);
+
+// ======================================
+// CONDUCT & ATTENDANCE
+// ======================================
+
+examRouter.post('/conduct/attendance',
+    checkPermission(PERMISSIONS.MARKS_ENTER), // Staff conducting can mark attendance
+    ExamConductController.markAttendance
+);
+
+examRouter.get('/conduct/attendance',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamConductController.getHallAttendance
+);
+
+// ======================================
+// EVALUATION & LOCKING
+// ======================================
+
+examRouter.post('/evaluation/lock-subject',
+    checkPermission(PERMISSIONS.EXAM_CREATE), // Usually Admin finalized
+    ExamEvaluationController.lockSubject
+);
+
+examRouter.post('/evaluation/unlock-subject/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamEvaluationController.unlockSubject
 );
 
 // ======================================
@@ -334,10 +530,50 @@ examRouter.post('/seating/generate',
     ExamSeatingController.generateSeating
 );
 
-// GET /exams/seating?examScheduleId=
+// POST /exams/seating/publish
+examRouter.post('/seating/publish',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamSeatingController.publishSeating
+);
+
+// POST /exams/seating/reset
+examRouter.post('/seating/reset',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamSeatingController.resetSeating
+);
+
+// GET /exams/seating/eligible-students
+examRouter.get('/seating/eligible-students',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamSeatingController.getEligibleStudents
+);
+
+// GET /exams/seating
 examRouter.get('/seating',
     checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamSeatingController.getSeatingView
+);
+
+// ======================================
+// HALL TICKETS
+// ======================================
+
+// POST /exams/hall-tickets/generate
+examRouter.post('/hall-tickets/generate',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallTicketController.generateTickets
+);
+
+// GET /exams/hall-tickets
+examRouter.get('/hall-tickets',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamHallTicketController.getHallTickets
+);
+
+// GET /exams/hall-tickets/my
+examRouter.get('/hall-tickets/my',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamHallTicketController.getMyHallTicket
 );
 
 // ======================================
@@ -388,4 +624,44 @@ examRouter.get('/analytics/subjects',
 examRouter.get('/analytics/top-performers',
     checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamAnalyticsController.getTopPerformers
+);
+
+// GET /exams/analytics/compliance?examId=
+examRouter.get('/analytics/compliance',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getCompliance
+);
+
+// GET /exams/analytics/sections?examId=
+examRouter.get('/analytics/sections',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getSectionAnalytics
+);
+
+// GET /exams/analytics/audit?examId=
+examRouter.get('/analytics/audit',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamAnalyticsController.getAuditTrails
+);
+
+// ======================================
+// EXPORTS (ADMIN ONLY)
+// ======================================
+
+// GET /exams/export/results?examId=
+examRouter.get('/export/results',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamExportController.exportResults
+);
+
+// GET /exams/export/conduct?examId=
+examRouter.get('/export/conduct',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamExportController.exportConductReport
+);
+
+// GET /exams/export/audit?examId=
+examRouter.get('/export/audit',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamExportController.exportAuditTrail
 );

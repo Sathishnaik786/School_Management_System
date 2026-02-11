@@ -1,15 +1,16 @@
-import { Calendar, Armchair, PenTool, GraduationCap, Check, ArrowRight } from 'lucide-react';
+import { Calendar, Armchair, PenTool, GraduationCap, Check, ArrowRight, ScrollText } from 'lucide-react';
 
 interface ExamProgressGuideProps {
-    currentStep?: 'schedule' | 'seating' | 'marks' | 'publish' | 'dashboard';
+    currentStep?: 'schedule' | 'seating' | 'hall-tickets' | 'marks' | 'publish' | 'dashboard';
 }
 
 export const ExamProgressGuide = ({ currentStep = 'dashboard' }: ExamProgressGuideProps) => {
     const steps = [
         { id: 'schedule', label: '1. Schedule', icon: Calendar },
         { id: 'seating', label: '2. Seating', icon: Armchair },
-        { id: 'marks', label: '3. Enter Marks', icon: PenTool },
-        { id: 'publish', label: '4. Publish', icon: GraduationCap },
+        { id: 'hall-tickets', label: '3. Hall Tickets', icon: ScrollText },
+        { id: 'marks', label: '4. Enter Marks', icon: PenTool },
+        { id: 'publish', label: '5. Publish', icon: GraduationCap },
     ];
 
     const getStatus = (stepId: string) => {
@@ -17,11 +18,12 @@ export const ExamProgressGuide = ({ currentStep = 'dashboard' }: ExamProgressGui
         // If specific step, previous ones are 'completed', current is 'active', next are 'pending'.
         if (currentStep === 'dashboard') return 'default';
 
-        const stepIdx = steps.findIndex(s => s.id === stepId);
-        const currentIdx = steps.findIndex(s => s.id === currentStep);
+        // Check completion status using index
+        const stepIndex = steps.findIndex(s => s.id === stepId);
+        const currentIndex = steps.findIndex(s => s.id === currentStep);
 
-        if (stepIdx < currentIdx) return 'completed';
-        if (stepIdx === currentIdx) return 'active';
+        if (stepIndex < currentIndex) return 'completed';
+        if (stepIndex === currentIndex) return 'active';
         return 'pending';
     };
 
@@ -32,7 +34,7 @@ export const ExamProgressGuide = ({ currentStep = 'dashboard' }: ExamProgressGui
                     {/* Connecting Line */}
                     <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -z-10" />
 
-                    {steps.map((step, idx) => {
+                    {steps.map((step) => {
                         const status = getStatus(step.id);
 
                         let circleClass = "bg-gray-100 text-gray-400 border-gray-200";
@@ -50,11 +52,11 @@ export const ExamProgressGuide = ({ currentStep = 'dashboard' }: ExamProgressGui
                         }
 
                         return (
-                            <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-4 rounded-xl">
-                                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${circleClass}`}>
-                                    {status === 'completed' ? <Check className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
+                            <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-2 sm:px-4 rounded-xl">
+                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${circleClass}`}>
+                                    {status === 'completed' ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <step.icon className="w-4 h-4 sm:w-5 sm:h-5 " />}
                                 </div>
-                                <span className={`text-xs uppercase tracking-wider ${textClass}`}>
+                                <span className={`text-[10px] sm:text-xs uppercase tracking-wider ${textClass} hidden sm:block`}>
                                     {step.label}
                                 </span>
                             </div>

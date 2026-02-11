@@ -167,6 +167,109 @@ feesRouter.post('/payments',
 );
 
 // ======================================
+// ADMIN LEDGER (Bulk View)
+// ======================================
+feesRouter.get('/admin/ledger',
+    checkPermission(PERMISSIONS.FEES_VIEW),
+    async (req, res) => {
+        const schoolId = req.context!.user.school_id;
+        const { page = 1, limit = 50, sectionId, search } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+
+        try {
+            // 1. Fetch Students (with pagination)
+            // Note: leveraging student_sections to get class info.
+            let query = supabase
+                .from('students')
+                .select(`
+                    id, full_name, student_code, 
+                    sections:student_sections!inner(
+                        section:section_id(name, class:class_id(name))
+                    )
+                `, { count: 'exact' })
+                .eq('school_id', schoolId)
+                .eq('status', 'active');
+
+            if (sectionId) {
+                query = query.eq('sections.section_id', sectionId);
+            }
+
+            if (search) {
+                query = query.or(`full_name.ilike.%${search}%,student_code.ilike.%${search}%`);
+            }
+
+            query = query.range(offset, offset + Number(limit) - 1);
+
+            const { data: students, count, error } = await query;
+            if (error) throw error;
+
+            if (!students || students.length === 0) {
+                return res.json({ data: [], meta: { total: 0, page: Number(page), limit: Number(limit) } });
+            }
+
+            const studentIds = students.map(s => s.id);
+
+            // 2. Bulk Fetch Fees with Structure Name
+            const { data: fees } = await supabase
+                .from('student_fees')
+                .select('student_id, assigned_amount, fee_structure:fee_structure_id(name)')
+                .in('student_id', studentIds);
+            const { data: payments } = await supabase.from('payments').select('student_id, amount_paid, remarks').in('student_id', studentIds);
+
+            // 3. Aggregate
+            const feeMap: Record<string, number> = {};
+            const payMap: Record<string, number> = {};
+            const testDataMap: Record<string, boolean> = {};
+
+            fees?.forEach((f: any) => {
+                feeMap[f.student_id] = (feeMap[f.student_id] || 0) + Number(f.assigned_amount);
+                if (f.fee_structure?.name === 'TEST_ADMIN_SEED') {
+                    testDataMap[f.student_id] = true;
+                }
+            });
+            payments?.forEach((p: any) => {
+                payMap[p.student_id] = (payMap[p.student_id] || 0) + Number(p.amount_paid);
+                if (p.remarks === 'ADMIN_TEST_SEED') {
+                    testDataMap[p.student_id] = true;
+                }
+            });
+
+            // 4. Map Results
+            const ledger = students.map((s: any) => {
+                const total = feeMap[s.id] || 0;
+                const paid = payMap[s.id] || 0;
+                // Just take the first section found (current active)
+                const sectionData = s.sections?.[0]?.section;
+
+                return {
+                    id: s.id,
+                    full_name: s.full_name,
+                    student_code: s.student_code,
+                    class_name: sectionData?.class?.name || '-',
+                    section_name: sectionData?.name || '-',
+                    total_fee: total,
+                    total_paid: paid,
+                    balance: total - paid,
+                    is_test_data: !!testDataMap[s.id]
+                };
+            });
+
+            res.json({
+                data: ledger,
+                meta: {
+                    total: count,
+                    page: Number(page),
+                    limit: Number(limit)
+                }
+            });
+
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// ======================================
 // VIEWS (Student Ledger)
 // ======================================
 feesRouter.get('/student/:studentId',

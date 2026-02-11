@@ -73,40 +73,42 @@ export const SubjectManagement = () => {
                 <>
                     <div className="bg-gray-50 p-4 rounded mb-6 border">
                         <h3 className="font-bold mb-4">Add New Subject</h3>
-                        <form onSubmit={handleCreate} className="flex gap-4">
+                        <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4">
                             <input
                                 className="flex-1 border p-2 rounded"
                                 placeholder="Subject Name (e.g. Maths)"
                                 value={name} onChange={e => setName(e.target.value)} required
                             />
                             <input
-                                className="w-32 border p-2 rounded"
+                                className="w-full sm:w-32 border p-2 rounded"
                                 placeholder="Code (e.g. MAT)"
                                 value={code} onChange={e => setCode(e.target.value)} required
                             />
-                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 transition-colors">Add</button>
                         </form>
                     </div>
 
                     <div className="bg-white shadow rounded overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left">Code</th>
-                                    <th className="px-6 py-3 text-left">Subject Name</th>
-                                    <th className="px-6 py-3 text-left">Class</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {subjects.map(sub => (
-                                    <tr key={sub.id} className="border-t">
-                                        <td className="px-6 py-4 font-mono text-sm">{sub.code}</td>
-                                        <td className="px-6 py-4 font-bold">{sub.name}</td>
-                                        <td className="px-6 py-4 text-gray-500">{sub.class?.name}</td>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left">Code</th>
+                                        <th className="px-6 py-3 text-left">Subject Name</th>
+                                        <th className="px-6 py-3 text-left">Class</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {subjects.map(sub => (
+                                        <tr key={sub.id} className="border-t">
+                                            <td className="px-6 py-4 font-mono text-sm whitespace-nowrap">{sub.code}</td>
+                                            <td className="px-6 py-4 font-bold whitespace-nowrap">{sub.name}</td>
+                                            <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{sub.class?.name}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </>
             )}

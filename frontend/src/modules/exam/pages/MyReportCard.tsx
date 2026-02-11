@@ -31,7 +31,7 @@ export const MyReportCard = () => {
     const handlePrint = () => window.print();
 
     if (loading) return (
-        <div className="flex items-center justify-center p-24">
+        <div className="flex items-center justify-center p-8 sm:p-24">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         </div>
     );
@@ -55,16 +55,23 @@ export const MyReportCard = () => {
 
     const summary = data.summary;
     const isPass = summary.result_status === 'PASS';
+    const isClosed = data.exam?.academic_year?.status === 'CLOSED';
 
     return (
         <div className="max-w-3xl mx-auto my-10 bg-white shadow-2xl rounded-none print:shadow-none print:w-full animate-in zoom-in-95 duration-300 relative overflow-hidden">
             <div className={`absolute top-0 left-0 w-full h-2 ${isPass ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
 
+            {isClosed && (
+                <div className="bg-amber-100 text-amber-800 text-center py-3 text-[10px] font-black uppercase tracking-[0.2em] border-b border-amber-200 print:hidden">
+                    Archived Academic Year – Read Only View
+                </div>
+            )}
+
             {/* Actions (Hidden in Print) */}
             <div className="flex justify-between items-center bg-gray-50 p-4 print:hidden border-b border-gray-100">
-                <Link to="/app/student/exams" className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-2">
+                <button onClick={() => window.history.back()} className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-2">
                     <ArrowLeft className="w-4 h-4" /> Back
-                </Link>
+                </button>
                 <button
                     onClick={handlePrint}
                     className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-bold transition-all shadow-md"
@@ -89,19 +96,28 @@ export const MyReportCard = () => {
                 </div>
 
                 {/* Student Info */}
-                <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-10 gap-6">
                     <div>
                         <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Student Name</div>
                         <div className="text-xl font-bold text-gray-900">{data.student.full_name}</div>
+                        <div className="mt-2 text-xs font-medium text-gray-500 flex items-center gap-2">
+                            <span className="bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">
+                                Class: <strong className="text-gray-900">{summary.class_name_snapshot || data.student.section?.class?.name || 'N/A'}</strong>
+                            </span>
+                            <span className="bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">
+                                Section: <strong className="text-gray-900">{summary.section_name_snapshot || data.student.section?.name || 'N/A'}</strong>
+                            </span>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Student ID</div>
-                        <div className="text-xl font-bold text-gray-900 font-mono">{data.student.student_code}</div>
+                    <div className="text-left md:text-right">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Academic Year</div>
+                        <div className="text-lg font-bold text-gray-900">{summary.academic_year_label_snapshot || data.exam.academic_year?.year_label || 'Current'}</div>
+                        <div className="mt-1 text-xs text-gray-400 font-mono">ID: {data.student.student_code}</div>
                     </div>
                 </div>
 
                 {/* Marks Table */}
-                <div className="mb-10">
+                <div className="mb-10 overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b-2 border-gray-900">
@@ -119,8 +135,8 @@ export const MyReportCard = () => {
                                     <td className="py-4 font-black text-gray-900 text-center text-lg">{det.marks_obtained}</td>
                                     <td className="py-4 text-right">
                                         <div className={`inline-flex h-2 w-16 rounded-full ${det.marks_obtained >= 75 ? 'bg-emerald-500' :
-                                                det.marks_obtained >= 50 ? 'bg-indigo-500' :
-                                                    det.marks_obtained >= 35 ? 'bg-amber-400' : 'bg-red-400'
+                                            det.marks_obtained >= 50 ? 'bg-indigo-500' :
+                                                det.marks_obtained >= 35 ? 'bg-amber-400' : 'bg-red-400'
                                             }`}></div>
                                     </td>
                                 </tr>
@@ -138,7 +154,7 @@ export const MyReportCard = () => {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-3 gap-6 mb-16">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16">
                     <div className="bg-gray-900 text-white p-6 rounded-2xl text-center shadow-lg shadow-gray-200">
                         <div className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-1">Percentage</div>
                         <div className="text-3xl font-black">{summary.percentage}%</div>

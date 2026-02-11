@@ -234,7 +234,7 @@ export const SectionList = () => {
                 ))}
 
                 {sections.length === 0 && (
-                    <div className="col-span-full py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="col-span-full py-8 sm:py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center space-y-4">
                         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm">
                             <Plus className="w-10 h-10 text-gray-200" />
                         </div>

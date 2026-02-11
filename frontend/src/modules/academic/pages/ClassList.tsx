@@ -157,7 +157,7 @@ export const ClassList = () => {
                 ))}
 
                 {classes.length === 0 && (
-                    <div className="col-span-full py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
+                    <div className="col-span-full py-8 sm:py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <Plus className="w-8 h-8 text-gray-300" />
                         </div>

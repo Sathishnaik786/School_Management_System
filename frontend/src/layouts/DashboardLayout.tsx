@@ -29,12 +29,13 @@ import {
     MapPin,
     User,
     Briefcase,
-    Building
+    Building,
+    AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const DashboardLayout = () => {
-    const { user, signOut, hasPermission, hasRole } = useAuth();
+    const { user, signOut, hasPermission, hasRole, systemMode } = useAuth();
     console.log("[DashboardLayout] Rendering for user:", user?.email, "Roles:", user?.roles);
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -95,6 +96,7 @@ export const DashboardLayout = () => {
                     { label: 'Departments', icon: Building, path: '/app/academic/departments', permission: 'DEPARTMENT_VIEW' },
                     { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
 
+                    { label: 'Attendance Dashboard', icon: BarChart3, path: '/app/attendance/admin/dashboard', permission: 'DASHBOARD_VIEW_ADMIN' },
                     { label: 'System Settings', icon: Settings, path: '/app/settings' },
                 ]
             },
@@ -102,6 +104,7 @@ export const DashboardLayout = () => {
                 label: 'Finances',
                 items: [
                     { label: 'Fee Management', icon: Coins, path: '/app/fees/structures', permission: 'FEES_SETUP' },
+                    { label: 'Fee Ledger', icon: FileText, path: '/app/fees/ledger', permission: 'FEES_VIEW' },
                     { label: 'Transport', icon: Bus, path: '/app/transport/setup', permission: 'TRANSPORT_SETUP' },
                 ]
             },
@@ -148,6 +151,7 @@ export const DashboardLayout = () => {
                 items: [
                     // { label: 'My Subjects', icon: BookOpen, path: '/app/academic/subjects' }, // Route not confirmed
                     { label: 'Assignments', icon: ClipboardList, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
+                    { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
                     { label: 'My Timetable', icon: Clock, path: '/app/timetable/my', permission: 'TIMETABLE_VIEW_SELF' },
                 ]
             },
@@ -208,6 +212,7 @@ export const DashboardLayout = () => {
                 label: 'Academics',
                 items: [
                     { label: 'Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
+                    { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
                     { label: 'Assignments', icon: BookOpen, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
                 ]
             },
@@ -430,6 +435,20 @@ export const DashboardLayout = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0">
+                {systemMode === 'UAT' && (
+                    <div className="bg-amber-500 text-white px-8 py-3 flex items-center justify-between shadow-lg z-50 animate-in slide-in-from-top duration-500">
+                        <div className="flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5" />
+                            <p className="font-bold text-sm tracking-wide">
+                                <span className="uppercase font-black mr-2 bg-white/20 px-2 py-0.5 rounded">UAT Mode</span>
+                                This environment is for testing. Some features may use <span className="underline decoration-2">SEEDED TEST DATA</span>.
+                            </p>
+                        </div>
+                        <div className="hidden sm:block">
+                            <p className="text-[10px] font-black uppercase opacity-80 letter-spacing-widest">Environment: Staging/UAT (Academic v2.0)</p>
+                        </div>
+                    </div>
+                )}
                 {/* Top Navbar */}
                 <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
                     <div className="h-20 px-4 sm:px-8 flex items-center justify-between">

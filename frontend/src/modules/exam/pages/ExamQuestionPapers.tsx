@@ -191,7 +191,7 @@ export const ExamQuestionPapers = () => {
                                     {papers.map(paper => {
                                         const isLocked = paper.status === 'LOCKED';
                                         return (
-                                            <div key={paper.id} className={`p-5 transition-all flex items-center justify-between group ${isLocked ? 'bg-emerald-50/30' : 'hover:bg-gray-50'}`}>
+                                            <div key={paper.id} className={`p-5 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 group ${isLocked ? 'bg-emerald-50/30' : 'hover:bg-gray-50'}`}>
                                                 <div className="flex items-center gap-5">
                                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border ${isLocked ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-white text-gray-400 border-gray-100'}`}>
                                                         {isLocked ? <Lock className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
@@ -251,7 +251,7 @@ export const ExamQuestionPapers = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-20 flex flex-col items-center justify-center text-center opacity-70">
+                <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-8 sm:p-20 flex flex-col items-center justify-center text-center opacity-70">
                     <History className="w-12 h-12 text-gray-300 mb-4" />
                     <p className="font-bold text-gray-500 text-lg">Select an exam above to manage papers</p>
                 </div>

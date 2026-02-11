@@ -14,19 +14,31 @@ dashboardRouter.get('/admin/overview',
         const schoolId = req.context!.user.school_id;
 
         try {
+            const today = new Date().toISOString().split('T')[0];
+
             const [
                 { count: students },
                 { count: classes },
                 { count: exams },
                 { count: pendingAdmissions },
-                { count: totalApplications }
+                { count: totalApplications },
+                { data: allPayments },
+                { count: sessionsToday }
             ] = await Promise.all([
                 supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
                 supabase.from('classes').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
                 supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
                 supabase.from('admissions').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['submitted', 'under_review']),
                 supabase.from('admissions').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+                // PHASE-A: Real Fee Collection (Lifetime) - Note: In prod, replace with RPC for scale
+                supabase.from('payments').select('amount_paid'),
+                // PHASE-A: Real Attendance Activity (Today)
+                supabase.from('attendance_sessions').select('*', { count: 'exact', head: true }).eq('date', today)
             ]);
+
+            // Compute Totals
+            const feeCollection = allPayments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0;
+            const attendanceRate = `${sessionsToday || 0} Sessions Today`;
 
             res.json({
                 students: students || 0,
@@ -34,7 +46,8 @@ dashboardRouter.get('/admin/overview',
                 exams: exams || 0,
                 pendingAdmissions: pendingAdmissions || 0,
                 totalApplications: totalApplications || 0,
-                attendanceRate: "85%"
+                feeCollection: feeCollection, // Now returning actual sum
+                attendanceRate: attendanceRate
             });
 
         } catch (err: any) {
