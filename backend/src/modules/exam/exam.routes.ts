@@ -19,6 +19,9 @@ import { ExamEvaluationController } from './controllers/examEvaluation.controlle
 import { ExamExportController } from './controllers/examExport.controller';
 import { ExamAdminBridgeController } from './controllers/examAdminBridge.controller';
 import { ExamHallTicketController } from './controllers/examHallTicket.controller';
+import { ExamHallController } from './controllers/examHall.controller';
+import { ExamVersioningController } from './controllers/examVersioning.controller';
+import { ExamTimelineController } from './controllers/examTimeline.controller';
 
 export const examRouter = Router();
 // ======================================
@@ -98,6 +101,21 @@ examRouter.get('/',
         } catch (err: any) {
             console.error("GET /exams Error:", err);
             res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// GET /:examId/classes (Fetch Classes Mapped to Exam)
+examRouter.get('/:examId/classes',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    async (req, res) => {
+        try {
+            const { examId } = req.params;
+            const data = await ExamEligibilityService.getClassesForExam(examId);
+            res.json(data);
+        } catch (err: any) {
+            console.error("GET /exams/:examId/classes Error:", err);
+            res.status(err.message === "Exam not found or invalid." ? 404 : 500).json({ error: err.message });
         }
     }
 );
@@ -299,19 +317,52 @@ examRouter.post('/marks',
     async (req, res) => {
         try {
             const userId = req.context!.user.id;
-            const { student_id, exam_id, subject_id, marks_obtained } = req.body;
 
-            if (!student_id || !exam_id || !subject_id) {
-                return res.status(400).json({ error: "Missing required IDs (student, exam, or subject)" });
+            // --- PHASE 17A: HARDENED VALIDATION ---
+            const marksSchema = z.object({
+                student_id: z.string().uuid(),
+                exam_id: z.string().uuid(),
+                subject_id: z.string().uuid(),
+                marks_obtained: z.number()
+                    .min(0, "Marks cannot be negative")
+                    .refine(val => {
+                        const decimals = val.toString().split('.')[1];
+                        return !decimals || decimals.length <= 2;
+                    }, "Marks can have at most 2 decimal places")
+            });
+
+            const validated = marksSchema.safeParse(req.body);
+            if (!validated.success) {
+                return res.status(400).json({
+                    error: "Validation failed",
+                    details: validated.error.flatten().fieldErrors
+                });
             }
+
+            const { student_id, exam_id, subject_id, marks_obtained } = validated.data;
+            // --------------------------------------
 
             // --- PHASE-4 CHECK: ELIGIBILITY & SEATING ---
             const { data: sch } = await supabase
                 .from('exam_schedules')
-                .select('id')
+                .select('id, exams!inner(seating_status, hall_ticket_status, result_status)')
                 .eq('exam_id', exam_id)
                 .eq('subject_id', subject_id)
                 .single();
+
+            const exam = (sch as any)?.exams;
+
+            if (exam?.seating_status !== 'PUBLISHED') {
+                return res.status(403).json({ error: "Seating is not published. Marks entry is not allowed." });
+            }
+
+            if (exam?.hall_ticket_status !== 'PUBLISHED') {
+                return res.status(403).json({ error: "Hall tickets are not published. Marks entry is not yet available." });
+            }
+
+            if (exam?.result_status === 'PUBLISHED') {
+                return res.status(423).json({ error: "Results are already published and locked.", code: "LOCKED" });
+            }
 
             const { data: seating } = await supabase
                 .from('exam_seating_allocations')
@@ -323,13 +374,6 @@ examRouter.post('/marks',
             if (!seating) {
                 return res.status(403).json({ error: "Student is not seated for this subject. Only snapshot-eligible students can have marks entered." });
             }
-
-            // Results Lock check (Pre-Publication)
-            const isPublished = await ResultPublishService.isStudentResultPublished(exam_id, student_id);
-            if (isPublished) {
-                return res.status(423).json({ error: "Results published. Marks locked.", code: "LOCKED" });
-            }
-            // ----------------------------------------------
 
             // TODO: Verify Faculty Section Assignment for Strict Control
 
@@ -362,6 +406,20 @@ examRouter.post('/marks',
             res.status(500).json({ error: err.message });
         }
     }
+);
+
+// ======================================
+// DASHBOARD PROJECTIONS (READ-ONLY)
+// ======================================
+
+examRouter.get('/dashboard/student/exam-timeline',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamTimelineController.getStudentTimeline
+);
+
+examRouter.get('/dashboard/faculty/exam-timeline',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamTimelineController.getFacultyTimeline
 );
 
 // ======================================
@@ -492,37 +550,64 @@ examRouter.post('/publish-results',
 
 // GET /exam/hall-ticket?examId=&studentId=
 examRouter.get('/hall-ticket',
-    checkPermission(PERMISSIONS.EXAM_VIEW), // Or specific permission
+    checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamDeliverablesController.getHallTicket
 );
 
-// GET /exam/report-card?examId=&studentId=
-examRouter.get('/report-card',
+// PHASE 17C: PDF RESULTS & BULK DOWNLOAD
+examRouter.get('/:examId/result/:studentId/pdf',
     checkPermission(PERMISSIONS.MARKS_VIEW),
-    ExamDeliverablesController.getReportCard
+    ExamDeliverablesController.generateStudentPDF
+);
+
+examRouter.get('/:examId/result/bulk-download',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamDeliverablesController.bulkDownloadResults
+);
+
+// PHASE 18: PROGRESS REPORTS
+examRouter.get('/:examId/progress-report/:studentId/pdf',
+    checkPermission(PERMISSIONS.MARKS_VIEW),
+    ExamDeliverablesController.generateProgressReportPDF
+);
+
+examRouter.get('/:examId/progress-report/bulk-download',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamDeliverablesController.bulkDownloadProgressReports
+);
+
+// ======================================
+// GLOBAL HALL MANAGEMENT (v1)
+// ======================================
+
+examRouter.get('/v1/exam-halls',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallController.listHalls
+);
+
+examRouter.post('/v1/exam-halls',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallController.createHall
+);
+
+examRouter.put('/v1/exam-halls/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallController.updateHall
+);
+
+examRouter.patch('/v1/exam-halls/:id/toggle',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallController.toggleActive
+);
+
+examRouter.delete('/v1/exam-halls/:id',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallController.deleteHall
 );
 
 // ======================================
 // SEATING (ADMIN ONLY)
 // ======================================
-
-// GET /exams/halls (List Halls)
-examRouter.get('/halls',
-    checkPermission(PERMISSIONS.EXAM_VIEW),
-    ExamSeatingController.getHalls
-);
-
-// POST /exams/halls (Create Hall)
-examRouter.post('/halls',
-    checkPermission(PERMISSIONS.EXAM_CREATE),
-    ExamSeatingController.createHall
-);
-
-// DELETE /exams/halls/:id
-examRouter.delete('/halls/:id',
-    checkPermission(PERMISSIONS.EXAM_CREATE),
-    ExamSeatingController.deleteHall
-);
 
 // POST /exams/seating/generate
 examRouter.post('/seating/generate',
@@ -564,6 +649,12 @@ examRouter.post('/hall-tickets/generate',
     ExamHallTicketController.generateTickets
 );
 
+// POST /exams/hall-tickets/publish (Phase-3)
+examRouter.post('/hall-tickets/publish',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallTicketController.publishTickets
+);
+
 // GET /exams/hall-tickets
 examRouter.get('/hall-tickets',
     checkPermission(PERMISSIONS.EXAM_VIEW),
@@ -574,6 +665,19 @@ examRouter.get('/hall-tickets',
 examRouter.get('/hall-tickets/my',
     checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamHallTicketController.getMyHallTicket
+);
+
+// PHASE-14: PDF GENERATION
+// GET /api/v1/exams/hall-ticket/:examId/:studentId/pdf
+examRouter.get('/hall-ticket/:examId/:studentId/pdf',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamHallTicketController.generateStudentPDF
+);
+
+// POST /api/v1/exams/:examId/hall-ticket/reissue
+examRouter.post('/:examId/hall-ticket/reissue',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamHallTicketController.bulkReissueZip
 );
 
 // ======================================
@@ -642,6 +746,34 @@ examRouter.get('/analytics/sections',
 examRouter.get('/analytics/audit',
     checkPermission(PERMISSIONS.EXAM_VIEW),
     ExamAnalyticsController.getAuditTrails
+);
+
+// POST /exams/results/publish (Phase-3)
+examRouter.post('/results/publish',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ResultPublishController.publishResults
+);
+
+// ======================================
+// REVISION CONTROL & VERSIONING (Phase-12)
+// ======================================
+
+// GET /exams/:examId/seating/versions
+examRouter.get('/:examId/seating/versions',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamVersioningController.getSeatingVersions
+);
+
+// GET /exams/:examId/results/versions
+examRouter.get('/:examId/results/versions',
+    checkPermission(PERMISSIONS.EXAM_VIEW),
+    ExamVersioningController.getResultVersions
+);
+
+// POST /exams/:examId/seating/versions/:version/restore
+examRouter.post('/:examId/seating/versions/:version/restore',
+    checkPermission(PERMISSIONS.EXAM_CREATE),
+    ExamVersioningController.restoreSeatingVersion
 );
 
 // ======================================

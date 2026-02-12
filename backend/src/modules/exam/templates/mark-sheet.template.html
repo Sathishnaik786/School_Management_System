@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Report Card</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+
+        .report-card {
+            border: 5px double #1a237e;
+            padding: 30px;
+            max-width: 800px;
+            margin: auto;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1a237e;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            max-width: 80px;
+            margin-bottom: 10px;
+        }
+
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a237e;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .school-info {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .report-title {
+            font-size: 20px;
+            margin-top: 15px;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            display: flex;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 120px;
+        }
+
+        .value {
+            border-bottom: 1px dotted #666;
+            flex-grow: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th,
+        td {
+            border: 1px solid #1a237e;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            color: #1a237e;
+            font-weight: bold;
+        }
+
+        .subject-name {
+            text-align: left;
+        }
+
+        .summary-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .summary-box {
+            border: 1px solid #1a237e;
+            padding: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .summary-label {
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+        }
+
+        .signature {
+            border-top: 1px solid #333;
+            width: 150px;
+            padding-top: 5px;
+            font-size: 14px;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px;
+            color: rgba(26, 35, 126, 0.05);
+            pointer-events: none;
+            z-index: -1;
+            white-space: nowrap;
+        }
+
+        .version-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #1a237e;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="report-card">
+        <div class="version-badge">Version v{{versionNumber}}</div>
+        <div class="watermark">OFFICIAL</div>
+
+        <div class="header">
+            <h1 class="school-name">{{schoolName}}</h1>
+            <p class="school-info">{{schoolAddress}}</p>
+            <p class="school-info">Contact: {{schoolContact}}</p>
+            <h2 class="report-title">ACADEMIC PROGRESS REPORT</h2>
+            <p><strong>{{examName}}</strong></p>
+        </div>
+
+        <div class="student-info">
+            <div class="info-item"><span class="label">Student Name:</span><span class="value">{{studentName}}</span>
+            </div>
+            <div class="info-item"><span class="label">Student ID:</span><span class="value">{{studentCode}}</span>
+            </div>
+            <div class="info-item"><span class="label">Class/Section:</span><span class="value">{{className}} -
+                    {{sectionName}}</span></div>
+            <div class="info-item"><span class="label">Academic Year:</span><span class="value">{{academicYear}}</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="subject-name">Subject</th>
+                    <th>Max Marks</th>
+                    <th>Marks Obtained</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{markRows}}
+            </tbody>
+        </table>
+
+        <div class="summary-section">
+            <div class="summary-box">
+                <div class="summary-item"><span class="summary-label">Total
+                        Obtained:</span><span>{{totalObtained}}</span></div>
+                <div class="summary-item"><span class="summary-label">Total Max:</span><span>{{totalMax}}</span></div>
+                <div class="summary-item"><span class="summary-label">Percentage:</span><span>{{percentage}}%</span>
+                </div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-item"><span class="summary-label">Final Grade:</span><span
+                        style="font-weight: bold; color: #1a237e;">{{finalGrade}}</span></div>
+                <div class="summary-item"><span class="summary-label">Exam Rank:</span><span
+                        style="font-weight: bold;">{{rank}}</span></div>
+                <div class="summary-item"><span class="summary-label">Result:</span><span
+                        style="font-weight: bold;">{{resultStatus}}</span></div>
+            </div>
+        </div>
+
+        <div class="school-info" style="font-style: italic; color: #666; margin-top: 20px;">
+            Published on: {{publicationDate}}
+        </div>
+
+        <div class="footer">
+            <div class="signature">Class Teacher</div>
+            <div class="signature">Principal</div>
+            <div class="signature">Parent's Signature</div>
+        </div>
+    </div>
+</body>
+
+</html>

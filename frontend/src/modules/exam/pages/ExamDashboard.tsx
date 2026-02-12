@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/api-client';
-import { LayoutDashboard, Calendar, FileText, CheckCircle2, AlertCircle, Clock, ChevronRight, PenTool, Armchair, Ticket, Search, Loader2, RefreshCw, Lock } from 'lucide-react';
+import { LayoutDashboard, Calendar, FileText, CheckCircle2, AlertCircle, Clock, ChevronRight, PenTool, Armchair, Ticket, Search, Loader2, RefreshCw, Lock, GraduationCap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const ExamDashboard = () => {
@@ -11,15 +11,19 @@ export const ExamDashboard = () => {
     // Lifecycle Context
     const [selectedExamId, setSelectedExamId] = useState<string>('');
     const [lifecycle, setLifecycle] = useState<{
-        scheduling: 'PENDING' | 'DONE' | 'READY'; // READY means Draft Created but Not Published
+        scheduling: 'PENDING' | 'DONE' | 'READY';
         eligibility: 'PENDING' | 'READY' | 'DONE' | 'BLOCKED';
         seating: 'BLOCKED' | 'READY' | 'DONE';
-        hallTickets: 'BLOCKED' | 'READY';
+        hallTickets: 'BLOCKED' | 'READY' | 'DONE';
+        marksEntry: 'BLOCKED' | 'READY' | 'DONE';
+        publishMarks: 'BLOCKED' | 'READY' | 'DONE';
     }>({
         scheduling: 'PENDING',
         eligibility: 'PENDING',
         seating: 'BLOCKED',
-        hallTickets: 'BLOCKED'
+        hallTickets: 'BLOCKED',
+        marksEntry: 'BLOCKED',
+        publishMarks: 'BLOCKED'
     });
     const [lifecycleLoading, setLifecycleLoading] = useState(false);
 
@@ -71,37 +75,38 @@ export const ExamDashboard = () => {
             // 1. Check Scheduling
             const schRes = await apiClient.get('/exams/exam-schedules', { params: { examId } });
             const schedules = schRes.data || [];
-
             const isScheduled = schedules.length > 0;
 
-            // 2. Check Seating (Sample check)
+            // 2. Check Eligibility
+            const isEligibleDone = !!currentExam?.eligibility_frozen;
+
+            // 3. Check Seating
             let isSeated = false;
-            if (isScheduled && schedules[0]?.id) {
+            if (isScheduled) {
                 try {
-                    const seatRes = await apiClient.get('/exams/seating', { params: { examScheduleId: schedules[0].id } });
-                    if (seatRes.data && seatRes.data.length > 0) {
-                        isSeated = true;
-                    }
+                    const seatRes = await apiClient.get('/exams/seating', { params: { examId } });
+                    if (seatRes.data && seatRes.data.length > 0) isSeated = true;
                 } catch (e) { }
             }
 
+            // 4. Hall Tickets Check
+            const isHTGenerated = currentExam?.hall_ticket_status === 'GENERATED' || currentExam?.hall_ticket_status === 'PUBLISHED';
+            const isHTPublished = currentExam?.hall_ticket_status === 'PUBLISHED';
+
+            // 5. Marks Entry Check
+            // If exam is LOCKED or PUBLISHED, marks entry is considered "DONE" (finalized)
+            const isMarksDone = currentExam?.status === 'LOCKED' || currentExam?.status === 'PUBLISHED';
+
+            // 6. Publication Check
+            const isFinalPublished = currentExam?.status === 'PUBLISHED';
+
             setLifecycle({
-                scheduling: isPublished ? 'DONE' : (isScheduled ? 'READY' : 'PENDING'), // If published, it's DONE. If just scheduled but not published, it's READY (to publish)? Or just PENDING completion.
-                // Actually, 'PENDING' usually means "To Do". 'DONE' means "Completed".
-                // If schedules exist but not published -> It's "In Progress" or "Draft".
-                // Let's stick effectively to: Scheduling is DONE if Published.
-                // If schedules exist but not published, let's call it 'READY' (to publish).
-                // Current UI uses 'DONE' if scheduled.
-                // New Logic: Scheduling is DONE if Published. Else if scheduled, it's ... PENDING? 
-                // User wants flow: Schedule -> Publish -> Eligibility.
-                // So Scheduling card should allow clicking to go to page.
-                // If Published, Scheduling is DONE.
-
-                eligibility: isPublished ? 'READY' : 'BLOCKED', // User Request: Enable only if published
-
-                seating: !isPublished ? 'BLOCKED' : isSeated ? 'DONE' : 'READY', // Seating also blocked until Publish? Makes sense.
-
-                hallTickets: isSeated ? 'READY' : 'BLOCKED'
+                scheduling: isScheduled ? 'DONE' : 'READY',
+                eligibility: isEligibleDone ? 'DONE' : (isScheduled ? 'READY' : 'BLOCKED'),
+                seating: isSeated ? 'DONE' : (isEligibleDone ? 'READY' : 'BLOCKED'),
+                hallTickets: isHTPublished ? 'DONE' : (isSeated ? 'READY' : 'BLOCKED'),
+                marksEntry: isMarksDone ? 'DONE' : (isHTPublished ? 'READY' : 'BLOCKED'),
+                publishMarks: isFinalPublished ? 'DONE' : (isMarksDone ? 'READY' : 'BLOCKED')
             });
 
         } catch (e) {
@@ -221,9 +226,10 @@ export const ExamDashboard = () => {
                             <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-                            {/* Connecting Line (Desktop) */}
-                            <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-gray-100 z-0 transform -translate-y-1/2"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-12 gap-x-6 relative">
+                            {/* Connecting Lines (Desktop) */}
+                            <div className="hidden md:block absolute top-[12%] left-0 w-full h-1 bg-gray-100 z-0"></div>
+                            <div className="hidden md:block absolute top-[62%] left-0 w-full h-1 bg-gray-100 z-0"></div>
 
                             {/* CARD 1: SCHEDULING */}
                             <LifecycleCard
@@ -264,6 +270,26 @@ export const ExamDashboard = () => {
                                 icon={Ticket}
                                 cta="Verify Readiness"
                                 link="/app/exam-admin/hall-tickets"
+                            />
+
+                            {/* CARD 5: MARKS ENTRY */}
+                            <LifecycleCard
+                                title="5. Marks Entry"
+                                description="Enter scores and lock subjects."
+                                status={lifecycle.marksEntry}
+                                icon={PenTool}
+                                cta="Go to Marks Entry"
+                                link="/app/exams/manage"
+                            />
+
+                            {/* CARD 6: PUBLISH MARKS */}
+                            <LifecycleCard
+                                title="6. Publish Marks"
+                                description="Release results to portals."
+                                status={lifecycle.publishMarks}
+                                icon={GraduationCap}
+                                cta="Publish Results"
+                                link="/app/exam-admin/results"
                             />
                         </div>
                     )}

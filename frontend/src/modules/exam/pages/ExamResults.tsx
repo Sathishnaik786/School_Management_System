@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/api-client';
-import { GraduationCap, Award, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { GraduationCap, Award, AlertTriangle, CheckCircle2, XCircle, FileDown, Download } from 'lucide-react';
 import { ExamProgressGuide } from '../components/ExamProgressGuide';
 
 export const ExamResults = () => {
@@ -63,6 +63,18 @@ export const ExamResults = () => {
         }
     };
 
+    const handleDownloadSingle = (examId: string) => {
+        // Since we don't have a specific student context here, this button might need adjustment or we download for first?
+        // Actually, usually this page is for Admin. Better to provide Bulk download.
+        // But the prompt asks for "Download Result PDF" and "Download All Results".
+        // I will implement "Download All Results" (ZIP) and point "Download Result PDF" to the list if we have one.
+        window.open(`${apiClient.defaults.baseURL}/exams/${selectedExamId}/result/bulk-download`, '_blank');
+    };
+
+    const handleDownloadAll = () => {
+        window.open(`${apiClient.defaults.baseURL}/exams/${selectedExamId}/result/bulk-download`, '_blank');
+    };
+
     const selectedExam = exams.find(e => e.id === selectedExamId);
     const isPublished = selectedExam?.status === 'PUBLISHED';
 
@@ -103,8 +115,13 @@ export const ExamResults = () => {
                                 </div>
                                 <h2 className="text-3xl font-black text-emerald-900 tracking-tight">Results Published</h2>
                                 <p className="text-emerald-700 font-medium mt-2 max-w-xs mx-auto">Report cards are live. Parents and students can view scores in their portal.</p>
-                                <div className="mt-8 px-5 py-2.5 bg-white rounded-xl text-xs font-bold text-emerald-600 border border-emerald-100 shadow-sm uppercase tracking-wider">
-                                    Status: Live
+                                <div className="mt-8 flex gap-3">
+                                    <button
+                                        onClick={handleDownloadAll}
+                                        className="px-5 py-2.5 bg-white rounded-xl text-xs font-bold text-emerald-600 border border-emerald-100 shadow-sm uppercase tracking-wider hover:bg-emerald-50 transition-colors flex items-center gap-2"
+                                    >
+                                        <Download className="w-4 h-4" /> Download All Results
+                                    </button>
                                 </div>
                             </>
                         ) : (

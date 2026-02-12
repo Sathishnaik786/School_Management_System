@@ -11,7 +11,8 @@ import {
     Info,
     ChevronLeft,
     ChevronRight,
-    ArrowRight
+    ArrowRight,
+    Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -41,6 +42,9 @@ export const ExamEligibilityPage = () => {
 
     const [selectedExamId, setSelectedExamId] = useState('');
     const [selectedClassId, setSelectedClassId] = useState('');
+    const [examClasses, setExamClasses] = useState<any[]>([]);
+    const [loadingClasses, setLoadingClasses] = useState(false);
+    const [eligibilityFrozen, setEligibilityFrozen] = useState(false);
 
     const [students, setStudents] = useState<Student[]>([]);
     const [eligibilityMap, setEligibilityMap] = useState<Record<string, EligibilityResult>>({});
@@ -61,14 +65,10 @@ export const ExamEligibilityPage = () => {
     useEffect(() => {
         const loadMetadata = async () => {
             try {
-                const [exRes, clRes] = await Promise.all([
-                    apiClient.get('/exams'),
-                    apiClient.get('/academic-years/current').then(r =>
-                        apiClient.get('/academic/classes', { params: { academicYearId: r.data?.id } })
-                    )
+                const [exRes] = await Promise.all([
+                    apiClient.get('/exams')
                 ]);
                 setExams(exRes.data);
-                setClasses(clRes.data);
             } catch (err) {
                 console.error("Failed to load metadata", err);
             }
@@ -76,12 +76,41 @@ export const ExamEligibilityPage = () => {
         loadMetadata();
     }, []);
 
+    // --- Load Methods ---
+    const loadExamClasses = async (examId: string) => {
+        setLoadingClasses(true);
+        try {
+            const res = await apiClient.get(`/exams/${examId}/classes`);
+            setExamClasses(res.data);
+            // If currently selected class is not in the new list, clear it
+            if (selectedClassId && !res.data.find((c: any) => c.id === selectedClassId)) {
+                setSelectedClassId('');
+            }
+        } catch (err) {
+            console.error("Failed to load exam classes", err);
+            setExamClasses([]);
+        } finally {
+            setLoadingClasses(false);
+        }
+    };
+
     // Effect to trigger fetch when tab/page/size changes
     useEffect(() => {
         if (selectedExamId && selectedClassId) {
             handleFetchData();
         }
     }, [selectedTab, page, pageSize]);
+
+    // Handle Exam Change
+    useEffect(() => {
+        if (selectedExamId) {
+            loadExamClasses(selectedExamId);
+        } else {
+            setExamClasses([]);
+            setSelectedClassId('');
+        }
+        setEligibleCount(0);
+    }, [selectedExamId]);
 
     // --- Fetch Data ---
     const handleFetchData = async (resetPage = false) => {
@@ -104,6 +133,11 @@ export const ExamEligibilityPage = () => {
             });
 
             const { data, meta } = res.data;
+
+            // Phase-2: Fetch exam to get frozen status (though usually returned in meta or context)
+            const examRes = await apiClient.get('/exams');
+            const currentExam = examRes.data.find((e: any) => e.id === selectedExamId);
+            setEligibilityFrozen(currentExam?.eligibility_frozen || false);
 
             if (!data || data.length === 0) {
                 setStudents([]);
@@ -155,6 +189,27 @@ export const ExamEligibilityPage = () => {
 
     return (
         <div className="space-y-6 pb-12 animate-in fade-in duration-500">
+            {/* Phase-2: Frozen Header Banner */}
+            {eligibilityFrozen && (
+                <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-amber-100 p-2 rounded-xl">
+                            <Lock className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-amber-900 leading-none">Security Lock Active</h3>
+                            <p className="text-sm font-bold text-amber-600 mt-1">Eligibility is frozen. Students have been promoted to Seating Allocation.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => navigate(`/app/exam/seating?examId=${selectedExamId}`)}
+                        className="px-6 py-2 bg-amber-600 text-white font-black rounded-xl hover:bg-amber-700 transition-all text-sm shadow-lg shadow-amber-200/50"
+                    >
+                        Go to Seating Chart
+                    </button>
+                </div>
+            )}
+
             {/* Header */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
@@ -190,16 +245,25 @@ export const ExamEligibilityPage = () => {
                     <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Class</label>
                         <select
-                            className="w-full p-3 border rounded-xl bg-gray-50 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full p-3 border rounded-xl bg-gray-50 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                             value={selectedClassId}
+                            disabled={!selectedExamId || loadingClasses || eligibilityFrozen}
                             onChange={e => {
                                 setSelectedClassId(e.target.value);
                                 setEligibleCount(0); // Reset count on change
                             }}
                         >
-                            <option value="">-- Choose Class --</option>
-                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            <option value="">{loadingClasses ? "Loading Classes..." : "-- Choose Class --"}</option>
+                            {examClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
+                        {selectedExamId && !loadingClasses && examClasses.length === 0 && (
+                            <p className="text-[10px] text-red-500 font-bold mt-1 italic">No classes mapped to this exam</p>
+                        )}
+                        {eligibilityFrozen && (
+                            <p className="text-[10px] text-amber-500 font-bold mt-1 italic flex items-center gap-1">
+                                <Lock className="w-3 h-3" /> Eligibility is frozen for this exam
+                            </p>
+                        )}
                     </div>
                     <button
                         onClick={() => handleFetchData(true)}
@@ -275,7 +339,11 @@ export const ExamEligibilityPage = () => {
                                     const isFeePending = data.fees_status !== 'CLEARED';
 
                                     let remark = "All criteria met";
-                                    if (!data.eligible) {
+                                    const isPromoted = (data as any).promoted_to_seating;
+
+                                    if (isPromoted) {
+                                        remark = "PROMOTED TO SEATING";
+                                    } else if (!data.eligible) {
                                         if (isAttShortage && isFeePending) {
                                             remark = "Attendance shortage & Fees pending";
                                         } else if (isAttShortage) {
@@ -390,6 +458,10 @@ export const ExamEligibilityPage = () => {
                 <div className="flex justify-end pt-4">
                     <button
                         onClick={async () => {
+                            if (eligibilityFrozen) {
+                                navigate(`/app/exam/seating?examId=${selectedExamId}`);
+                                return;
+                            }
                             try {
                                 setLoading(true);
                                 setLoadingStage('Promoting students...');
@@ -399,12 +471,12 @@ export const ExamEligibilityPage = () => {
                                 await apiClient.post('/exams/eligibility/freeze', { examId: selectedExamId });
 
                                 // 2. Navigate
-                                navigate(`/app/exam/seating-allocation?examId=${selectedExamId}&classId=${selectedClassId}`);
+                                navigate(`/app/exam/seating?examId=${selectedExamId}`);
                             } catch (err: any) {
                                 console.error("Promotion failed", err);
                                 // If already frozen, we can still navigate
                                 if (err.response?.data?.error?.includes('ALREADY_FROZEN')) {
-                                    navigate(`/app/exam/seating-allocation?examId=${selectedExamId}&classId=${selectedClassId}`);
+                                    navigate(`/app/exam/seating?examId=${selectedExamId}`);
                                 } else {
                                     alert(err.response?.data?.error || "Failed to promote students. Please try again.");
                                 }
@@ -414,20 +486,25 @@ export const ExamEligibilityPage = () => {
                             }
                         }}
                         disabled={loading}
-                        className="group relative flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50"
+                        className={`group relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-xl disabled:opacity-50 ${eligibilityFrozen
+                            ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-200'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                            }`}
                     >
                         {loading && loadingStage === 'Promoting students...' ? (
                             <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
                             <>
-                                <span>Promote to Seating Allocation</span>
+                                <span>{eligibilityFrozen ? 'View Seating Allocation' : 'Promote to Seating Allocation'}</span>
                                 <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             </>
                         )}
 
-                        <div className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-full shadow-md">
-                            {eligibleCount} Students
-                        </div>
+                        {!eligibilityFrozen && (
+                            <div className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-full shadow-md">
+                                {eligibleCount} Students
+                            </div>
+                        )}
                     </button>
                 </div>
             )}

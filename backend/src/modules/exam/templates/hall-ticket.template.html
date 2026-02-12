@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hall Ticket</title>
+    <style>
+        /* Optimized for single-page A4 layout */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #1a1a1a;
+            line-height: 1.3;
+            font-size: 13px;
+        }
+
+        .container {
+            border: 2px solid #333;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #eee;
+            border-radius: 4px;
+        }
+
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .school-info {
+            font-size: 11px;
+            margin: 3px 0;
+        }
+
+        .document-title {
+            background: #333;
+            color: #fff;
+            padding: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            letter-spacing: 2px;
+        }
+
+        .main-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .student-photo {
+            width: 110px;
+            height: 130px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 5px;
+            flex-grow: 1;
+            margin-right: 20px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+            font-size: 11px;
+        }
+
+        .value {
+            border-bottom: 1px dotted #999;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #333;
+            padding: 6px 10px;
+            text-align: left;
+        }
+
+        table th {
+            background: #f2f2f2;
+            font-size: 11px;
+        }
+
+        .seating-box {
+            margin-top: 15px;
+            border: 1px dashed #333;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            background: #fafafa;
+        }
+
+        .seating-item {
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-box {
+            width: 180px;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            font-size: 12px;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Logo handled via background or base64 if provided, no external HTTP -->
+        <div class="header">
+            <h1 class="school-name">{{schoolName}}</h1>
+            <p class="school-info">{{schoolAddress}}</p>
+            <p class="school-info">{{schoolContact}}</p>
+            <div class="document-title">EXAMINATION HALL TICKET - {{examName}}</div>
+        </div>
+
+        <div class="main-info">
+            <div class="info-grid">
+                <div class="label">Roll Number / ID</div>
+                <div class="value">{{studentCode}}</div>
+
+                <div class="label">Admission No</div>
+                <div class="value">{{admissionNo}}</div>
+
+                <div class="label">Student Name</div>
+                <div class="value">{{studentName}}</div>
+
+                <div class="label">Father's Name</div>
+                <div class="value">{{fatherName}}</div>
+
+                <div class="label">Class & Section</div>
+                <div class="value">{{className}} - {{sectionName}}</div>
+
+                <div class="label">Date of Birth</div>
+                <div class="value">{{dob}}</div>
+            </div>
+            <div class="student-photo">
+                STUDENT PHOTO<br>STAMP REQUIRED
+            </div>
+        </div>
+
+        <div class="seating-box">
+            <div class="seating-item">
+                <div class="label">Exam Hall</div>
+                <div class="value">{{hallName}}</div>
+            </div>
+            <div class="seating-item">
+                <div class="label">Building/Floor</div>
+                <div class="value">{{building}} / {{floor}}</div>
+            </div>
+            <div class="seating-item">
+                <div class="label">Seat Number</div>
+                <div class="value" style="font-size: 16px; font-weight: bold;">{{seatNumber}}</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{scheduleRows}}
+            </tbody>
+        </table>
+
+        <div class="instructions">
+            <strong>Candidate Instructions:</strong>
+            <ol>
+                <li>Please bring this Hall Ticket to every examination session.</li>
+                <li>Report to the exam hall at least 30 minutes before the commencement of the exam.</li>
+                <li>Calculators, mobile phones, or any electronic gadgets are strictly prohibited.</li>
+                <li>Maintain silence and follow the invigilator's instructions at all times.</li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            <div class="signature-box">Student Signature</div>
+            <div class="signature-box">Principal / Controller of Exams</div>
+        </div>
+    </div>
+</body>
+
+</html>

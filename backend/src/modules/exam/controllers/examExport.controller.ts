@@ -15,11 +15,19 @@ export const ExamExportController = {
             // If empty, just return 204 or empty json
             if (data.length === 0) return res.status(204).send();
 
-            // Simple CSV conversion logic
+            // CSV injection sanitization
+            const sanitize = (val: any) => {
+                const str = String(val || '');
+                if (['=', '+', '-', '@'].some(char => str.startsWith(char))) {
+                    return `'${str}`;
+                }
+                return str;
+            };
+
             const headers = Object.keys(data[0]);
             const csvRows = [
-                headers.join(','), // Header row
-                ...data.map(row => headers.map(h => `"${(row as any)[h] || ''}"`).join(','))
+                headers.join(','),
+                ...data.map(row => headers.map(h => `"${sanitize((row as any)[h])}"`).join(','))
             ];
 
             const csvString = csvRows.join('\n');

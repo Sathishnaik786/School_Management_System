@@ -70,10 +70,10 @@ export const ExamSeatingController = {
 
     async getSeatingView(req: Request, res: Response) {
         try {
-            const { examId } = req.query;
+            const { examId, classId } = req.query;
             if (!examId) return res.status(400).json({ error: "Exam ID required" });
 
-            const data = await ExamSeatingService.getSeatingView(examId as string);
+            const data = await ExamSeatingService.getSeatingView(examId as string, classId as string);
             res.json(data);
         } catch (err: any) {
             res.status(500).json({ error: err.message });
@@ -82,10 +82,10 @@ export const ExamSeatingController = {
 
     async getEligibleStudents(req: Request, res: Response) {
         try {
-            const { examId } = req.query;
+            const { examId, classId } = req.query;
             if (!examId) return res.status(400).json({ error: "Exam ID required" });
 
-            const data = await ExamSeatingService.getEligibleStudents(examId as string);
+            const data = await ExamSeatingService.getEligibleStudents(examId as string, classId as string);
             res.json(data);
         } catch (err: any) {
             res.status(500).json({ error: err.message });

@@ -147,9 +147,13 @@ export const MarksEntry = () => {
         const marks = marksBuffer[studentId];
         if (marks === undefined) return;
 
+        // 1. Fetch Subject Max Marks for Validation
+        const sub = subjects.find(s => s.id === selectedSubjectId);
+        const maxAllowed = sub?.max_marks || 100;
+
         // Basic Validation
-        if (marks < 0 || marks > 100) {
-            alert("Marks must be between 0 and 100");
+        if (marks < 0 || marks > maxAllowed) {
+            alert(`Marks must be between 0 and ${maxAllowed}`);
             return;
         }
 

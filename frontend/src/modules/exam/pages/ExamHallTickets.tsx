@@ -73,6 +73,42 @@ export const ExamHallTickets = () => {
 
     const isSeatingPublished = selectedExam?.seating_status === 'PUBLISHED';
 
+    const handleDownload = async (studentId: string, studentCode: string) => {
+        try {
+            const res = await apiClient.get(`/exams/hall-ticket/${selectedExamId}/${studentId}/pdf`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `HallTicket_${studentCode}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Download failed", err);
+            alert("Failed to download Hall Ticket");
+        }
+    };
+
+    const handleDownloadAll = async () => {
+        try {
+            const res = await apiClient.post(`/exams/${selectedExamId}/hall-ticket/reissue`, {}, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `HallTickets_Bulk_${selectedExam?.name}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Bulk download failed", err);
+            alert("Failed to download bulk tickets");
+        }
+    };
+
     const filteredTickets = tickets.filter(t =>
         t.student?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.student?.student_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,12 +129,21 @@ export const ExamHallTickets = () => {
 
                 {selectedExamId && (
                     <div className="flex gap-3 print:hidden">
+                        {tickets.length > 0 && (
+                            <button
+                                onClick={handleDownloadAll}
+                                className="px-6 py-3 rounded-2xl font-black flex items-center gap-3 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                <FileText className="w-5 h-5 text-indigo-500" />
+                                Download All (ZIP)
+                            </button>
+                        )}
                         <button
                             disabled={!isSeatingPublished || generating || loading}
                             onClick={handleGenerate}
                             className={`px-6 py-3 rounded-2xl font-black flex items-center gap-3 transition-all ${!isSeatingPublished
-                                    ? 'bg-gray-100 text-gray-400 border border-gray-200'
-                                    : 'bg-indigo-600 text-white hover:bg-black shadow-xl shadow-indigo-100'
+                                ? 'bg-gray-100 text-gray-400 border border-gray-200'
+                                : 'bg-indigo-600 text-white hover:bg-black shadow-xl shadow-indigo-100'
                                 }`}
                         >
                             {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
@@ -217,7 +262,9 @@ export const ExamHallTickets = () => {
                                             <div className="text-[10px] text-gray-400">{new Date(ticket.generated_at).toLocaleTimeString()}</div>
                                         </td>
                                         <td className="p-6 text-right">
-                                            <button className="bg-white border border-gray-200 text-gray-900 px-4 py-2 rounded-xl font-black text-xs hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2 ml-auto group-hover:border-transparent group-hover:shadow-lg">
+                                            <button
+                                                onClick={() => handleDownload(ticket.student_id, ticket.student?.student_code)}
+                                                className="bg-white border border-gray-200 text-gray-900 px-4 py-2 rounded-xl font-black text-xs hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2 ml-auto group-hover:border-transparent group-hover:shadow-lg">
                                                 <Download className="w-4 h-4" /> <span>Download</span>
                                             </button>
                                         </td>

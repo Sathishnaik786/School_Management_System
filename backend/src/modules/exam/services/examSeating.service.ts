@@ -10,15 +10,23 @@ export const ExamSeatingService = {
             .select(`
                 student_id,
                 eligible,
+                promoted_to_seating,
                 student:student_id!inner (
-                    id, full_name, student_code, status
+                    id, full_name, student_code, status,
+                    student_sections!inner(
+                        section:section_id!inner(
+                            class_id
+                        )
+                    )
                 )
             `)
             .eq('exam_id', examId)
-            .eq('eligible', true);
+            .eq('eligible', true)
+            .eq('promoted_to_seating', true); // Hardened Phase-2
 
-        // If classId is provided, we filter by joining students (though snapshots usually are exam-wide)
-        // Senior Architect: Snapshots are for the entire exam. Use them.
+        if (classId) {
+            query = query.eq('student.student_sections.section.class_id', classId);
+        }
 
         const { data, error } = await query;
         if (error) throw error;
@@ -32,84 +40,69 @@ export const ExamSeatingService = {
      * Auto-allocate seats for an EXAM (Lockable)
      */
     async generateSeating(examId: string, classId: string, userId: string, schoolId: string) {
-        // 1. Safety Check: Is it already published?
-        const { data: exam } = await supabase.from('exams').select('seating_status').eq('id', examId).single();
-        if (exam?.seating_status === 'PUBLISHED') throw new Error("SEATING_LOCKED: Cannot generate seating for a published exam.");
+        // Initial Check: Lock if published
+        const { data: currentExam } = await supabase.from('exams').select('seating_status').eq('id', examId).single();
+        if (currentExam?.seating_status === 'PUBLISHED') {
+            throw new Error("SEATING_LOCKED: Cannot generate seating for a published exam.");
+        }
 
-        // 2. Fetch Eligible Students from Snapshots
-        const students = await this.getEligibleStudents(examId);
-        if (students.length === 0) throw new Error("NO_ELIGIBLE_STUDENTS: Please verify and freeze eligibility first.");
-
-        // 3. Fetch Available Halls
-        const { data: halls, error: hallError } = await supabase
+        // STEP 4 GUARD: Fetch active halls count
+        const { count: hallsCount, error: hallsError } = await supabase
             .from('exam_halls')
-            .select('*')
+            .select('*', { count: 'exact', head: true })
             .eq('school_id', schoolId)
-            .order('hall_name');
+            .eq('is_active', true);
 
-        if (hallError) throw hallError;
-        if (!halls || halls.length === 0) throw new Error("NO_HALLS: Please create examination halls first.");
-
-        const totalCapacity = halls.reduce((sum, h) => sum + h.capacity, 0);
-        if (students.length > totalCapacity) {
-            throw new Error(`INSUFFICIENT_CAPACITY: Need ${students.length} seats, only ${totalCapacity} available.`);
+        if (hallsError) throw hallsError;
+        if (!hallsCount || hallsCount === 0) {
+            throw new Error("NO_HALLS_CONFIGURED: Please create active halls before generating seating.");
         }
 
-        // 4. Allocation Algorithm (Sequential)
-        const allocations = [];
-        let hallIndex = 0;
-        let seatCounter = 1;
-
-        for (const student of students) {
-            let currentHall = halls[hallIndex];
-
-            if (seatCounter > currentHall.capacity) {
-                hallIndex++;
-                currentHall = halls[hallIndex];
-                seatCounter = 1;
-            }
-
-            allocations.push({
-                exam_id: examId, // New field from migration
-                student_id: (student as any).id,
-                hall_id: currentHall.id,
-                seat_number: `S-${seatCounter}`
-            });
-            seatCounter++;
-        }
-
-        // 5. Persist (Atomic)
-        // Note: In real app, we'd use a transaction if possible. 
-        // Here we clear existing for this exam first.
-        const { error: delError } = await supabase.from('exam_seating_allocations').delete().eq('exam_id', examId);
-        if (delError) throw delError;
-
-        const { error: insError } = await supabase.from('exam_seating_allocations').insert(allocations);
-        if (insError) throw insError;
-
-        // 6. Audit
-        await supabase.from('academic_automation_logs').insert({
-            school_id: schoolId,
-            action: 'SEATING_GENERATE',
-            details: { examId, studentCount: allocations.length, hallsUsed: hallIndex + 1 },
-            performed_by: userId
+        // Validation and Allocation logic moved to Database RPC for Atomicity
+        const { error } = await supabase.rpc('fn_generate_exam_seating', {
+            p_exam_id: examId,
+            p_school_id: schoolId,
+            p_user_id: userId
         });
 
-        return { count: allocations.length, hallsUsed: hallIndex + 1 };
+        if (error) {
+            console.error("Atomic Seating Generation Failed:", error);
+            if (error.message?.includes('SEATING_LOCKED')) throw new Error("SEATING_LOCKED: Cannot generate seating for a published exam.");
+            if (error.message?.includes('ELIGIBILITY_NOT_FROZEN')) throw new Error("ELIGIBILITY_NOT_FROZEN: Please promote students to seating first.");
+            if (error.message?.includes('INSUFFICIENT_CAPACITY')) throw new Error(error.message);
+            if (error.message?.includes('NO_PROMOTED_STUDENTS')) throw new Error("NO_PROMOTED_STUDENTS: Please ensure students are promoted to seating first.");
+
+            throw error;
+        }
+
+        return { success: true };
     },
 
     /**
      * Get Seating allocations for an Exam
      */
-    async getSeatingView(examId: string) {
-        const { data, error } = await supabase
+    async getSeatingView(examId: string, classId?: string) {
+        let query = supabase
             .from('exam_seating_allocations')
             .select(`
                 id, seat_number,
-                student:student_id(id, full_name, student_code),
+                student:student_id!inner(
+                    id, full_name, student_code,
+                    student_sections!inner(
+                        section:section_id!inner(
+                            class_id
+                        )
+                    )
+                ),
                 hall:hall_id(id, hall_name, location)
             `)
-            .eq('exam_id', examId)
+            .eq('exam_id', examId);
+
+        if (classId) {
+            query = query.eq('student.student_sections.section.class_id', classId);
+        }
+
+        const { data, error } = await query
             .order('hall_id')
             .order('seat_number', { ascending: true } as any);
 
@@ -121,22 +114,18 @@ export const ExamSeatingService = {
      * Publish Seating (Critical Gate)
      */
     async publishSeating(examId: string, userId: string, schoolId: string) {
-        // Validation: Must have halls and all eligible seated.
-        // For simplicity: We mark it as PUBLISHED which locks edits.
-
-        const { error } = await supabase
-            .from('exams')
-            .update({ seating_status: 'PUBLISHED' })
-            .eq('id', examId);
-
-        if (error) throw error;
-
-        await supabase.from('academic_automation_logs').insert({
-            school_id: schoolId,
-            action: 'SEATING_PUBLISH',
-            details: { examId },
-            performed_by: userId
+        // Validation and status update moved to Database RPC for atomicity and locking
+        const { error } = await supabase.rpc('fn_publish_exam_seating', {
+            p_exam_id: examId,
+            p_user_id: userId
         });
+
+        if (error) {
+            console.error("Seating Publish Failed:", error);
+            if (error.message?.includes('SEATING_ALREADY_PUBLISHED')) throw new Error("ALREADY_PUBLISHED: Seating is already published.");
+            if (error.message?.includes('NO_SEATING_GENERATED')) throw new Error("NO_SEATING: Please generate seating allocation before publishing.");
+            throw error;
+        }
 
         return { success: true };
     },
@@ -145,8 +134,14 @@ export const ExamSeatingService = {
      * Reset Seating (Admin Only)
      */
     async resetSeating(examId: string) {
-        const { data: exam } = await supabase.from('exams').select('seating_status').eq('id', examId).single();
-        if (exam?.seating_status === 'PUBLISHED') throw new Error("SEATING_LOCKED: Cannot reset published seating.");
+        const { data: exam } = await supabase.from('exams').select('seating_status, result_status').eq('id', examId).single();
+        if (exam?.seating_status === 'PUBLISHED') {
+            throw new Error("SEATING_LOCKED: Cannot reset published seating.");
+        }
+
+        if (exam?.result_status === 'PUBLISHED') {
+            throw new Error("RESULTS_PUBLISHED: Cannot reset seating after results are published.");
+        }
 
         const { error } = await supabase.from('exam_seating_allocations').delete().eq('exam_id', examId);
         if (error) throw error;

@@ -118,11 +118,11 @@ export const ExamAnalyticsService = {
         const { data, error } = await supabase
             .from('student_result_summaries')
             .select(`
-                total_obtained, percentage, grade,
+                total_obtained, percentage, grade, rank,
                 student:student_id(full_name, student_code)
             `)
             .eq('exam_id', examId)
-            .order('total_obtained', { ascending: false })
+            .order('rank', { ascending: true }) // Rank 1 is top
             .limit(limit);
 
         if (error) throw error;

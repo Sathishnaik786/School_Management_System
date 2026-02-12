@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { apiClient } from '../../../lib/api-client';
-import { Armchair, Printer, Users, CheckCircle, Calendar, Ban, Save, Lock, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
+import { Armchair, Printer, Users, CheckCircle, Calendar, Ban, Save, Lock, RotateCcw, Loader2, AlertTriangle, Building2, Building } from 'lucide-react';
 import { ExamProgressGuide } from '../components/ExamProgressGuide';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const ExamSeating = () => {
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
 
     // --- State ---
     const [exams, setExams] = useState<any[]>([]);
@@ -16,12 +18,15 @@ export const ExamSeating = () => {
     const [allocations, setAllocations] = useState<any[]>([]);
     const [halls, setHalls] = useState<any[]>([]);
     const [eligibleStudents, setEligibleStudents] = useState<any[]>([]);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState('');
 
     // Async State
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [showNoHalls, setShowNoHalls] = useState(false);
 
     // --- Init ---
     useEffect(() => {
@@ -46,21 +51,34 @@ export const ExamSeating = () => {
         if (selectedExamId) {
             const found = exams.find(e => e.id === selectedExamId);
             setSelectedExam(found);
-            loadSeatingData(selectedExamId);
+            loadClasses(selectedExamId); // Fetch classes for the exam
+            loadSeatingData(selectedExamId, selectedClassId);
         } else {
             setAllocations([]);
             setEligibleStudents([]);
+            setClasses([]);
+            setSelectedClassId('');
             setSelectedExam(null);
         }
     }, [selectedExamId, exams]);
 
-    const loadSeatingData = async (examId: string) => {
+    const loadClasses = async (examId: string) => {
+        try {
+            const res = await apiClient.get(`/exams/${examId}/classes`);
+            setClasses(res.data || []);
+        } catch (e) {
+            console.error("Failed to load classes for exam", e);
+        }
+    };
+
+    const loadSeatingData = async (examId: string, classId?: string) => {
         setLoading(true);
         try {
+            const params = { examId, classId };
             const [allocRes, hallsRes, eligRes] = await Promise.all([
-                apiClient.get('/exams/seating', { params: { examId } }),
-                apiClient.get('/exams/halls'),
-                apiClient.get('/exams/seating/eligible-students', { params: { examId } })
+                apiClient.get('/exams/seating', { params }),
+                apiClient.get('/exams/v1/exam-halls'),
+                apiClient.get('/exams/seating/eligible-students', { params })
             ]);
             setAllocations(allocRes.data || []);
             setHalls(hallsRes.data || []);
@@ -71,6 +89,13 @@ export const ExamSeating = () => {
             setLoading(false);
         }
     };
+
+    // Trigger reload on class change
+    useEffect(() => {
+        if (selectedExamId) {
+            loadSeatingData(selectedExamId, selectedClassId);
+        }
+    }, [selectedClassId]);
 
     const handleGenerateClick = () => {
         if (selectedExam?.seating_status === 'PUBLISHED') return;
@@ -84,7 +109,12 @@ export const ExamSeating = () => {
             await apiClient.post('/exams/seating/generate', { examId: selectedExamId });
             await loadSeatingData(selectedExamId);
         } catch (err: any) {
-            alert(err.response?.data?.error || "Generation Failed");
+            const errorMsg = err.response?.data?.error || "";
+            if (errorMsg.includes("NO_HALLS_CONFIGURED")) {
+                setShowNoHalls(true);
+            } else {
+                alert(errorMsg || "Generation Failed");
+            }
         } finally {
             setGenerating(false);
         }
@@ -157,6 +187,21 @@ export const ExamSeating = () => {
                 </div>
             </div>
 
+            {/* Phase-8: Immutable State Banner */}
+            {isPublished && (
+                <div className="bg-emerald-50 border-2 border-emerald-200 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-emerald-100 p-2 rounded-xl">
+                            <CheckCircle className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-emerald-900 leading-none">Seating Published — Immutable State</h3>
+                            <p className="text-sm font-bold text-emerald-600 mt-1">Allocation is finalized and locked. Hall Ticket generation is active.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Selection Bar */}
             <div className={`bg-white p-6 rounded-2xl border ${isPublished ? 'border-emerald-100' : 'border-gray-100'} shadow-sm flex flex-wrap gap-6 items-end`}>
                 <div className="flex-1 min-w-[300px]">
@@ -170,6 +215,22 @@ export const ExamSeating = () => {
                         {exams.map(e => <option key={e.id} value={e.id}>{e.name} ({e.term})</option>)}
                     </select>
                 </div>
+
+                {selectedExamId && (
+                    <div className="flex-1 min-w-[200px] animate-in slide-in-from-left duration-300">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[2px] mb-2">Filter by Class</label>
+                        <select
+                            className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl font-black text-gray-900 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all cursor-pointer"
+                            value={selectedClassId}
+                            onChange={e => setSelectedClassId(e.target.value)}
+                        >
+                            <option value="">-- All Classes --</option>
+                            {classes.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {selectedExamId && (
                     <div className="flex gap-4 ml-auto">
@@ -188,8 +249,8 @@ export const ExamSeating = () => {
                                     onClick={handlePublish}
                                     disabled={publishing || !allEligibleSeated}
                                     className={`px-8 py-3.5 rounded-2xl font-black text-lg transition-all flex items-center gap-3 ${allEligibleSeated
-                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-100'
-                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-100'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
                                         }`}
                                 >
                                     {publishing ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle className="w-6 h-6" />}
@@ -197,9 +258,9 @@ export const ExamSeating = () => {
                                 </button>
                             </>
                         ) : (
-                            <div className="bg-emerald-50 text-emerald-700 px-6 py-3.5 rounded-2xl border border-emerald-100 flex items-center gap-3 font-black">
+                            <div className="bg-emerald-50 text-emerald-700 px-8 py-3.5 rounded-2xl border border-emerald-200 flex items-center gap-3 font-black text-lg shadow-sm">
                                 <CheckCircle className="w-6 h-6" />
-                                Seating Finalized
+                                Seating Locked
                             </div>
                         )}
                     </div>
@@ -325,10 +386,10 @@ export const ExamSeating = () => {
 
                         <button
                             onClick={handleGenerateClick}
-                            disabled={eligibleStudents.length === 0}
+                            disabled={eligibleStudents.length === 0 || isPublished}
                             className="bg-indigo-600 text-white px-12 py-5 rounded-[24px] font-black text-xl hover:bg-black transition-all shadow-2xl shadow-indigo-200 disabled:opacity-50"
                         >
-                            Auto-Generate Layout
+                            {isPublished ? 'Seating Immutable' : 'Auto-Generate Layout'}
                         </button>
 
                         {eligibleStudents.length === 0 && (
@@ -375,6 +436,42 @@ export const ExamSeating = () => {
                     </div>
                 </div>
             )}
+            {/* No Halls Configured Modal */}
+            <AnimatePresence>
+                {showNoHalls && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-900/40 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl border border-white/20 text-center"
+                        >
+                            <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-[30px] flex items-center justify-center mx-auto mb-8">
+                                <Building2 className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">No Exam Halls Configured</h3>
+                            <p className="text-gray-500 mb-10 font-semibold leading-relaxed">
+                                Please configure at least one active exam hall before generating seating for students.
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => navigate('/app/exam-admin/halls')}
+                                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black shadow-2xl shadow-indigo-100 transition-all"
+                                >
+                                    Go to Hall Management
+                                </button>
+                                <button
+                                    onClick={() => setShowNoHalls(false)}
+                                    className="w-full py-4 font-black text-gray-400 hover:text-gray-900 rounded-2xl transition-all"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

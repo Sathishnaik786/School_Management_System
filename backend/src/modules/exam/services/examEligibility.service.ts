@@ -166,7 +166,7 @@ export const ExamEligibilityService = {
         if (exam.eligibility_frozen) {
             const { data: snapshots } = await supabase
                 .from('exam_eligibility_snapshots')
-                .select('student_id, eligible, attendance_percentage, fees_status, reasons, source')
+                .select('student_id, eligible, attendance_percentage, fees_status, reasons, source, promoted_to_seating')
                 .eq('exam_id', examId)
                 .in('student_id', studentIds);
 
@@ -177,7 +177,8 @@ export const ExamEligibilityService = {
                         attendance_percentage: Number(s.attendance_percentage),
                         fees_status: s.fees_status,
                         reasons: s.reasons,
-                        source: s.source
+                        source: s.source,
+                        promoted_to_seating: s.promoted_to_seating // Added
                     };
                 });
                 // If all found, return
@@ -291,5 +292,34 @@ export const ExamEligibilityService = {
         });
 
         return results;
+    },
+
+    /**
+     * Fetch classes applicable to an exam
+     */
+    async getClassesForExam(examId: string) {
+        // 1. Get Exam Record
+        const { data: exam, error: examErr } = await supabase
+            .from('exams')
+            .select('applicable_classes')
+            .eq('id', examId)
+            .single();
+
+        if (examErr || !exam) throw new Error("Exam not found or invalid.");
+
+        // 2. Resolve Classes
+        let query = supabase
+            .from('classes')
+            .select('id, name')
+            .order('name', { ascending: true });
+
+        if (exam.applicable_classes && exam.applicable_classes.length > 0) {
+            query = query.in('id', exam.applicable_classes);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        return data;
     }
 };

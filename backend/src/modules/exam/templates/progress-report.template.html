@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+            background-color: #fff;
+        }
+
+        .container {
+            border: 2px solid #000;
+            padding: 10px;
+            height: 277mm;
+            /* Adjust for padding and border */
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .school-name {
+            font-size: 24pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .sub-header {
+            font-size: 11pt;
+            margin: 5px 0;
+        }
+
+        .report-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+            margin: 10px 0;
+        }
+
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .student-photo {
+            width: 100px;
+            height: 120px;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9pt;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px 20px;
+            font-size: 11pt;
+            flex-grow: 1;
+            margin-right: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            border-bottom: 1px dotted #000;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 130px;
+        }
+
+        .value {
+            flex-grow: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 10pt;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        .subject-col {
+            text-align: left;
+            font-weight: bold;
+            width: 25%;
+        }
+
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            background-color: #000;
+            color: #fff;
+            padding: 5px;
+            margin: 15px 0 10px 0;
+            text-transform: uppercase;
+        }
+
+        .co-scholastic-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 20px;
+        }
+
+        .footer-stats {
+            margin: 15px 0;
+            font-size: 11pt;
+        }
+
+        .signature-block {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding: 0 20px;
+        }
+
+        .signature {
+            border-top: 1px solid #000;
+            width: 150px;
+            text-align: center;
+            padding-top: 5px;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .remarks-box {
+            border: 1px solid #000;
+            padding: 10px;
+            min-height: 50px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        .disclaimer {
+            font-size: 8pt;
+            text-align: center;
+            position: absolute;
+            bottom: 10px;
+            width: calc(100% - 20px);
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="school-name">{{schoolName}}</h1>
+            <div class="sub-header">(Affiliated to CBSE, New Delhi) - Affiliation No: {{affiliationNo}}</div>
+            <div class="sub-header">{{schoolAddress}}</div>
+            <div class="report-title">PROGRESS REPORT: SESSION {{academicSession}}</div>
+        </div>
+
+        <div class="student-header">
+            <div class="info-grid">
+                <div class="info-item"><span class="label">Student Name:</span><span
+                        class="value">{{studentName}}</span></div>
+                <div class="info-item"><span class="label">Father's Name:</span><span
+                        class="value">{{fatherName}}</span></div>
+                <div class="info-item"><span class="label">Mother's Name:</span><span
+                        class="value">{{motherName}}</span></div>
+                <div class="info-item"><span class="label">Date of Birth:</span><span class="value">{{dob}}</span></div>
+                <div class="info-item"><span class="label">Class / Section:</span><span class="value">{{className}} -
+                        {{sectionName}}</span></div>
+                <div class="info-item"><span class="label">Admission No:</span><span
+                        class="value">{{admissionNo}}</span></div>
+                <div class="info-item"><span class="label">Roll No:</span><span class="value">{{rollNo}}</span></div>
+                <div class="info-item"><span class="label">House:</span><span class="value">{{house}}</span></div>
+            </div>
+            <div class="student-photo">
+                {{photoPlaceholder}}
+            </div>
+        </div>
+
+        <div class="section-title">Part - 1: Scholastic Areas</div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="subject-col">Subject Name</th>
+                    <th>Pen & Paper (5)</th>
+                    <th>Mul. Assess. (5)</th>
+                    <th>Sub. Enrich. (5)</th>
+                    <th>Portfolio (5)</th>
+                    <th>Annual Exam (80)</th>
+                    <th>Total (100)</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{scholasticRows}}
+            </tbody>
+        </table>
+
+        <div class="section-title">Part - 2: Co-Scholastic Activities (on 3-point scale A-C)</div>
+        <div class="co-scholastic-grid">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{coScholasticRowsLeft}}
+                </tbody>
+            </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{coScholasticRowsRight}}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer-stats">
+            <strong>Attendance:</strong> {{attendancePresent}} / {{attendanceWorking}} &nbsp;&nbsp;&nbsp;&nbsp;
+            <strong>Promotion Status:</strong> {{promotionStatus}}
+        </div>
+
+        <div class="section-title">Class Teacher's Remarks</div>
+        <div class="remarks-box">
+            {{teacherRemarks}}
+        </div>
+
+        <div class="signature-block">
+            <div class="signature">Class Teacher</div>
+            <div class="signature">Principal</div>
+            <div class="signature">Parent</div>
+        </div>
+
+        <div class="disclaimer">
+            This is a system generated progress report and does not require a physical signature.
+            Generated on: {{generationDate}}
+        </div>
+    </div>
+</body>
+
+</html>

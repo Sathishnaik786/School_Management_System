@@ -556,6 +556,7 @@ export const AppRouter = () => {
                         <Route path="timetable" element={<ExamTimetablePage />} />
                         <Route path="eligibility" element={<ExamEligibilityPage />} />
                         <Route path="seating" element={<ExamSeating />} />
+                        <Route path="halls" element={<ExamHallManagement />} />
                         <Route path="hall-tickets" element={<ExamHallTickets />} />
                         <Route path="question-papers" element={<ExamQuestionPapers />} />
                         <Route path="results" element={<ExamResults />} />

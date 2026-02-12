@@ -15,7 +15,8 @@ import {
     ChevronDown,
     Settings,
     CheckCircle,
-    ScrollText
+    ScrollText,
+    Building
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,6 +36,7 @@ export const ExamAdminLayout = () => {
                 { label: 'Exam Timetable', icon: Calendar, path: '/app/exam-admin/timetable' },
                 { label: 'Eligibility & Attendance', icon: CheckCircle, path: '/app/exam-admin/eligibility' },
                 { label: 'Seating Allocation', icon: Users, path: '/app/exam-admin/seating' },
+                { label: 'Hall Management', icon: Building, path: '/app/exam-admin/halls' },
                 { label: 'Hall Tickets', icon: ScrollText, path: '/app/exam-admin/hall-tickets' },
                 { label: 'Question Papers', icon: FileText, path: '/app/exam-admin/question-papers' },
                 { label: 'Results Control', icon: GraduationCap, path: '/app/exam-admin/results' },

@@ -349,7 +349,7 @@ export const DashboardLayout = () => {
                                 animate={{ opacity: 1 }}
                                 className="font-black text-xl text-gray-900 tracking-tight"
                             >
-                                EduFlow
+                                EduTrack
                             </motion.div>
                         )}
                     </div>
@@ -410,7 +410,7 @@ export const DashboardLayout = () => {
                             <div className="flex items-center justify-between mb-10">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">S</div>
-                                    <span className="font-black text-xl text-gray-900">EduFlow</span>
+                                    <span className="font-black text-xl text-gray-900">EduTrack</span>
                                 </div>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-gray-50 rounded-lg">
                                     <X className="w-5 h-5" />

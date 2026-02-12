@@ -1,20 +1,49 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+    Plus,
+    Trash2,
+    Edit2,
+    Building2,
+    DoorOpen,
+    Users,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    Save,
+    MapPin,
+    Building
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '../../../lib/api-client';
-import { Plus, Trash2, MapPin, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
+interface ExamHall {
+    id: string;
+    hall_name: string;
+    building?: string;
+    floor?: string;
+    capacity: number;
+    is_active: boolean;
+    is_in_use: boolean;
+}
+
 export const ExamHallManagement = () => {
-    const [halls, setHalls] = useState<any[]>([]);
+    const [halls, setHalls] = useState<ExamHall[]>([]);
     const [loading, setLoading] = useState(true);
-    const { register, handleSubmit, reset } = useForm();
-    const [creating, setCreating] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [editingHall, setEditingHall] = useState<ExamHall | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const { register, handleSubmit, reset, setValue } = useForm();
 
     const fetchHalls = async () => {
         try {
-            const res = await apiClient.get('/exams/halls');
+            setLoading(true);
+            const res = await apiClient.get('/exams/v1/exam-halls');
             setHalls(res.data);
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            console.error('Failed to fetch halls:', err);
         } finally {
             setLoading(false);
         }
@@ -25,102 +54,344 @@ export const ExamHallManagement = () => {
     }, []);
 
     const onSubmit = async (data: any) => {
-        setCreating(true);
+        setSubmitting(true);
+        setError(null);
         try {
-            await apiClient.post('/exams/halls', data);
-            reset();
+            if (editingHall) {
+                await apiClient.put(`/exams/v1/exam-halls/${editingHall.id}`, data);
+            } else {
+                await apiClient.post('/exams/v1/exam-halls', data);
+            }
+            closeModal();
             fetchHalls();
-        } catch (err) {
-            alert("Failed to create hall");
+        } catch (err: any) {
+            const msg = err.response?.data?.error || err.message;
+            if (msg.includes('CAPACITY_LOCKED')) {
+                setError("Cannot reduce capacity for a hall that has already been allocated to students.");
+            } else if (msg.includes('duplicate key')) {
+                setError("A hall with this name already exists in your school.");
+            } else {
+                setError(msg);
+            }
         } finally {
-            setCreating(false);
+            setSubmitting(false);
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure?")) return;
+    const handleDelete = async (hall: ExamHall) => {
+        if (hall.is_in_use) {
+            alert("HALL_IN_USE_CANNOT_DELETE: This hall is currently used in a published exam seating plan and cannot be deleted.");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete ${hall.hall_name}? This action cannot be undone.`)) return;
+
         try {
-            await apiClient.delete(`/exams/halls/${id}`);
+            await apiClient.delete(`/exams/v1/exam-halls/${hall.id}`);
             fetchHalls();
-        } catch (err) {
-            alert("Failed to delete hall");
+        } catch (err: any) {
+            const msg = err.response?.data?.error || err.message;
+            alert(msg.includes('HALL_IN_USE') ? "HALL_IN_USE_CANNOT_DELETE" : msg);
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    const toggleStatus = async (hall: ExamHall) => {
+        try {
+            await apiClient.patch(`/exams/v1/exam-halls/${hall.id}/toggle`);
+            fetchHalls();
+        } catch (err: any) {
+            alert(err.response?.data?.error || err.message);
+        }
+    };
+
+    const openEditModal = (hall: ExamHall) => {
+        setEditingHall(hall);
+        setValue('hall_name', hall.hall_name);
+        setValue('building', hall.building);
+        setValue('floor', hall.floor);
+        setValue('capacity', hall.capacity);
+        setValue('is_active', hall.is_active);
+        setIsCreateModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsCreateModalOpen(false);
+        setEditingHall(null);
+        setError(null);
+        reset();
+    };
+
+    const activeHalls = halls.filter(h => h.is_active).length;
+    const totalCapacity = halls.filter(h => h.is_active).reduce((sum, h) => sum + h.capacity, 0);
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Exam Halls</h1>
-
-            {/* Create Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-5 gap-4 items-end">
-                <div className="col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 tracking-widest uppercase">Hall Name</label>
-                    <input {...register("hall_name", { required: true })} className="w-full p-2.5 border rounded-xl" placeholder="e.g. Block A - 101" />
-                </div>
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            {/* Header section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 tracking-widest uppercase">Capacity</label>
-                    <input type="number" {...register("capacity", { required: true, min: 1 })} className="w-full p-2.5 border rounded-xl" placeholder="40" />
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Exam Hall Configuration</h1>
+                    <p className="text-gray-500 font-medium italic">Manage physical exam spaces and capacities for seating generation.</p>
                 </div>
-                <div>
-                    <label className="block text-xs font-bold mb-1 tracking-widest uppercase text-indigo-500">Rows</label>
-                    <input type="number" {...register("rows_count", { min: 1 })} defaultValue={5} className="w-full p-2.5 border border-indigo-100 bg-indigo-50/30 rounded-xl" />
-                </div>
-                <div>
-                    <label className="block text-xs font-bold mb-1 tracking-widest uppercase text-indigo-500">Cols</label>
-                    <input type="number" {...register("cols_count", { min: 1 })} defaultValue={5} className="w-full p-2.5 border border-indigo-100 bg-indigo-50/30 rounded-xl" />
-                </div>
-                <div className="col-span-4">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 tracking-widest uppercase">Location / Notes</label>
-                    <input {...register("location")} className="w-full p-2.5 border rounded-xl" placeholder="First Floor" />
-                </div>
-                <button disabled={creating} className="bg-indigo-600 text-white h-[45px] rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 font-bold w-full">
-                    <Plus className="w-5 h-5" /> <span>Add Hall</span>
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl shadow-indigo-100 group"
+                >
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                    <span>Add New Hall</span>
                 </button>
-            </form>
+            </div>
 
-            {/* List */}
+            {/* Stats Dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {halls.map(hall => (
-                    <div key={hall.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col group hover:border-indigo-200 transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 className="font-black text-xl text-gray-900">{hall.hall_name}</h3>
-                                <div className="text-xs font-bold text-gray-400 uppercase mt-1 flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" /> {hall.location || 'No location info'}
-                                </div>
-                            </div>
-                            <button onClick={() => handleDelete(hall.id)} className="text-gray-300 hover:text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
-                                <Trash2 className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                    <Users className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <div className="text-sm font-black text-gray-900">{hall.capacity}</div>
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase">Max Capacity</div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                <div className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Layout</div>
-                                <div className="text-xs font-bold text-gray-700">{hall.rows_count || 5} × {hall.cols_count || 5} Grid</div>
-                            </div>
-                        </div>
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5">
+                    <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                        <Building2 className="w-8 h-8" />
                     </div>
-                ))}
+                    <div>
+                        <div className="text-3xl font-black text-gray-900">{halls.length}</div>
+                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Total Halls</div>
+                    </div>
+                </div>
 
-                {halls.length === 0 && !loading && (
-                    <div className="col-span-full py-12 text-center text-gray-400 italic font-medium">
-                        No halls created yet.
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5">
+                    <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                        <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <div className="text-3xl font-black text-gray-900">{activeHalls}</div>
+                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Active Spaces</div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5">
+                    <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                        <Users className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <div className="text-3xl font-black text-gray-900">{totalCapacity}</div>
+                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Total Active Capacity</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Table */}
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50/50">
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Hall Name</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Location</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Capacity</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Status</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Usage</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-8 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                                            <p className="font-bold text-gray-400 uppercase tracking-widest text-xs">Loading Hall Registry...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : halls.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-8 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-4 text-gray-300">
+                                            <DoorOpen className="w-16 h-16" />
+                                            <p className="font-bold uppercase tracking-widest text-sm">No exam halls configured yet</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : halls.map((hall) => (
+                                <tr key={hall.id} className="group hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                                <DoorOpen className="w-5 h-5" />
+                                            </div>
+                                            <span className="font-bold text-gray-900 text-lg">{hall.hall_name}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                                                <Building className="w-3.5 h-3.5 text-gray-400" />
+                                                {hall.building || 'Main Campus'}
+                                            </span>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1">
+                                                {hall.floor ? `Floor ${hall.floor}` : 'Ground Floor'}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100">
+                                            <Users className="w-3.5 h-3.5" />
+                                            <span className="font-black text-sm">{hall.capacity}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <button
+                                            onClick={() => toggleStatus(hall)}
+                                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${hall.is_active
+                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white'
+                                                : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-600 hover:text-white'
+                                                }`}
+                                        >
+                                            {hall.is_active ? 'Active' : 'Inactive'}
+                                        </button>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        {hall.is_in_use ? (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-tight border border-rose-100">
+                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                In Use (Published)
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-tight border border-gray-100">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-gray-300" />
+                                                Available
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => openEditModal(hall)}
+                                                className="p-2.5 bg-white text-gray-400 hover:text-indigo-600 rounded-xl border border-gray-100 hover:border-indigo-100 hover:shadow-lg transition-all"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(hall)}
+                                                className={`p-2.5 rounded-xl border transition-all ${hall.is_in_use
+                                                    ? 'bg-gray-50 text-gray-200 border-gray-100 cursor-not-allowed'
+                                                    : 'bg-white text-gray-400 hover:text-rose-600 border-gray-100 hover:border-rose-100 hover:shadow-lg'
+                                                    }`}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Create/Edit Modal */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={closeModal}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 p-10"
+                        >
+                            <button onClick={closeModal} className="absolute top-8 right-8 p-2 text-gray-400 hover:bg-gray-50 rounded-xl transition-all">
+                                <X className="w-6 h-6" />
+                            </button>
+
+                            <div className="mb-8">
+                                <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-100">
+                                    <Building2 className="w-8 h-8" />
+                                </div>
+                                <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+                                    {editingHall ? 'Edit Exam Hall' : 'Add New Exam Hall'}
+                                </h2>
+                                <p className="text-gray-500 font-medium italic mt-2">Configure space details and student capacity.</p>
+                            </div>
+
+                            {error && (
+                                <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-600 animate-in slide-in-from-top-2">
+                                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <span className="text-sm font-bold tracking-tight">{error}</span>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Hall Name / Number</label>
+                                    <input
+                                        {...register("hall_name", { required: true })}
+                                        placeholder="e.g., Auditorium B - 101"
+                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-600 transition-all font-bold text-gray-900"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Building</label>
+                                        <input
+                                            {...register("building")}
+                                            placeholder="e.g., Block A"
+                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-600 transition-all font-bold text-gray-900"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Floor</label>
+                                        <input
+                                            {...register("floor")}
+                                            placeholder="e.g., 2nd"
+                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-600 transition-all font-bold text-gray-900"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Student Capacity</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            {...register("capacity", { required: true, min: 1 })}
+                                            placeholder="Number of seats"
+                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-600 transition-all font-bold text-gray-900 pl-14"
+                                        />
+                                        <Users className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="flex-1 py-4 bg-gray-50 text-gray-600 rounded-2xl font-bold hover:bg-gray-100 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-black transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 group disabled:opacity-50"
+                                    >
+                                        {submitting ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                <span>{editingHall ? 'Save Changes' : 'Create Hall'}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
                     </div>
                 )}
-            </div>
+            </AnimatePresence>
         </div>
     );
 };
