@@ -30,7 +30,8 @@ import {
     User,
     Briefcase,
     Building,
-    AlertCircle
+    AlertCircle,
+    History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.schools (
     name TEXT NOT NULL,
     code TEXT UNIQUE NOT NULL,
     status TEXT CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()752189
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 2. ACADEMIC_YEARS

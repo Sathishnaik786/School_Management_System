@@ -26,5 +26,5 @@ CREATE TABLE student_result_summaries (
 );
 
 -- Down Migration
-DROP TABLE IF EXISTS student_result_summaries;
-DROP TABLE IF EXISTS grading_scales;
+-- DROP TABLE IF EXISTS student_result_summaries;
+-- DROP TABLE IF EXISTS grading_scales;

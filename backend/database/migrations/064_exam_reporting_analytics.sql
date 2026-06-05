@@ -46,7 +46,7 @@ SELECT
     esc.max_marks,
     esc.passing_marks,
     
-    COUNT(m.id) AS students_evaluated,
+    COUNT(m.student_id) AS students_evaluated,
     AVG(m.marks_obtained) AS avg_obtained,
     MAX(m.marks_obtained) AS highest_obtained,
     MIN(m.marks_obtained) AS lowest_obtained,

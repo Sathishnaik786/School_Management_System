@@ -17,4 +17,4 @@ CREATE TABLE IF NOT EXISTS exam_schedules (
 );
 
 -- Down Migration
-DROP TABLE IF EXISTS exam_schedules;
+-- DROP TABLE IF EXISTS exam_schedules;

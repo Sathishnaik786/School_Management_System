@@ -48,13 +48,38 @@ import { supabase } from './config/supabase';
 app.get('/health', async (req, res) => {
     let dbStatus = 'unknown';
     let dbError = null;
+    let testUserResult = null;
+    const testUserId = 'b125789d-13df-47bf-b44a-f19998c8f64b';
+
     try {
-        const { count, error } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        const queryRes = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', testUserId)
+            .single();
+
+        testUserResult = {
+            exact_query: `supabase.from('users').select('*').eq('id', '${testUserId}').single()`,
+            selected_columns: '*',
+            filters: `id = ${testUserId}`,
+            data: queryRes.data,
+            error: queryRes.error,
+            postgrest_error_code: queryRes.error?.code || null,
+            status_code: queryRes.status,
+            data_is_null: queryRes.data === null || queryRes.data === undefined
+        };
+
+        const { error } = await supabase.from('users').select('*', { count: 'exact', head: true });
         if (error) throw error;
         dbStatus = 'connected';
     } catch (e: any) {
         dbStatus = 'error';
-        dbError = e.message;
+        dbError = {
+            message: e.message,
+            code: e.code,
+            details: e.details,
+            hint: e.hint
+        };
     }
 
     res.json({
@@ -62,14 +87,16 @@ app.get('/health', async (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         env_check: {
-            supabase_url: !!process.env.SUPABASE_URL,
+            supabase_url: process.env.SUPABASE_URL || null,
+            supabase_project_ref: process.env.SUPABASE_URL ? (process.env.SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase/) || [])[1] || 'unknown' : null,
             supabase_key_set: !!(process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY),
             frontend_url: process.env.FRONTEND_URL
         },
         db_check: {
             status: dbStatus,
             error: dbError
-        }
+        },
+        test_user_result: testUserResult
     });
 });
 

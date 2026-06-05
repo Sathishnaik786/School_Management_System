@@ -54,6 +54,6 @@ CREATE TABLE IF NOT EXISTS exam_audit_logs (
 );
 
 -- Down Migration
-DROP TABLE IF EXISTS exam_audit_logs;
+-- DROP TABLE IF EXISTS exam_audit_logs;
 -- We don't drop columns in down migration to be safe usually, or we can.
 -- Check context.

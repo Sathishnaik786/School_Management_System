@@ -44,7 +44,20 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     -- 6. Seed Admin Profile (Linked to the School)
-    -- This allows the user to log in once they create the Auth User with this ID (or update this row)
+    -- Ensure the user exists in auth.users first to satisfy foreign key constraints
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, aud, role)
+    VALUES (
+        admin_uuid,
+        'admin@greenwood.high',
+        '$2a$10$7E1g5o3G6yH2G35/R7lBEO9.tQ7Gg.B6m.r9yZ8Y65/Ue3V4u6/X6', -- bcrypt dummy hash for admin123
+        now(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{}'::jsonb,
+        'authenticated',
+        'authenticated'
+    )
+    ON CONFLICT (id) DO NOTHING;
+
     INSERT INTO public.users (id, school_id, full_name, email, status)
     VALUES (admin_uuid, s_id, 'System Admin', 'admin@greenwood.high', 'active')
     ON CONFLICT (id) DO UPDATE SET school_id = EXCLUDED.school_id;

@@ -7,6 +7,12 @@
 -- (In case it's missing or only on student_id, section_id)
 DO $$ 
 BEGIN 
+    -- Ensure academic_year_id column exists before creating unique constraint
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_sections' AND column_name = 'academic_year_id') THEN
+        ALTER TABLE public.student_sections 
+        ADD COLUMN academic_year_id UUID REFERENCES public.academic_years(id) ON DELETE CASCADE;
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uni_student_year_section') THEN
         ALTER TABLE public.student_sections 
         ADD CONSTRAINT uni_student_year_section UNIQUE (student_id, academic_year_id);

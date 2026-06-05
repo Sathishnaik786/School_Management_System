@@ -64,7 +64,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Check if current user has a specific permission code
-CREATE OR REPLACE FUNCTION public.has_permission(perm_code TEXT)
+CREATE OR REPLACE FUNCTION public.has_permission(p_code TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
@@ -73,7 +73,7 @@ BEGIN
     JOIN public.role_permissions rp ON ur.role_id = rp.role_id
     JOIN public.permissions p ON rp.permission_id = p.id
     WHERE ur.user_id = auth.uid()
-    AND p.code = perm_code
+    AND p.code = p_code
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -129,3 +129,15 @@ CREATE POLICY "Admin can manage user_roles" ON public.user_roles
     FOR ALL TO authenticated
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
+
+-- ==========================================
+-- 5. INITIAL BASELINE ROLES
+-- ==========================================
+INSERT INTO public.roles (name, description) VALUES
+  ('ADMIN', 'School Admin'),
+  ('SUPER_ADMIN', 'Super Administrator'),
+  ('FACULTY', 'Teacher/Faculty Member'),
+  ('PARENT', 'Parent/Guardian'),
+  ('STUDENT', 'Student'),
+  ('HEAD_OF_INSTITUTE', 'Principal/Head of Institute')
+ON CONFLICT (name) DO NOTHING;

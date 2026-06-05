@@ -13,4 +13,4 @@ CREATE TABLE exam_question_papers (
 );
 
 -- Down Migration
-DROP TABLE IF EXISTS exam_question_papers;
+-- DROP TABLE IF EXISTS exam_question_papers;

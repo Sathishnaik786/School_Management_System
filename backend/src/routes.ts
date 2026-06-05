@@ -18,7 +18,6 @@ import { staffRouter } from './modules/staff/staff.routes';
 import departmentRouter from './modules/departments/department.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 import { bulkRouter } from './modules/admin/bulk.routes';
-import { testRouter } from './modules/admin/test.routes';
 
 import { env } from './config/env';
 
@@ -161,5 +160,4 @@ router.use('/admin', staffRouter);
 router.use('/admin', adminRouter);
 router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);
-router.use('/admin/test', testRouter);
 

@@ -39,5 +39,5 @@ CREATE TABLE IF NOT EXISTS public.exam_seating_allocations (
 );
 
 -- Down Migration
-DROP TABLE IF EXISTS exam_seating_allocations;
-DROP TABLE IF EXISTS exam_halls;
+-- DROP TABLE IF EXISTS exam_seating_allocations;
+-- DROP TABLE IF EXISTS exam_halls;

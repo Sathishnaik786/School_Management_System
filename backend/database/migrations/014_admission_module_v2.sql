@@ -58,6 +58,7 @@ END $$;
 
 -- Update status constraint
 ALTER TABLE public.admissions DROP CONSTRAINT IF EXISTS admissions_status_check;
+ALTER TABLE public.admissions DROP CONSTRAINT IF EXISTS check_admission_status;
 ALTER TABLE public.admissions ADD CONSTRAINT admissions_status_check 
 CHECK (status IN ('draft', 'submitted', 'under_review', 'recommended', 'approved', 'rejected', 'enrolled'));
 

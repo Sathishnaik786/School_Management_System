@@ -25,15 +25,30 @@ import { useAuth } from '../../../context/AuthContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 
 export const AdminDashboard = () => {
+    const { hasRole } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         apiClient.get('/dashboard/admin/overview')
-            .then(res => setStats(res.data))
-            .catch(err => console.error('Dashboard load failed', err))
-            .finally(() => setLoading(false));
+            .then(res => {
+                if (isMounted) setStats(res.data);
+            })
+            .catch(err => {
+                if (isMounted) console.error('Dashboard load failed', err);
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
+    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -50,9 +65,6 @@ export const AdminDashboard = () => {
         { label: 'Exams Scheduled', value: stats?.exams, icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
         { label: 'Fee Collection', value: 'Rs.' + (stats?.feeCollection || '0'), icon: Coins, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
-
-    const { hasRole } = useAuth();
-    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
 
     const quickActions = [
         { label: 'Review Admissions', icon: FileCheck, link: '/app/admissions/review', desc: `${stats?.pendingAdmissions || 0} applications pending` },

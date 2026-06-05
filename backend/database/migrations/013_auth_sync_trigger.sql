@@ -10,7 +10,7 @@ DECLARE
     default_school_id UUID;
 BEGIN
     -- Try to get school_id from metadata, or use the first school as a fallback (for testing)
-    -- In production, you would require school_id during signup.
+    -- In productiacon, you would require school_id during signup.
     SELECT id INTO default_school_id FROM public.schools LIMIT 1;
 
     INSERT INTO public.users (id, email, full_name, school_id, status)
