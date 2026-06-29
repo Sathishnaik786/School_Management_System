@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { PaymentPendingPanel } from '../components/PaymentPendingPanel';
 import { AdmissionPaymentPanel } from '../components/AdmissionPaymentPanel';
+import { AdmissionTimeline, getAdmissionTimelineSteps } from '../components/AdmissionTimeline';
+
 
 interface ApplicationDetailsProps {
     id?: string;
@@ -278,6 +280,15 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                 {/* Actions Sidebar - Staff Only */}
                 {isStaff && (
                     <div className="w-full md:w-80 space-y-6">
+                        {/* Visual Application Timeline */}
+                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <h3 className="text-sm font-black text-gray-900 mb-4 flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-primary" />
+                                Processing Timeline
+                            </h3>
+                            <AdmissionTimeline steps={getAdmissionTimelineSteps(app.status, app.admission_audit_logs)} />
+                        </div>
+
                         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <ShieldCheck className="w-5 h-5 text-indigo-600" />

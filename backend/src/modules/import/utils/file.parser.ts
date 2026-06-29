@@ -1,7 +1,10 @@
 import { parse } from 'csv-parse';
 import * as XLSX from 'xlsx';
 import { Readable } from 'stream';
-const pdf = require('pdf-parse');
+// NOTE: pdf-parse is intentionally NOT imported at the top level.
+// pdfjs-dist (a dependency of pdf-parse) references DOMMatrix on module load,
+// which is a browser-only API absent in Node.js < 20.16.0.
+// Lazy-requiring inside parsePdf() prevents the crash at server startup.
 
 export class FileParser {
 
@@ -16,6 +19,9 @@ export class FileParser {
      */
     static async parsePdf(buffer: Buffer): Promise<any[]> {
         try {
+            // Lazy-require pdf-parse to avoid pdfjs-dist loading DOMMatrix at startup
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const pdf = require('pdf-parse');
             const data = await pdf(buffer);
             const text = data.text;
 

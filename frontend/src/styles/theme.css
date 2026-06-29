@@ -1,0 +1,69 @@
+/* ==================================================
+   ERP Design System Engine Theme Overrides
+   ================================================== */
+
+:root {
+  /* Font Scaling Options */
+  --font-scale-sm: 0.875rem;
+  --font-scale-base: 1rem;
+  --font-scale-lg: 1.125rem;
+  --font-scale-xl: 1.25rem;
+
+  /* Density Spacings */
+  --spacing-density-padding: 1.25rem;
+  --spacing-density-gap: 1rem;
+  --spacing-card-padding: 1.5rem;
+}
+
+/* Compact Density Option */
+[data-density="compact"] {
+  --spacing-density-padding: 0.75rem;
+  --spacing-density-gap: 0.5rem;
+  --spacing-card-padding: 1rem;
+}
+
+/* Font Size Scaling Options */
+[data-font-size="small"] {
+  --font-scale-sm: 0.75rem;
+  --font-scale-base: 0.875rem;
+  --font-scale-lg: 1rem;
+  --font-scale-xl: 1.125rem;
+}
+
+[data-font-size="large"] {
+  --font-scale-sm: 1rem;
+  --font-scale-base: 1.125rem;
+  --font-scale-lg: 1.25rem;
+  --font-scale-xl: 1.375rem;
+}
+
+/* Unified Dark Mode Color Overrides */
+.dark {
+  --background: 220 30% 8%;
+  --foreground: 210 20% 98%;
+
+  --card: 220 25% 12%;
+  --card-foreground: 210 20% 98%;
+
+  --popover: 220 25% 12%;
+  --popover-foreground: 210 20% 98%;
+
+  --primary: 40 60% 58%;
+  --primary-foreground: 220 30% 8%;
+
+  --secondary: 220 20% 18%;
+  --secondary-foreground: 210 20% 98%;
+
+  --muted: 220 20% 16%;
+  --muted-foreground: 210 10% 70%;
+
+  --accent: 40 60% 58%;
+  --accent-foreground: 220 30% 8%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 20% 98%;
+
+  --border: 220 20% 20%;
+  --input: 220 20% 20%;
+  --ring: 40 60% 58%;
+}

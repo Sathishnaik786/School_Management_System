@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -31,9 +31,17 @@ import {
     Briefcase,
     Building,
     AlertCircle,
-    History
+    History,
+    Command
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CommandPalette } from '../components/search/CommandPalette';
+import { useCommandPalette } from '../hooks/layout/useCommandPalette';
+import { NotificationCenter } from '../features/notifications/NotificationCenter';
+import { useNotificationStore } from '../store/notification.store';
+import { Breadcrumb } from '../components/navigation/Breadcrumb';
+import { useNavigationStore } from '../store/navigation.store';
+import { ROUTE_LABEL_MAP } from '../lib/breadcrumb';
 
 export const DashboardLayout = () => {
     const { user, signOut, hasPermission, hasRole, systemMode } = useAuth();
@@ -43,6 +51,19 @@ export const DashboardLayout = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    // F2 — CommandPalette, NotificationCenter, NavigationTracking
+    const { isOpen: isPaletteOpen, open: openPalette, close: closePalette } = useCommandPalette();
+    const { unreadCount, togglePanel: toggleNotifications } = useNotificationStore();
+    const { trackVisit } = useNavigationStore();
+
+    // Track page visits for recently visited in nav store
+    useEffect(() => {
+        const segments = location.pathname.split('/').filter(Boolean);
+        const lastSeg = segments[segments.length - 1];
+        const label = ROUTE_LABEL_MAP[lastSeg] || lastSeg?.charAt(0).toUpperCase() + lastSeg?.slice(1) || 'Page';
+        trackVisit(location.pathname, label);
+    }, [location.pathname, trackVisit]);
 
     const isAdmin = hasRole('ADMIN') || hasRole('HEAD_OF_INSTITUTE');
     const isFaculty = hasRole('FACULTY');
@@ -332,7 +353,8 @@ export const DashboardLayout = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
+        <>
+            <div className="flex min-h-screen bg-[#F8FAFC]">
             {/* Desktop Sidebar */}
             <motion.aside
                 initial={false}
@@ -460,27 +482,38 @@ export const DashboardLayout = () => {
                             >
                                 <Menu className="w-6 h-6" />
                             </button>
+                            {/* Desktop Search — opens CommandPalette */}
                             <button
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                                 className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
                             >
                                 <Search className="w-6 h-6" />
                             </button>
-                            <div className="bg-gray-50 rounded-2xl px-4 py-2 hidden md:flex items-center gap-3 w-64 ring-1 ring-gray-100">
-                                <Search className="w-4 h-4 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Quick Search..."
-                                    className="bg-transparent border-none text-sm focus:ring-0 placeholder:text-gray-400 w-full"
-                                />
-                            </div>
+                            <button
+                                onClick={openPalette}
+                                className="bg-gray-50 rounded-2xl px-4 py-2 hidden md:flex items-center gap-3 w-64 ring-1 ring-gray-100 hover:ring-primary/30 hover:bg-white transition-all group"
+                            >
+                                <Search className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+                                <span className="text-sm text-gray-400 flex-1 text-left">Quick search...</span>
+                                <kbd className="text-[9px] font-bold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                    <Command className="w-2.5 h-2.5" />K
+                                </kbd>
+                            </button>
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-6">
+                            {/* Bell — opens NotificationCenter slide-over */}
                             <div className="relative hidden sm:block">
-                                <button className="p-2.5 bg-gray-50 text-gray-500 rounded-2xl hover:bg-white hover:shadow-md hover:text-blue-600 transition-all border border-transparent hover:border-blue-50">
+                                <button
+                                    onClick={toggleNotifications}
+                                    className="p-2.5 bg-gray-50 text-gray-500 rounded-2xl hover:bg-white hover:shadow-md hover:text-blue-600 transition-all border border-transparent hover:border-blue-50"
+                                >
                                     <Bell className="w-5 h-5" />
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
                                 </button>
                             </div>
 
@@ -552,6 +585,9 @@ export const DashboardLayout = () => {
                     </div>
                 </header>
 
+                {/* Breadcrumb — auto-generated from current URL */}
+                <Breadcrumb />
+
                 <AnimatePresence>
                     {isSearchOpen && (
                         <motion.div
@@ -583,6 +619,13 @@ export const DashboardLayout = () => {
                     </div>
                 </main>
             </div>
-        </div>
+            </div>
+
+            {/* Global — CommandPalette (Ctrl+K) */}
+            <CommandPalette isOpen={isPaletteOpen} onClose={closePalette} />
+
+            {/* Global — NotificationCenter slide-over */}
+            <NotificationCenter />
+        </>
     );
 };

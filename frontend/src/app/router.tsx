@@ -97,6 +97,26 @@ import Contact from '../pages/Contact';
 import Notifications from '../pages/Notifications';
 import NotFound from '../pages/NotFound';
 import { ImportHistoryPage } from '../modules/import/pages/ImportHistory';
+import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../features/auth/ResetPasswordPage';
+import SessionExpiredPage from '../features/auth/SessionExpiredPage';
+import { StudentDashboard } from '../modules/dashboard/pages/StudentDashboard';
+
+import { DashboardPage as AdmissionDashboardPage } from '../modules/admission/pages/DashboardPage';
+import { AnalyticsPage as AdmissionAnalyticsPage } from '../modules/admission/pages/AnalyticsPage';
+import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
+import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
+import { ApplicationListPage } from '../modules/admission/pages/ApplicationListPage';
+import { DocumentVerificationPage } from '../modules/admission/pages/DocumentVerificationPage';
+import { EntranceExamPage } from '../modules/admission/pages/EntranceExamPage';
+import { InterviewPage } from '../modules/admission/pages/InterviewPage';
+import { MeritListPage } from '../modules/admission/pages/MeritListPage';
+import { OfferLetterPage } from '../modules/admission/pages/OfferLetterPage';
+import { FeeCollectionPage as AdmissionFeeCollectionPage } from '../modules/admission/pages/FeeCollectionPage';
+import { EnrollmentPage } from '../modules/admission/pages/EnrollmentPage';
+import { ReportsPage as AdmissionReportsPage } from '../modules/admission/pages/ReportsPage';
+import { SettingsPage as AdmissionSettingsPage } from '../modules/admission/pages/SettingsPage';
+
 
 export const AppRouter = () => {
     return (
@@ -125,10 +145,16 @@ export const AppRouter = () => {
                 {/* Login */}
                 <Route path="/login" element={<LoginPage />} />
 
+                {/* Auth Utility Pages */}
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/session-expired" element={<SessionExpiredPage />} />
+
                 {/* Protected App Routes */}
                 <Route path="/app" element={<ProtectedRoute />}>
                     <Route element={<DashboardLayout />}>
                         <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="student/dashboard" element={<StudentDashboard />} />
                         <Route path="admin/dashboard" element={
                             <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
                                 <AdminDashboard />
@@ -141,33 +167,94 @@ export const AppRouter = () => {
                         } />
 
                         {/* Admission Module Routes */}
+                        <Route path="admissions/dashboard" element={
+                            <PermissionGuard permission="admission.review">
+                                <AdmissionDashboardPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/analytics" element={
+                            <PermissionGuard permission="admission.review">
+                                <AdmissionAnalyticsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/inquiries" element={
+                            <PermissionGuard permission="admission.review">
+                                <InquiryListPage />
+                            </PermissionGuard>
+                        } />
                         <Route path="admissions/new" element={
                             <PermissionGuard permission="admission.create">
                                 <AdmissionForm />
                             </PermissionGuard>
                         } />
-
+                        <Route path="admissions/wizard" element={
+                            <PermissionGuard permission="admission.create">
+                                <ApplicationWizardPage />
+                            </PermissionGuard>
+                        } />
                         <Route path="admissions/my" element={
                             <PermissionGuard permission="admission.view_own">
                                 <MyApplications />
                             </PermissionGuard>
                         } />
-
                         <Route path="admissions/review" element={
                             <PermissionGuard permission="admission.review">
-                                <AdmissionReviewList />
+                                <ApplicationListPage />
                             </PermissionGuard>
                         } />
-
                         <Route path="admissions/review/:id" element={
                             <PermissionGuard permission="admission.view_all">
                                 <AdmissionReviewPage />
                             </PermissionGuard>
                         } />
-
                         <Route path="admissions/:id" element={
                             <PermissionGuard permission="admission.view_own">
                                 <ApplicationDetails />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/verification" element={
+                            <PermissionGuard permission="admission.review">
+                                <DocumentVerificationPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/exams" element={
+                            <PermissionGuard permission="admission.review">
+                                <EntranceExamPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/interviews" element={
+                            <PermissionGuard permission="admission.review">
+                                <InterviewPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/merit" element={
+                            <PermissionGuard permission="admission.review">
+                                <MeritListPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/offers" element={
+                            <PermissionGuard permission="admission.review">
+                                <OfferLetterPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/fees" element={
+                            <PermissionGuard permission="admission.review">
+                                <AdmissionFeeCollectionPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/enrollment" element={
+                            <PermissionGuard permission="admission.review">
+                                <EnrollmentPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/reports" element={
+                            <PermissionGuard permission="admission.review">
+                                <AdmissionReportsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/settings" element={
+                            <PermissionGuard permission="admission.review">
+                                <AdmissionSettingsPage />
                             </PermissionGuard>
                         } />
 
