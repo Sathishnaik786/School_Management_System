@@ -4,6 +4,11 @@ import { checkPermission } from './rbac/rbac.middleware';
 import { PERMISSIONS } from './rbac/permissions';
 import { supabase } from './config/supabase';
 import { admissionRouter } from './modules/admission/admission.routes';
+import { crmRouter } from './modules/admission/crm.routes';
+import { applicationRouter } from './modules/admission/application.routes';
+import { documentRouter } from './modules/admission/document.routes';
+import { evaluationRouter } from './modules/admission/evaluation.routes';
+import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
 import { studentRouter } from './modules/student/student.routes';
 import { academicRouter } from './modules/academic/academic.routes';
@@ -144,6 +149,11 @@ router.post('/academic-years', async (req: Request, res: Response) => {
 // ======================================
 // MODULE ROUTES
 // ======================================
+router.use('/v1/admission/crm', crmRouter);
+router.use('/v1/admission/application/documents', documentRouter);
+router.use('/v1/admission/evaluation', evaluationRouter);
+router.use('/v1/admission/enrollment', enrollmentRouter);
+router.use('/v1/admission/application', applicationRouter);
 router.use('/admissions', admissionRouter);
 router.use('/students', studentRouter);
 router.use('/academic', academicRouter);

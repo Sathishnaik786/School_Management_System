@@ -8,6 +8,17 @@ export const PERMISSIONS = {
     ADMISSION_APPROVE: 'admission.approve',
     ADMISSION_REJECT: 'admission.reject',
     ADMISSION_ENROL: 'admission.enrol',
+    ADMISSION_ENQUIRY_CREATE: 'admission.enquiry.create',
+    ADMISSION_ENQUIRY_VIEW: 'admission.enquiry.view',
+    ADMISSION_LEADS_MANAGE: 'admission.leads.manage',
+    ADMISSION_VISITORS_MANAGE: 'admission.visitors.manage',
+    ADMISSION_STATUS_HISTORY_VIEW: 'admission.status_history.view',
+    APPLICATION_CREATE: 'admission.application.create',
+    APPLICATION_UPDATE: 'admission.application.update',
+    APPLICATION_SUBMIT: 'admission.application.submit',
+    APPLICATION_VIEW: 'admission.application.view',
+    APPLICATION_DELETE: 'admission.application.delete',
+    FEATURE_FLAGS_MANAGE: 'feature_flags.manage',
 
     // STUDENT
     STUDENT_CREATE: 'STUDENT_CREATE',

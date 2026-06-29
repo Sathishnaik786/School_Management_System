@@ -1,0 +1,202 @@
+import { Request, Response } from 'express';
+import { FeeAssignmentService } from '../../services/enrollment/FeeAssignmentService';
+import { FeeCalculationService } from '../../services/enrollment/FeeCalculationService';
+import { FeeWaiverService } from '../../services/enrollment/FeeWaiverService';
+import { PaymentService } from '../../services/enrollment/PaymentService';
+import { ReceiptService } from '../../services/enrollment/ReceiptService';
+import { PaymentVerificationService } from '../../services/enrollment/PaymentVerificationService';
+import { AdmissionConfirmationService } from '../../services/enrollment/AdmissionConfirmationService';
+import { EnrollmentService } from '../../services/enrollment/EnrollmentService';
+import { EnrollmentTimelineService } from '../../services/enrollment/EnrollmentTimelineService';
+import { FeatureFlagService } from '../../services/FeatureFlagService';
+import { ConfirmationRepository } from '../../repositories/enrollment/ConfirmationRepository';
+import { PermissionError } from '../../errors/PermissionError';
+import { handleControllerError } from '../crm/ControllerErrorHandler';
+
+export class EnrollmentController {
+    constructor(
+        private readonly feeAssignService: FeeAssignmentService,
+        private readonly feeCalcService: FeeCalculationService,
+        private readonly waiverService: FeeWaiverService,
+        private readonly paymentService: PaymentService,
+        private readonly receiptService: ReceiptService,
+        private readonly verificationService: PaymentVerificationService,
+        private readonly confirmationService: AdmissionConfirmationService,
+        private readonly enrollmentService: EnrollmentService,
+        private readonly timelineService: EnrollmentTimelineService,
+        private readonly confirmRepo: ConfirmationRepository,
+        private readonly flagService: FeatureFlagService
+    ) {}
+
+    private async verifyFlag(req: Request, key: string) {
+        const schoolId = req.context?.user?.school_id || null;
+        const envMode = process.env.NODE_ENV || 'development';
+        if (!await this.flagService.isEnabled('admission', key, envMode, schoolId)) {
+            throw new PermissionError(`Feature Disabled: ${key}`);
+        }
+    }
+
+    public assignFeeStructure = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { application_id, structure_id } = req.body;
+            const userId = req.context?.user?.id || null;
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            const data = await this.feeAssignService.assignStructure(
+                application_id,
+                structure_id,
+                userId,
+                correlationId
+            );
+            res.status(201).json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public getFeesSummary = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { applicationId } = req.params;
+            const data = await this.feeCalcService.calculateFees(applicationId);
+            res.json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public applyFeeWaiver = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { application_id, component_id, amount, remarks } = req.body;
+            const userId = req.context?.user?.id || null;
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            await this.waiverService.applyWaiver(
+                application_id,
+                component_id,
+                amount,
+                remarks,
+                userId,
+                correlationId
+            );
+            res.json({ success: true, message: 'Fee waiver applied successfully' });
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public collectPayment = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { application_id, amount, payment_mode, transaction_number, gateway_reference } = req.body;
+            const userId = req.context?.user?.id || null;
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            const data = await this.paymentService.collectPayment(
+                application_id,
+                amount,
+                payment_mode,
+                transaction_number || null,
+                gateway_reference || null,
+                userId,
+                correlationId
+            );
+            res.status(201).json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public verifyPayment = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { payment_id, status } = req.body;
+            const userId = req.context?.user?.id || null;
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            await this.verificationService.verifyTransaction(
+                payment_id,
+                status,
+                userId,
+                correlationId
+            );
+            res.json({ success: true, message: `Payment transaction status updated: ${status}` });
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public getReceipt = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'fee_collection');
+            const { paymentId } = req.params;
+            const data = await this.receiptService.getReceiptByPaymentId(paymentId);
+            res.json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public confirmAdmission = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'student_enrollment');
+            const { application_id } = req.body;
+            const userId = req.context?.user?.id || null;
+            const role = req.context?.user?.roles?.[0] || 'admission_officer';
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            const data = await this.confirmationService.confirmAdmission(
+                application_id,
+                role,
+                userId,
+                correlationId
+            );
+            res.status(201).json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public enrollStudent = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'student_enrollment');
+            await this.verifyFlag(req, 'erp_handover');
+            const { application_id } = req.body;
+            const userId = req.context?.user?.id || null;
+            const role = req.context?.user?.roles?.[0] || 'admission_officer';
+            const correlationId = req.headers['x-correlation-id'] as string;
+
+            const data = await this.enrollmentService.enrollStudent(
+                application_id,
+                role,
+                userId,
+                correlationId
+            );
+            res.status(201).json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public getEnrollmentStatus = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'student_enrollment');
+            const { applicationId } = req.params;
+            const data = await this.confirmRepo.findByApplicationId(applicationId);
+            res.json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public getTimeline = async (req: Request, res: Response) => {
+        try {
+            const { applicationId } = req.params;
+            res.json([]);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+}
