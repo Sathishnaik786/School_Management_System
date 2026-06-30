@@ -4,6 +4,7 @@ import { AttendanceSession } from '../../domain/attendance/AttendanceSession';
 import { AttendancePeriod } from '../../domain/attendance/AttendancePeriod';
 import { AttendanceCorrection } from '../../domain/attendance/AttendanceCorrection';
 import { supabase } from '../../../../config/supabase';
+import { CompatibilityRepository } from '../../../compatibility/compatibility.repository';
 
 export class AttendanceRepository implements IAttendanceRepository {
     public async findSessionById(id: string): Promise<AttendanceSession | null> {
@@ -59,20 +60,16 @@ export class AttendanceRepository implements IAttendanceRepository {
     }
 
     public async saveSession(session: AttendanceSession): Promise<void> {
-        const { error } = await supabase
-            .from('student_attendance_sessions')
-            .upsert({
-                id: session.id,
-                school_id: session.schoolId,
-                academic_year_id: session.academicYearId,
-                grade: session.grade,
-                section_id: session.sectionId,
-                date: session.date.toISOString().substring(0, 10),
-                session_status: session.status,
-                created_by: session.createdBy
-            });
-
-        if (error) throw error;
+        await CompatibilityRepository.syncSaveSession({
+            id: session.id,
+            school_id: session.schoolId,
+            academic_year_id: session.academicYearId,
+            section_id: session.sectionId,
+            date: session.date.toISOString().substring(0, 10),
+            grade: session.grade,
+            created_by: session.createdBy,
+            session_status: session.status
+        });
     }
 
     public async findById(id: string): Promise<Attendance | null> {
@@ -117,19 +114,12 @@ export class AttendanceRepository implements IAttendanceRepository {
     }
 
     public async save(attendance: Attendance): Promise<void> {
-        const { error } = await supabase
-            .from('student_attendance')
-            .upsert({
-                id: attendance.id,
-                session_id: attendance.sessionId,
-                student_id: attendance.studentId,
-                status: attendance.status,
-                remarks: attendance.remarks,
-                marked_by: attendance.markedBy,
-                updated_at: attendance.updatedAt.toISOString()
-            });
-
-        if (error) throw error;
+        await CompatibilityRepository.syncSaveRecords(attendance.sessionId, [{
+            student_id: attendance.studentId,
+            status: attendance.status,
+            remarks: attendance.remarks,
+            marked_by: attendance.markedBy
+        }]);
     }
 
     public async savePeriod(period: AttendancePeriod): Promise<void> {
