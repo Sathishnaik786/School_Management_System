@@ -48,8 +48,8 @@ export function InquiryListPage() {
 
         // 3. Phone validation
         const phone = formData.phone.trim();
-        if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
-            newErrors.phone = 'Please enter a valid phone number (e.g. +919876543210, no spaces)';
+        if (!/^\+?[0-9]{10,15}$/.test(phone)) {
+            newErrors.phone = 'Please enter a valid phone number with country code (e.g. +919876543210, 10-15 digits, no spaces)';
         }
 
         // 4. Email validation

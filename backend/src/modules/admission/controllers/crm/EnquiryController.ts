@@ -3,6 +3,7 @@ import { EnquiryService } from '../../services/crm/EnquiryService';
 import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from './ControllerErrorHandler';
+import { AdmissionService } from '../../admission.service';
 
 export class EnquiryController {
     constructor(
@@ -23,13 +24,17 @@ export class EnquiryController {
     public create = async (req: Request, res: Response) => {
         try {
             await this.checkFlags(req);
-            const schoolId = req.context?.user?.school_id;
-            const academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
-            if (!schoolId) throw new Error('School context not found');
-            if (!academicYearId) throw new Error('Academic Year context is required');
+            let schoolId = req.context?.user?.school_id;
+            let academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+
+            if (!schoolId || !academicYearId) {
+                const resolved = await AdmissionService.resolveContext();
+                if (!schoolId) schoolId = resolved.school_id;
+                if (!academicYearId) academicYearId = resolved.academic_year_id || '';
+            }
 
             const correlationId = req.headers['x-correlation-id'] as string;
-            const data = await this.enquiryService.createEnquiry(schoolId, academicYearId, req.body, correlationId);
+            const data = await this.enquiryService.createEnquiry(schoolId!, academicYearId!, req.body, correlationId);
             res.status(201).json(data);
         } catch (err) {
             handleControllerError(res, err);
@@ -62,8 +67,11 @@ export class EnquiryController {
     public list = async (req: Request, res: Response) => {
         try {
             await this.checkFlags(req);
-            const schoolId = req.context?.user?.school_id;
-            if (!schoolId) throw new Error('School context not found');
+            let schoolId = req.context?.user?.school_id;
+            if (!schoolId) {
+                const resolved = await AdmissionService.resolveContext();
+                schoolId = resolved.school_id;
+            }
 
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
