@@ -1,5 +1,6 @@
 import { IFeatureFlagRepository } from '../repositories/interfaces/IFeatureFlagRepository';
 import { BaseService } from './BaseService';
+import { env } from '../../../config/env';
 
 export class FeatureFlagService extends BaseService {
     private readonly cache = new Map<string, boolean>();
@@ -21,6 +22,11 @@ export class FeatureFlagService extends BaseService {
         environment: string = 'development', 
         tenantId: string | null = null
     ): Promise<boolean> {
+        // Auto-enable all feature flags in non-production or UAT modes for testing
+        if (env.SYSTEM_MODE === 'UAT' || process.env.NODE_ENV !== 'production') {
+            return true;
+        }
+
         const cacheKey = this.getCacheKey(module, key, environment, tenantId);
         if (this.cache.has(cacheKey)) {
             return this.cache.get(cacheKey)!;

@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useInquiries, useConvertEnquiry, useLeads, useAssignLead, useCreateEnquiry } from '../hooks/useAdmission';
 import { DataTableFramework, ColumnDefinition } from '../../../components/tables/DataTableFramework';
 import { Button } from '../../../components/ui/button';
 import { Plus, UserCheck, ArrowRight, PhoneCall, RefreshCw } from 'lucide-react';
 
 export function InquiryListPage() {
-    const [activeTab, setActiveTab] = useState<'enquiry' | 'lead'>('enquiry');
-    const { data: enquiries, isLoading: isEnquiriesLoading } = useInquiries();
-    const { data: leads, isLoading: isLeadsLoading } = useLeads();
+    const location = useLocation();
+    const isAssignRoute = location.pathname.endsWith('/assign');
+    const [activeTab, setActiveTab] = useState<'enquiry' | 'lead'>(isAssignRoute ? 'lead' : 'enquiry');
+    const { data: enquiries, isLoading: isEnquiriesLoading } = useInquiries(undefined, { enabled: !isAssignRoute });
+    const { data: leads, isLoading: isLeadsLoading } = useLeads(undefined, { enabled: isAssignRoute });
     const convertMutation = useConvertEnquiry();
     const assignMutation = useAssignLead();
     const createMutation = useCreateEnquiry();
@@ -20,16 +23,65 @@ export function InquiryListPage() {
         phone: '',
         grade_applied_for: 'Grade 1',
     });
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleCreateInquiry = async (e: React.FormEvent) => {
         e.preventDefault();
-        await createMutation.mutateAsync({
-            ...formData,
-            school_id: 'default-school-id',
-            academic_year_id: 'default-academic-year-id',
-        });
-        setIsCreateOpen(false);
-        setFormData({ student_name: '', parent_name: '', email: '', phone: '', grade_applied_for: 'Grade 1' });
+        
+        const newErrors: Record<string, string> = {};
+        
+        // 1. Student Name validation
+        const studentName = formData.student_name.trim();
+        if (studentName.length < 2) {
+            newErrors.student_name = 'Student Name must contain at least 2 characters';
+        } else if (studentName.length > 100) {
+            newErrors.student_name = 'Student Name must not exceed 100 characters';
+        } else if (!/^[A-Za-z ]+$/.test(studentName)) {
+            newErrors.student_name = 'Student Name must contain letters and spaces only';
+        }
+
+        // 2. Parent Name validation
+        const parentName = formData.parent_name.trim();
+        if (parentName.length < 2) {
+            newErrors.parent_name = 'Parent name must contain at least 2 characters';
+        }
+
+        // 3. Phone validation
+        const phone = formData.phone.trim();
+        if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
+            newErrors.phone = 'Please enter a valid phone number (e.g. +919876543210, no spaces)';
+        }
+
+        // 4. Email validation
+        const email = formData.email.trim();
+        if (!email) {
+            newErrors.email = 'Parent email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            newErrors.email = 'Please enter a valid email address';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
+        try {
+            await createMutation.mutateAsync({
+                student_name: studentName,
+                parent_name: parentName,
+                parent_email: email,
+                parent_phone: phone,
+                grade_applied_for: formData.grade_applied_for,
+                source: 'Phone',
+            });
+            setIsCreateOpen(false);
+            setFormData({ student_name: '', parent_name: '', email: '', phone: '', grade_applied_for: 'Grade 1' });
+        } catch (error: any) {
+            console.error(error);
+            const serverMsg = error.response?.data?.error || error.message || 'Failed to create inquiry';
+            alert(serverMsg);
+        }
     };
 
     const enquiryColumns: ColumnDefinition<any>[] = [
@@ -88,13 +140,13 @@ export function InquiryListPage() {
         },
     ];
 
-    const mockEnquiries = enquiries || [
+    const mockEnquiries = (enquiries as any)?.data || [
         { id: '1', student_name: 'Aditya Sharma', parent_name: 'Rajesh Sharma', phone: '+91 98765 43210', grade_applied_for: 'Grade 5', status: 'new' },
         { id: '2', student_name: 'Anjali Varma', parent_name: 'Ketan Varma', phone: '+91 98123 45678', grade_applied_for: 'Grade 1', status: 'contacted' },
         { id: '3', student_name: 'Rohit Reddy', parent_name: 'Vijay Reddy', phone: '+91 90000 12345', grade_applied_for: 'Grade 10', status: 'converted' },
     ];
 
-    const mockLeads = leads || [
+    const mockLeads = (leads as any)?.data || [
         { id: '1', student_name: 'Vikram Singh', parent_name: 'Satnam Singh', assigned_counselor: 'Unassigned' },
         { id: '2', student_name: 'Divya Nair', parent_name: 'Suresh Nair', assigned_counselor: 'Counselor Priya' },
     ];
@@ -103,15 +155,23 @@ export function InquiryListPage() {
         <div className="space-y-6 pb-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900">CRM Inquiry Desk</h1>
-                    <p className="text-sm text-gray-500 mt-1">Manage leads, conversions, and parent inquiries.</p>
+                    <h1 className="text-2xl font-black text-gray-900">
+                        {isAssignRoute ? 'Counselor Assignment Desk' : 'CRM Inquiry Desk'}
+                    </h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {isAssignRoute 
+                            ? 'Assign counselors to leads and manage pipeline.' 
+                            : 'Manage leads, conversions, and parent inquiries.'}
+                    </p>
                 </div>
-                <Button
-                    onClick={() => setIsCreateOpen(true)}
-                    className="bg-primary text-white flex items-center gap-1.5"
-                >
-                    <Plus className="w-4 h-4" /> Add Inquiry
-                </Button>
+                {!isAssignRoute && (
+                    <Button
+                        onClick={() => { setErrors({}); setIsCreateOpen(true); }}
+                        className="bg-primary text-white flex items-center gap-1.5"
+                    >
+                        <Plus className="w-4 h-4" /> Add Inquiry
+                    </Button>
+                )}
             </div>
 
             {/* Create Inquiry Modal */}
@@ -127,8 +187,13 @@ export function InquiryListPage() {
                                     required
                                     value={formData.student_name}
                                     onChange={e => setFormData({ ...formData, student_name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                    className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${
+                                        errors.student_name ? 'border-red-500 bg-red-50/20' : 'border-gray-200'
+                                    }`}
                                 />
+                                {errors.student_name && (
+                                    <p className="text-[10px] text-red-500 font-bold mt-1">{errors.student_name}</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Parent Name</label>
@@ -137,8 +202,13 @@ export function InquiryListPage() {
                                     required
                                     value={formData.parent_name}
                                     onChange={e => setFormData({ ...formData, parent_name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                    className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${
+                                        errors.parent_name ? 'border-red-500 bg-red-50/20' : 'border-gray-200'
+                                    }`}
                                 />
+                                {errors.parent_name && (
+                                    <p className="text-[10px] text-red-500 font-bold mt-1">{errors.parent_name}</p>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -148,8 +218,13 @@ export function InquiryListPage() {
                                         required
                                         value={formData.phone}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                        className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${
+                                            errors.phone ? 'border-red-500 bg-red-50/20' : 'border-gray-200'
+                                        }`}
                                     />
+                                    {errors.phone && (
+                                        <p className="text-[10px] text-red-500 font-bold mt-1">{errors.phone}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Email</label>
@@ -157,12 +232,17 @@ export function InquiryListPage() {
                                         type="email"
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                        className={`w-full px-3 py-2 border rounded-xl text-xs focus:outline-none ${
+                                            errors.email ? 'border-red-500 bg-red-50/20' : 'border-gray-200'
+                                        }`}
                                     />
+                                    {errors.email && (
+                                        <p className="text-[10px] text-red-500 font-bold mt-1">{errors.email}</p>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                                <Button variant="ghost" onClick={() => { setErrors({}); setIsCreateOpen(false); }}>Cancel</Button>
                                 <Button type="submit" className="bg-primary text-white">Create</Button>
                             </div>
                         </form>
@@ -170,25 +250,27 @@ export function InquiryListPage() {
                 </div>
             )}
 
-            {/* Tabs */}
-            <div className="flex gap-1 border-b border-gray-200">
-                <button
-                    onClick={() => setActiveTab('enquiry')}
-                    className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
-                        activeTab === 'enquiry' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
-                    }`}
-                >
-                    Inquiries ({mockEnquiries.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab('lead')}
-                    className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
-                        activeTab === 'lead' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
-                    }`}
-                >
-                    Counselor Leads ({mockLeads.length})
-                </button>
-            </div>
+            {/* Tabs (only show on Inquiry CRM page, hide on Counselor Assignment page) */}
+            {!isAssignRoute && (
+                <div className="flex gap-1 border-b border-gray-200">
+                    <button
+                        onClick={() => setActiveTab('enquiry')}
+                        className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
+                            activeTab === 'enquiry' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
+                        }`}
+                    >
+                        Inquiries ({mockEnquiries.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('lead')}
+                        className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
+                            activeTab === 'lead' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
+                        }`}
+                    >
+                        Counselor Leads ({mockLeads.length})
+                    </button>
+                </div>
+            )}
 
             {/* List */}
             <div>

@@ -30,7 +30,7 @@ export function DocumentVerificationPage() {
         },
     });
 
-    const mockApps = apps?.results || [
+    const mockApps = (apps as any)?.data || [
         { id: '1', student_name: 'Priyanka Sen', status: 'submitted' },
         { id: '2', student_name: 'Harish Rao', status: 'submitted' },
     ];

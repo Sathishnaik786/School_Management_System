@@ -217,6 +217,16 @@ export const AppRouter = () => {
                                 <InquiryListPage />
                             </PermissionGuard>
                         } />
+                        <Route path="admissions/enquiry" element={
+                            <PermissionGuard permission="admission.review">
+                                <InquiryListPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/assign" element={
+                            <PermissionGuard permission="admission.review">
+                                <InquiryListPage />
+                            </PermissionGuard>
+                        } />
                         <Route path="admissions/new" element={
                             <PermissionGuard permission="admission.create">
                                 <AdmissionForm />
@@ -268,6 +278,11 @@ export const AppRouter = () => {
                             </PermissionGuard>
                         } />
                         <Route path="admissions/offers" element={
+                            <PermissionGuard permission="admission.review">
+                                <OfferLetterPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="admissions/merit/offers" element={
                             <PermissionGuard permission="admission.review">
                                 <OfferLetterPage />
                             </PermissionGuard>

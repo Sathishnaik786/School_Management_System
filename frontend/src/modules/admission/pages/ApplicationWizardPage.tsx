@@ -59,6 +59,37 @@ export function ApplicationWizardPage() {
         return () => clearInterval(interval);
     }, [formData]);
 
+    // Fetch existing draft if editing
+    useEffect(() => {
+        if (!id) return;
+        const fetchExisting = async () => {
+            try {
+                const data = (await admissionApi.getById(id)).data as any;
+                setFormData({
+                    student_name: data.student_name || '',
+                    date_of_birth: data.date_of_birth ? data.date_of_birth.substring(0, 10) : '',
+                    gender: data.gender || 'Male',
+                    grade_applied_for: data.grade_applied_for || 'Grade 1',
+                    admission_type: data.admission_type || 'Regular',
+                    parent_name: data.parent_name || '',
+                    parent_email: data.parent_email || '',
+                    parent_phone: data.parent_phone || '',
+                    previous_school: data.previous_school || '',
+                    last_grade_completed: data.last_grade_completed || '',
+                    allergies: data.allergies || '',
+                    blood_group: data.blood_group || 'A+',
+                    needs_bus: data.needs_bus || 'No',
+                    bus_route: data.bus_route || '',
+                    needs_hostel: data.needs_hostel || 'No',
+                    room_type: data.room_type || '',
+                });
+            } catch (error) {
+                console.error('Failed to load draft:', error);
+            }
+        };
+        fetchExisting();
+    }, [id]);
+
     const handleRestoreDraft = (version: any) => {
         alert(`Restoring version: ${version.name} (${version.id})`);
     };
@@ -75,13 +106,38 @@ export function ApplicationWizardPage() {
         }
     };
 
-    const handleSaveDraft = () => {
-        alert('Draft saved successfully!');
+    const handleSaveDraft = async () => {
+        try {
+            if (id) {
+                await admissionApi.update(id, formData);
+            } else {
+                await admissionApi.create(formData);
+            }
+            alert('Draft saved successfully!');
+        } catch (error: any) {
+            console.error(error);
+            const errorMsg = error.response?.data?.error || error.message || 'Failed to save draft';
+            alert(errorMsg);
+        }
     };
 
-    const handleSubmit = () => {
-        alert('Application submitted successfully!');
-        navigate('/app/admissions/my');
+    const handleSubmit = async () => {
+        try {
+            let appId = id;
+            if (id) {
+                await admissionApi.update(id, formData);
+            } else {
+                const res = await admissionApi.create(formData);
+                appId = res.data.id;
+            }
+            await admissionApi.submit(appId!);
+            alert('Application submitted successfully!');
+            navigate('/app/admissions/my');
+        } catch (error: any) {
+            console.error(error);
+            const errorMsg = error.response?.data?.error || error.message || 'Failed to submit application';
+            alert(errorMsg);
+        }
     };
 
     return (
@@ -223,9 +279,189 @@ export function ApplicationWizardPage() {
                             </div>
                         )}
 
-                        {currentStep > 1 && (
-                            <div className="py-16 text-center text-xs text-gray-400 font-bold">
-                                Form inputs for Step {currentStep + 1} ({STEPS[currentStep].title})
+                        {currentStep === 2 && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Previous School Name</label>
+                                        <input
+                                            type="text"
+                                            value={formData.previous_school}
+                                            onChange={e => setFormData({ ...formData, previous_school: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Last Grade Completed</label>
+                                        <input
+                                            type="text"
+                                            value={formData.last_grade_completed}
+                                            onChange={e => setFormData({ ...formData, last_grade_completed: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 3 && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Blood Group</label>
+                                        <select
+                                            id="wizard-blood-group"
+                                            value={formData.blood_group}
+                                            onChange={e => setFormData({ ...formData, blood_group: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                        >
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Allergies / Special Needs</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Peanut allergy, asthma (or None)"
+                                            value={formData.allergies}
+                                            onChange={e => setFormData({ ...formData, allergies: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 4 && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Requires School Bus?</label>
+                                        <select
+                                            id="wizard-needs-bus"
+                                            value={formData.needs_bus}
+                                            onChange={e => setFormData({ ...formData, needs_bus: e.target.value, bus_route: e.target.value === 'No' ? '' : formData.bus_route })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                        >
+                                            <option value="No">No, I will manage self-transport</option>
+                                            <option value="Yes">Yes, require school bus service</option>
+                                        </select>
+                                    </div>
+                                    {formData.needs_bus === 'Yes' && (
+                                        <div>
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Preferred Route / Area</label>
+                                            <select
+                                                id="wizard-bus-route"
+                                                value={formData.bus_route}
+                                                onChange={e => setFormData({ ...formData, bus_route: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                            >
+                                                <option value="">Select Route Option</option>
+                                                <option value="Route 1 (North Sector)">Route 1 (North Sector)</option>
+                                                <option value="Route 2 (Downtown - Central)">Route 2 (Downtown - Central)</option>
+                                                <option value="Route 3 (South Suburban)">Route 3 (South Suburban)</option>
+                                                <option value="Route 4 (East Valley)">Route 4 (East Valley)</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 5 && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Requires Hostel Accommodation?</label>
+                                        <select
+                                            id="wizard-needs-hostel"
+                                            value={formData.needs_hostel}
+                                            onChange={e => setFormData({ ...formData, needs_hostel: e.target.value, room_type: e.target.value === 'No' ? '' : formData.room_type })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                        >
+                                            <option value="No">No, Day scholar</option>
+                                            <option value="Yes">Yes, boarding student</option>
+                                        </select>
+                                    </div>
+                                    {formData.needs_hostel === 'Yes' && (
+                                        <div>
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Room Type Preference</label>
+                                            <select
+                                                id="wizard-room-type"
+                                                value={formData.room_type}
+                                                onChange={e => setFormData({ ...formData, room_type: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                            >
+                                                <option value="">Select Room Type</option>
+                                                <option value="Single (AC)">Single Room (Air Conditioned)</option>
+                                                <option value="Single (Non-AC)">Single Room (Non-AC)</option>
+                                                <option value="Shared (AC)">Shared Room (Air Conditioned)</option>
+                                                <option value="Shared (Non-AC)">Shared Room (Non-AC)</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 6 && (
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black text-gray-500 uppercase">Required Certificates</h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="border border-dashed border-gray-200 rounded-2xl p-5 text-center space-y-2">
+                                        <p className="text-xs font-bold text-gray-700">Birth Certificate</p>
+                                        <p className="text-[10px] text-gray-400">PDF, PNG, or JPG up to 5MB</p>
+                                        <input
+                                            type="file"
+                                            id="wizard-doc-birth"
+                                            className="hidden"
+                                            onChange={() => alert('Birth certificate uploaded successfully!')}
+                                        />
+                                        <label htmlFor="wizard-doc-birth" className="inline-block px-3 py-1.5 bg-gray-900 text-white rounded-xl text-[10px] font-bold cursor-pointer hover:bg-gray-800">
+                                            Choose File
+                                        </label>
+                                    </div>
+                                    <div className="border border-dashed border-gray-200 rounded-2xl p-5 text-center space-y-2">
+                                        <p className="text-xs font-bold text-gray-700">Transfer Certificate</p>
+                                        <p className="text-[10px] text-gray-400">PDF, PNG, or JPG up to 5MB</p>
+                                        <input
+                                            type="file"
+                                            id="wizard-doc-transfer"
+                                            className="hidden"
+                                            onChange={() => alert('Transfer certificate uploaded successfully!')}
+                                        />
+                                        <label htmlFor="wizard-doc-transfer" className="inline-block px-3 py-1.5 bg-gray-900 text-white rounded-xl text-[10px] font-bold cursor-pointer hover:bg-gray-800">
+                                            Choose File
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 7 && (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                                    <p className="text-xs font-bold text-gray-700">Declaration Statement</p>
+                                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                                        I hereby declare that all the particulars filled in this application form are true, correct, and complete to the best of my knowledge. I understand that if any information is found incorrect or fake, my application/admission is liable to be cancelled at any stage.
+                                    </p>
+                                    <label className="flex items-center gap-2 cursor-pointer pt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="wizard-declare-checkbox"
+                                            required
+                                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4"
+                                        />
+                                        <span className="text-xs font-bold text-gray-700">I accept the declaration</span>
+                                    </label>
+                                </div>
                             </div>
                         )}
                     </div>

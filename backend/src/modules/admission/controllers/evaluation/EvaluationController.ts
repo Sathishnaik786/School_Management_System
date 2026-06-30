@@ -11,6 +11,7 @@ import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from '../crm/ControllerErrorHandler';
+import { AdmissionService } from '../../admission.service';
 
 export class EvaluationController {
     constructor(
@@ -47,8 +48,15 @@ export class EvaluationController {
     public scheduleExam = async (req: Request, res: Response) => {
         try {
             await this.verifyFlag(req, 'entrance_exam');
-            const schoolId = req.context?.user?.school_id || req.body.school_id;
-            const academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+            let schoolId = req.context?.user?.school_id || req.body.school_id;
+            let academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+
+            if (!schoolId || !academicYearId) {
+                const resolved = await AdmissionService.resolveContext();
+                if (!schoolId) schoolId = resolved.school_id;
+                if (!academicYearId) academicYearId = resolved.academic_year_id || '';
+            }
+
             const { template_id, room_name, invigilator_name, exam_date } = req.body;
 
             const data = await this.examService.scheduleExam(
@@ -183,8 +191,15 @@ export class EvaluationController {
     public generateMeritList = async (req: Request, res: Response) => {
         try {
             await this.verifyFlag(req, 'merit_engine');
-            const schoolId = req.context?.user?.school_id || req.body.school_id;
-            const academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+            let schoolId = req.context?.user?.school_id || req.body.school_id;
+            let academicYearId = req.headers['x-academic-year-id'] as string || req.body.academic_year_id;
+
+            if (!schoolId || !academicYearId) {
+                const resolved = await AdmissionService.resolveContext();
+                if (!schoolId) schoolId = resolved.school_id;
+                if (!academicYearId) academicYearId = resolved.academic_year_id || '';
+            }
+
             const intakeLimit = req.body.intake_limit || 20;
             const userId = req.context?.user?.id || null;
             const correlationId = req.headers['x-correlation-id'] as string;

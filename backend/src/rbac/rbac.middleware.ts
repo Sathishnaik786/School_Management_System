@@ -22,6 +22,39 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
+        // 2b. Admission Officer Bypass for all admission module actions
+        if (roles.includes('ADMISSION_OFFICER') && requiredPermission.startsWith('admission.')) {
+            return next();
+        }
+
+        // 2c. Accountant Bypass for fee setup and payment collections
+        if (roles.includes('ACCOUNTANT') && 
+            (requiredPermission === 'admission.fees.manage' || requiredPermission === 'admission.payments.record')) {
+            return next();
+        }
+
+        // 2d. HOI Bypass for offer approval and final enrollment confirmations
+        if (roles.includes('HOI') && 
+            (requiredPermission === 'admission.approve' || 
+             requiredPermission === 'admission.reject' || 
+             requiredPermission === 'admission.confirm.enroll')) {
+            return next();
+        }
+
+        // 2e. Parent / Applicant Bypass for own application lifecycle actions
+        if (roles.includes('PARENT') && 
+            (requiredPermission === 'admission.view_own' || 
+             requiredPermission === 'admission.create' || 
+             requiredPermission === 'admission.update')) {
+            return next();
+        }
+
+        // 2f. View Own / View All hierarchy fallback
+        if (requiredPermission === 'admission.view_own' && 
+            (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) {
+            return next();
+        }
+
         // 3. Check Permission
         // 4. Check Role
         if (permissions.includes(requiredPermission)) {

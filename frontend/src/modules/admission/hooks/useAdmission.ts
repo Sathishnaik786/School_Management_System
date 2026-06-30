@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { admissionApi } from '../admission.api';
 import { QUERY_KEYS } from '../../../lib/queryKeys';
 
-export function useInquiries(params?: any) {
+export function useInquiries(params?: any, options?: any) {
     return useQuery({
         queryKey: ['admissions', 'inquiries', params],
         queryFn: () => admissionApi.getEnquiries(params).then(res => res.data),
+        ...options
     });
 }
 
@@ -49,10 +50,11 @@ export function useConvertEnquiry() {
     });
 }
 
-export function useLeads(params?: any) {
+export function useLeads(params?: any, options?: any) {
     return useQuery({
         queryKey: ['admissions', 'leads', params],
         queryFn: () => admissionApi.getLeads(params).then(res => res.data),
+        ...options
     });
 }
 

@@ -51,7 +51,7 @@ export function ApplicationListPage() {
         },
     ];
 
-    const mockApplications = applications?.results || [
+    const mockApplications = (applications as any)?.data || [
         { id: '1', student_name: 'Rahul Khanna', parent_name: 'Arun Khanna', grade_applied_for: 'Grade 10', admission_type: 'Regular', status: 'submitted' },
         { id: '2', student_name: 'Sneha Patel', parent_name: 'Karan Patel', grade_applied_for: 'Grade 1', admission_type: 'RTE', status: 'under_review' },
         { id: '3', student_name: 'Kabir Dev', parent_name: 'Kapil Dev', grade_applied_for: 'Grade 5', admission_type: 'Management', status: 'approved' },
