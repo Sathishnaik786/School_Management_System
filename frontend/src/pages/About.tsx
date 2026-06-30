@@ -7,7 +7,7 @@ import SectionHeader from "@/components/common/SectionHeader";
 import { SCHOOL_INFO } from "@/lib/public-constants";
 
 const milestones = [
-  { year: "1952", event: "Foundation of Apex International School" },
+  { year: "1952", event: "Foundation of EduTrack" },
   { year: "1975", event: "Expansion to include High School programs" },
   { year: "1990", event: "Introduction of Advanced Placement courses" },
   { year: "2005", event: "State-of-the-art science complex opened" },
@@ -143,7 +143,7 @@ export default function About() {
           <SectionHeader
             subtitle="Our Values"
             title="The Principles We Stand By"
-            description="These core values guide everything we do at Apex International School."
+            description="These core values guide everything we do at EduTrack."
           />
 
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

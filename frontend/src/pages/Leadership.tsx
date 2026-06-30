@@ -7,7 +7,7 @@ const leadershipTeam = [
   {
     name: "Dr. Margaret Thompson",
     role: "Principal",
-    bio: "With over 30 years in education, Dr. Thompson has led Apex International School to new heights of academic excellence. Her vision for holistic education has transformed our approach to student development.",
+    bio: "With over 30 years in education, Dr. Thompson has led EduTrack to new heights of academic excellence. Her vision for holistic education has transformed our approach to student development.",
     education: "Ph.D. in Educational Leadership, Harvard University",
     quote: "Every child has unlimited potential. Our job is to help them discover and nurture it.",
   },
@@ -87,7 +87,7 @@ export default function Leadership() {
                         Dear Parents, Students, and Community Members,
                       </p>
                       <p>
-                        Welcome to Apex International School, where we believe that every child
+                        Welcome to EduTrack, where we believe that every child
                         carries within them the seeds of greatness. Our mission is to
                         provide the nurturing environment, rigorous academics, and
                         supportive community that allows these seeds to flourish.
@@ -100,7 +100,7 @@ export default function Leadership() {
                       </p>
                       <p>
                         I invite you to explore our campus, meet our exceptional faculty,
-                        and discover why Apex International School has been a trusted name in
+                        and discover why EduTrack has been a trusted name in
                         education for over seven decades.
                       </p>
                       <p className="font-semibold text-primary">

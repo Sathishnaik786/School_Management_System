@@ -125,7 +125,7 @@ export const NOTIFICATIONS = [
 
 // School information
 export const SCHOOL_INFO = {
-  name: "Apex International School",
+  name: "EduTrack",
   tagline: "Excellence in Education Since 1952",
   address: "123 Academic Avenue, Education City, EC 12345",
   phone: "+1 (555) 123-4567",

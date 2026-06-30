@@ -4,7 +4,7 @@
 INSERT INTO public.schools (id, name, code, status)
 VALUES (
   '457bbda3-f542-47dc-9d41-3d7729226f86',
-  'Apex International School',
+  'EduTrack',
   'APEX',
   'active'
 )

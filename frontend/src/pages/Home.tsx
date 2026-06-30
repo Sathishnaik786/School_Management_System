@@ -73,7 +73,7 @@ const programs = [
 // Testimonials
 const testimonials = [
   {
-    quote: "Apex International School transformed my child's approach to learning. The teachers here truly care.",
+    quote: "EduTrack transformed my child's approach to learning. The teachers here truly care.",
     author: "Sarah Johnson",
     role: "Parent",
   },

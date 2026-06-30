@@ -82,7 +82,7 @@ export class EnquiryController {
             const { page: _p, limit: _l, search: _s, sort_column: _sc, sort_order: _so, ...filters } = req.query;
 
             const data = await this.enquiryService.listEnquiries(
-                schoolId,
+                schoolId!,
                 page,
                 limit,
                 filters,

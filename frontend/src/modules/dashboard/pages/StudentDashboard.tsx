@@ -28,6 +28,21 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 
 export function StudentDashboard() {
     const { user } = useAuth();
+    const [admissions, setAdmissions] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchAdmissions = async () => {
+            try {
+                const res = await apiClient.get('/admissions');
+                const list = res.data?.data || res.data || [];
+                const active = list.filter((a: any) => a.status !== 'enrolled' && a.status !== 'rejected');
+                setAdmissions(active);
+            } catch (err) {
+                console.error("Failed to load admissions", err);
+            }
+        };
+        fetchAdmissions();
+    }, []);
 
     // Fetch student summary from the dashboard API
     const { data: summary, isLoading } = useQuery({
@@ -141,6 +156,68 @@ export function StudentDashboard() {
             }
         >
             <div className="space-y-6 lg:space-y-8">
+                {/* Active Admission Applications Timelines */}
+                {admissions.length > 0 && (
+                    <div className="space-y-4">
+                        <h2 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-primary" />
+                            Admission Status Timeline
+                        </h2>
+                        {admissions.map(app => {
+                            const steps = [
+                                { key: 'draft', label: 'Draft Started' },
+                                { key: 'submitted', label: 'Submitted' },
+                                { key: 'under_review', label: 'Under Review' },
+                                { key: 'docs_verified', label: 'Docs Verified' },
+                                { key: 'payment_pending', label: 'Payment Pending' },
+                                { key: 'payment_submitted', label: 'Payment Submitted' },
+                                { key: 'payment_verified', label: 'Payment Verified' },
+                                { key: 'recommended', label: 'Recommended' },
+                                { key: 'approved', label: 'Approved' },
+                                { key: 'enrolled', label: 'Enrolled' },
+                            ];
+                            const currentIdx = steps.findIndex(s => s.key === app.status);
+                            return (
+                                <div key={app.id} className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm space-y-4">
+                                    <div className="flex justify-between items-center pb-3 border-b border-border/45">
+                                        <div>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                                                Applicant: {app.student_name}
+                                            </span>
+                                            <h3 className="font-black text-sm text-gray-900 dark:text-white mt-0.5">
+                                                Grade Applied: {app.grade_applied_for}
+                                            </h3>
+                                        </div>
+                                        <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                                            Stage: {app.status?.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                    <div className="relative flex justify-between items-center gap-2 pt-2 overflow-x-auto pb-2 scrollbar-hide">
+                                        {steps.map((step, idx) => {
+                                            const isCompleted = idx < currentIdx;
+                                            const isActive = idx === currentIdx;
+                                            return (
+                                                <div key={idx} className="flex flex-col items-center text-center flex-1 min-w-[70px] relative z-10">
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] transition-all ${
+                                                        isCompleted ? 'bg-emerald-500 text-white shadow-sm' :
+                                                        isActive ? 'bg-primary text-white ring-4 ring-primary/20 animate-pulse' :
+                                                        'bg-gray-200 text-gray-400 dark:bg-muted/20'
+                                                    }`}>
+                                                        {isCompleted ? '✓' : idx + 1}
+                                                    </div>
+                                                    <p className={`text-[8px] font-black mt-2 leading-tight ${isActive ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {step.label}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 {/* Timetable / Classes List */}
                 <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
