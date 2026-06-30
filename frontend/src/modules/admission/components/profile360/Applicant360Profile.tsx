@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ProfileHeader from './ProfileHeader';
-import TimelineEngine, { TimelineNode } from '../timeline/TimelineEngine';
+import { TimelineEngine, TimelineNode } from '../timeline/TimelineEngine';
 import SLAIndicator from '../timeline/SLAIndicator';
 import { 
     FileText, User, ShieldAlert, CheckSquare, Layers, Clock, 

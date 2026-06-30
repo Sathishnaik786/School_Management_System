@@ -67,8 +67,8 @@ export class SessionService {
                 .select(`
                     roles!inner (
                         name,
-                        role_permissions!inner (
-                            permissions!inner (
+                        role_permissions (
+                            permissions (
                                 code
                             )
                         )
