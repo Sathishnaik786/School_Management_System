@@ -155,7 +155,7 @@ import { SettingsPage as AdmissionSettingsPage } from '../modules/admission/page
 
 export const AppRouter = () => {
     return (
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
                 {/* Public Site Routes */}
                 <Route element={<PublicLayout />}>

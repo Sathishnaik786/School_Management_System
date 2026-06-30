@@ -626,24 +626,9 @@ export const DashboardLayout = () => {
                     )}
                 </AnimatePresence>
 
+
                 {/* Main View Area */}
                 <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
-                    {/* UAT environment banner. Only rendered when in development / non-production */}
-                    {import.meta.env.MODE !== 'production' && systemMode === 'UAT' && (
-                        <div className="bg-amber-500 dark:bg-amber-600 text-white px-6 py-2.5 flex items-center justify-between shadow-premium-md z-40 relative">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-                                <p className="font-bold text-xs tracking-wide">
-                                    <span className="uppercase font-black mr-2 bg-white/20 px-2 py-0.5 rounded text-[10px]">UAT MODE</span>
-                                    Using <span className="underline decoration-2 font-black">SEEDED TEST DATA</span> for development.
-                                </p>
-                            </div>
-                            <div className="hidden sm:block text-[9px] font-black uppercase opacity-90 tracking-widest">
-                                Campus Environment v2.0
-                            </div>
-                        </div>
-                    )}
-
                     {/* Top navbar */}
                     <header className="bg-white/80 dark:bg-card/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-20 transition-all duration-300">
                         <div className="h-20 px-4 sm:px-8 flex items-center justify-between">
