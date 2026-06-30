@@ -13,20 +13,31 @@ export class FeatureFlagRepository extends BaseRepository<any> implements IFeatu
         environment: string, 
         tenantId: string | null
     ): Promise<{ enabled: boolean; description?: string } | null> {
-        let query = this.rawQuery
-            .eq('module', module)
-            .eq('feature_key', key)
-            .eq('environment', environment);
-
         if (tenantId) {
-            query = query.eq('tenant_id', tenantId);
-        } else {
-            query = query.is('tenant_id', null);
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('module', module)
+                .eq('feature_key', key)
+                .eq('environment', environment)
+                .eq('tenant_id', tenantId)
+                .limit(1);
+
+            if (error) throw error;
+            if (data && data.length > 0) return { enabled: data[0].enabled, description: data[0].description };
         }
 
-        const { data, error } = await query.maybeSingle();
+        const { data, error } = await supabase
+            .from(this.tableName)
+            .select('*')
+            .eq('module', module)
+            .eq('feature_key', key)
+            .eq('environment', environment)
+            .is('tenant_id', null)
+            .limit(1);
+
         if (error) throw error;
-        return data ? { enabled: data.enabled, description: data.description } : null;
+        return data && data.length > 0 ? { enabled: data[0].enabled, description: data[0].description } : null;
     }
 
     public async save(

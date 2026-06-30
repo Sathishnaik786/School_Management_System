@@ -208,4 +208,43 @@ export class StudentRepository implements IStudentRepository {
         if (error) throw error;
         return data || [];
     }
+
+    public async list(params: {
+        page: number;
+        limit: number;
+        search?: string;
+        status?: string;
+        grade?: string;
+        section?: string;
+        academic_year?: string;
+        school_id: string | null;
+    }): Promise<{ data: any[]; total: number }> {
+        let query = supabase
+            .from('students')
+            .select('*, student_sections(section_id, academic_year_id)', { count: 'exact' })
+            .is('deleted_at', null);
+
+        if (params.school_id) {
+            query = query.eq('school_id', params.school_id);
+        }
+        if (params.status) {
+            query = query.eq('status', params.status);
+        }
+        if (params.academic_year) {
+            query = query.eq('academic_year_id', params.academic_year);
+        }
+        if (params.search) {
+            query = query.or(`first_name.ilike.%${params.search}%,last_name.ilike.%${params.search}%,admission_no.ilike.%${params.search}%`);
+        }
+
+        const from = (params.page - 1) * params.limit;
+        const to = params.page * params.limit - 1;
+
+        const { data, count, error } = await query
+            .range(from, to)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return { data: data || [], total: count || 0 };
+    }
 }

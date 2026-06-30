@@ -124,33 +124,141 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
         icon: 'Users',
         children: [
             {
+                title: 'Dashboard',
+                path: '/app/students/dashboard',
+                icon: 'LayoutDashboard',
+            },
+            {
                 title: 'Student Master',
                 path: ROUTES.STUDENT.LIST,
                 icon: 'UserSquare',
             },
             {
-                title: 'Section Transfers',
+                title: 'Class Allocation',
+                path: '/app/students/allocation',
+                permission: PERMISSIONS.STUDENT.ASSIGN_SECTION,
+                icon: 'Layers',
+            },
+            {
+                title: 'Promotions',
                 path: ROUTES.STUDENT.PROMOTE,
-                permission: PERMISSIONS.STUDENT.PROMOTE,
+                permission: PERMISSIONS.STUDENT.ASSIGN_SECTION,
+                icon: 'TrendingUp',
+            },
+            {
+                title: 'Transfers',
+                path: '/app/students/transfer',
+                permission: PERMISSIONS.STUDENT.VIEW,
                 icon: 'ArrowLeftRight',
+            },
+            {
+                title: 'Identity Cards',
+                path: '/app/students/identity',
+                permission: PERMISSIONS.STUDENT.VIEW,
+                icon: 'Barcode',
+            },
+            {
+                title: 'Import Wizard',
+                path: '/app/students/import',
+                permission: PERMISSIONS.STUDENT.VIEW,
+                icon: 'Upload',
+            },
+            {
+                title: 'Reports',
+                path: '/app/students/reports',
+                permission: PERMISSIONS.STUDENT.VIEW,
+                icon: 'FileSpreadsheet',
+            },
+            {
+                title: 'Settings',
+                path: '/app/students/settings',
+                permission: PERMISSIONS.STUDENT.VIEW,
+                icon: 'Settings',
             }
         ]
     },
     {
         title: 'Attendance',
         path: '/app/attendance-root',
-        permission: PERMISSIONS.ATTENDANCE.MARK,
+        permission: 'attendance.mark',
         icon: 'CalendarCheck',
         children: [
             {
-                title: 'Mark Register',
-                path: ROUTES.ATTENDANCE.MARK,
+                title: 'Dashboard',
+                path: '/app/attendance/dashboard',
+                icon: 'LayoutDashboard',
+            },
+            {
+                title: 'Daily Attendance',
+                path: '/app/attendance/mark-daily',
                 icon: 'ClipboardList',
             },
             {
-                title: 'Leave Applications',
-                path: ROUTES.ATTENDANCE.LEAVES,
+                title: 'Period Attendance',
+                path: '/app/attendance/period',
+                icon: 'CalendarCheck',
+            },
+            {
+                title: 'Leave Management',
+                path: '/app/attendance/leaves',
                 icon: 'PlaneTakeoff',
+            },
+            {
+                title: 'Corrections',
+                path: '/app/attendance/corrections',
+                icon: 'ShieldAlert',
+            },
+            {
+                title: 'Holiday Calendar',
+                path: '/app/attendance/holidays',
+                icon: 'Calendar',
+            },
+            {
+                title: 'Biometric',
+                path: '/app/attendance/biometric',
+                icon: 'Cpu',
+            },
+            {
+                title: 'Reports',
+                path: '/app/attendance/reports',
+                icon: 'FileSpreadsheet',
+            },
+            {
+                title: 'Analytics',
+                path: '/app/attendance/analytics',
+                icon: 'BarChart2',
+            },
+            {
+                title: 'Settings',
+                path: '/app/attendance/settings',
+                icon: 'Settings',
+            }
+        ]
+    },
+    {
+        title: 'Workflows',
+        path: '/app/workflows-root',
+        icon: 'Cpu',
+        children: [
+            {
+                title: 'Dashboard',
+                path: '/app/workflows/dashboard',
+                icon: 'LayoutDashboard',
+            },
+            {
+                title: 'Visual Builder',
+                path: '/app/workflows/builder',
+                icon: 'Settings',
+            },
+            {
+                title: 'Task Center',
+                path: '/app/workflows/tasks',
+                icon: 'ClipboardList',
+            },
+            {
+                title: 'Analytics',
+                path: '/app/workflows/analytics',
+                icon: 'BarChart2',
             }
         ]
     }

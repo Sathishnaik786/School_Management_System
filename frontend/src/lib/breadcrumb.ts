@@ -31,6 +31,16 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
     promotion: 'Promotion',
     'my-children': 'My Children',
     'academic-history': 'Academic History',
+    edit: 'Edit Profile',
+    parents: 'Parents & Guardians',
+    academics: 'Academic History',
+    allocation: 'Class Allocation',
+    transfer: 'Transfer Desk',
+    identity: 'Identity Cards',
+    timeline: 'Milestones Timeline',
+    audit: 'Audit Logs',
+    import: 'Import Wizard',
+    'admission-history': 'Admission History',
 
     // Academic
     academic: 'Academic',
@@ -52,6 +62,12 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
     leaves: 'Leave Requests',
     'bridge-manager': 'Bridge Manager',
     'section-view': 'Section View',
+    'mark-daily': 'Daily Attendance',
+    period: 'Period Attendance',
+    student: 'Student Attendance',
+    corrections: 'Corrections',
+    holidays: 'Holiday Calendar',
+    biometric: 'Biometric Integration',
 
     // Exams
     'exam-admin': 'Exam Administration',

@@ -18,6 +18,23 @@ import { StudentList } from '../modules/student/pages/StudentList';
 import { StudentPromotion } from '../modules/student/pages/StudentPromotion';
 import { MyChildren } from '../modules/student/pages/MyChildren';
 import { AcademicHistory } from '../modules/student/pages/AcademicHistory';
+
+import { DashboardPage as StudentDashboardPage } from '../modules/student/pages/DashboardPage';
+import { StudentListPage } from '../modules/student/pages/StudentListPage';
+import { StudentDetailsPage } from '../modules/student/pages/StudentDetailsPage';
+import { StudentProfilePage } from '../modules/student/pages/StudentProfilePage';
+import { ParentGuardianPage } from '../modules/student/pages/ParentGuardianPage';
+import { AcademicRecordPage } from '../modules/student/pages/AcademicRecordPage';
+import { ClassAllocationPage } from '../modules/student/pages/ClassAllocationPage';
+import { PromotionPage } from '../modules/student/pages/PromotionPage';
+import { TransferPage } from '../modules/student/pages/TransferPage';
+import { IdentityCardPage } from '../modules/student/pages/IdentityCardPage';
+import { TimelinePage } from '../modules/student/pages/TimelinePage';
+import { AuditLogsPage } from '../modules/student/pages/AuditLogsPage';
+import { ReportsPage as StudentReportsPage } from '../modules/student/pages/ReportsPage';
+import { SettingsPage as StudentSettingsPage } from '../modules/student/pages/SettingsPage';
+import { ImportWizardPage } from '../modules/student/pages/ImportWizardPage';
+import { AdmissionHistoryPage } from '../modules/student/pages/AdmissionHistoryPage';
 import { ClassList } from '../modules/academic/pages/ClassList';
 import { SectionList } from '../modules/academic/pages/SectionList';
 import { DepartmentsListPage } from '../modules/academic/pages/DepartmentsListPage';
@@ -55,6 +72,18 @@ import { AdminAttendanceDashboard } from '../modules/attendance/pages/AdminAtten
 import { AttendanceBridgeManager } from '../modules/attendance/pages/AttendanceBridgeManager';
 import { SectionAttendanceView } from '../modules/attendance/pages/SectionAttendanceView';
 import { MyAttendance } from '../modules/attendance/pages/MyAttendance';
+
+import { DashboardPage as AttendanceDashboardPage } from '../modules/attendance/pages/DashboardPage';
+import { DailyAttendancePage } from '../modules/attendance/pages/DailyAttendancePage';
+import { PeriodAttendancePage } from '../modules/attendance/pages/PeriodAttendancePage';
+import { StudentAttendancePage } from '../modules/attendance/pages/StudentAttendancePage';
+import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
+import { CorrectionPage } from '../modules/attendance/pages/CorrectionPage';
+import { HolidayPage } from '../modules/attendance/pages/HolidayPage';
+import { BiometricPage } from '../modules/attendance/pages/BiometricPage';
+import { ReportsPage as AttendanceReportsPage } from '../modules/attendance/pages/ReportsPage';
+import { AnalyticsPage as AttendanceAnalyticsPage } from '../modules/attendance/pages/AnalyticsPage';
+import { SettingsPage as AttendanceSettingsPage } from '../modules/attendance/pages/SettingsPage';
 import { TimetableBuilder } from '../modules/timetable/pages/TimetableBuilder';
 import { MyTimetable } from '../modules/timetable/pages/MyTimetable';
 import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManagement';
@@ -77,6 +106,12 @@ import { ManifestPage } from '../modules/transport/pages/ManifestPage';
 import { DriverDashboard } from '../modules/transport/pages/DriverDashboard';
 import { Profile } from '../pages/Profile';
 import { Settings } from '../pages/Settings';
+
+// Workflow Platform Imports
+import { WorkflowDashboard } from '../modules/workflows/pages/WorkflowDashboard';
+import { WorkflowBuilder } from '../modules/workflows/pages/WorkflowBuilder';
+import { TaskCenter } from '../modules/workflows/pages/TaskCenter';
+import { WorkflowAnalytics } from '../modules/workflows/pages/WorkflowAnalytics';
 
 // Public Site Imports
 import PublicLayout from '../layouts/PublicLayout';
@@ -259,24 +294,93 @@ export const AppRouter = () => {
                         } />
 
                         {/* Student Module Routes */}
+                        <Route path="students/dashboard" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <StudentDashboardPage />
+                            </PermissionGuard>
+                        } />
                         <Route path="students" element={
                             <PermissionGuard permission="STUDENT_VIEW">
-                                <StudentList />
+                                <StudentListPage />
                             </PermissionGuard>
                         } />
-
+                        <Route path="students/:id" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <StudentDetailsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/edit" element={
+                            <PermissionGuard permission="STUDENT_UPDATE">
+                                <StudentProfilePage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/parents" element={
+                            <PermissionGuard permission="STUDENT_UPDATE">
+                                <ParentGuardianPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/academics" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <AcademicRecordPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/allocation" element={
+                            <PermissionGuard permission="STUDENT_ASSIGN_SECTION">
+                                <ClassAllocationPage />
+                            </PermissionGuard>
+                        } />
                         <Route path="students/promote" element={
                             <PermissionGuard permission="STUDENT_ASSIGN_SECTION">
-                                <StudentPromotion />
+                                <PromotionPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/transfer" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <TransferPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/identity" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <IdentityCardPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/timeline" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <TimelinePage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/audit" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <AuditLogsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/reports" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <StudentReportsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/settings" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <StudentSettingsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/import" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <ImportWizardPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="students/:id/admission-history" element={
+                            <PermissionGuard permission="STUDENT_VIEW">
+                                <AdmissionHistoryPage />
                             </PermissionGuard>
                         } />
 
+                        {/* Old / Parent custom views */}
                         <Route path="students/my-children" element={
                             <PermissionGuard permission="STUDENT_VIEW_SELF">
                                 <MyChildren />
                             </PermissionGuard>
                         } />
-
                         <Route path="student/academic-history" element={
                             <PermissionGuard permission="STUDENT_VIEW_SELF">
                                 <AcademicHistory />
@@ -495,13 +599,70 @@ export const AppRouter = () => {
                         } />
 
                         {/* Attendance Module Routes */}
+                        <Route path="attendance/dashboard" element={
+                            <PermissionGuard permission="attendance.verify">
+                                <AttendanceDashboardPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/mark-daily" element={
+                            <PermissionGuard permission="attendance.mark">
+                                <DailyAttendancePage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/period" element={
+                            <PermissionGuard permission="attendance.mark">
+                                <PeriodAttendancePage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/student/:id" element={
+                            <PermissionGuard permission="attendance.verify">
+                                <StudentAttendancePage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/leaves" element={
+                            <PermissionGuard permission="attendance.leave.approve">
+                                <LeaveManagementPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/corrections" element={
+                            <PermissionGuard permission="attendance.correction.approve">
+                                <CorrectionPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/holidays" element={
+                            <PermissionGuard permission="attendance.mark">
+                                <HolidayPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/biometric" element={
+                            <PermissionGuard permission="attendance.sync">
+                                <BiometricPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/reports" element={
+                            <PermissionGuard permission="attendance.verify">
+                                <AttendanceReportsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/analytics" element={
+                            <PermissionGuard permission="attendance.verify">
+                                <AttendanceAnalyticsPage />
+                            </PermissionGuard>
+                        } />
+                        <Route path="attendance/settings" element={
+                            <PermissionGuard permission="attendance.verify">
+                                <AttendanceSettingsPage />
+                            </PermissionGuard>
+                        } />
+
+                        {/* Legacy/Phase 10A compatibility routes */}
                         <Route path="attendance/admin/dashboard" element={
                             <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
                                 <AdminAttendanceDashboard />
                             </PermissionGuard>
                         } />
                         <Route path="attendance/admin/bridge" element={
-                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN"> {/* Or EXAM_CREATE */}
+                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
                                 <AttendanceBridgeManager />
                             </PermissionGuard>
                         } />
@@ -625,6 +786,12 @@ export const AppRouter = () => {
                         <Route path="import/history" element={
                             <ImportHistoryPage />
                         } />
+
+                        {/* Workflows routes */}
+                        <Route path="workflows/dashboard" element={<WorkflowDashboard />} />
+                        <Route path="workflows/builder" element={<WorkflowBuilder />} />
+                        <Route path="workflows/tasks" element={<TaskCenter />} />
+                        <Route path="workflows/analytics" element={<WorkflowAnalytics />} />
 
                         {/* Common User Routes */}
                         <Route path="profile" element={<Profile />} />

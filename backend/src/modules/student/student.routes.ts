@@ -12,6 +12,11 @@ studentRouter.post('/',
     studentController.createStudent
 );
 
+studentRouter.get('/',
+    checkPermission('student.view'),
+    studentController.listStudents
+);
+
 studentRouter.get('/:id',
     checkPermission('student.view'),
     studentController.getStudent

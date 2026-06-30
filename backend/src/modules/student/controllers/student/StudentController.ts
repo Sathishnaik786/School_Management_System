@@ -49,6 +49,43 @@ export class StudentController {
         }
     };
 
+    public listStudents = async (req: Request, res: Response) => {
+        try {
+            await this.verifyFlag(req, 'student_management');
+            const schoolId = req.context?.user?.school_id || null;
+            const page = Number(req.query.page) || 1;
+            const limit = Number(req.query.limit) || 10;
+            const search = req.query.search as string;
+            const status = req.query.status as string;
+            const grade = req.query.grade as string;
+            const section = req.query.section as string;
+            const academicYear = req.query.academic_year as string;
+
+            const { data, total } = await this.studentService.listStudents({
+                page,
+                limit,
+                search,
+                status,
+                grade,
+                section,
+                academic_year: academicYear,
+                school_id: schoolId
+            });
+
+            res.json({
+                data,
+                meta: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit)
+                }
+            });
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
     public getStudent = async (req: Request, res: Response) => {
         try {
             await this.verifyFlag(req, 'student_management');

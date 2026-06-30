@@ -1,20 +1,59 @@
-import { ROUTES } from '../constants/routes';
 import { PERMISSIONS } from '../constants/permissions';
 
 export const ATTENDANCE_ROUTES_REGISTRY = [
     {
-        path: ROUTES.ATTENDANCE.MARK,
-        component: 'attendance/AttendanceMarking',
-        permission: PERMISSIONS.ATTENDANCE.MARK,
+        path: '/app/attendance/dashboard',
+        component: 'attendance/DashboardPage',
+        permission: 'attendance.verify',
     },
     {
-        path: ROUTES.ATTENDANCE.LEAVES,
-        component: 'attendance/AttendanceBridgeManager',
-        permission: PERMISSIONS.ATTENDANCE.MARK,
+        path: '/app/attendance/mark-daily',
+        component: 'attendance/DailyAttendancePage',
+        permission: 'attendance.mark',
     },
     {
-        path: ROUTES.ATTENDANCE.MY_ATTENDANCE,
-        component: 'attendance/MyAttendance',
-        permission: PERMISSIONS.STUDENT.VIEW_SELF,
+        path: '/app/attendance/period',
+        component: 'attendance/PeriodAttendancePage',
+        permission: 'attendance.mark',
+    },
+    {
+        path: '/app/attendance/student/:id',
+        component: 'attendance/StudentAttendancePage',
+        permission: 'attendance.verify',
+    },
+    {
+        path: '/app/attendance/leaves',
+        component: 'attendance/LeaveManagementPage',
+        permission: 'attendance.leave.approve',
+    },
+    {
+        path: '/app/attendance/corrections',
+        component: 'attendance/CorrectionPage',
+        permission: 'attendance.correction.approve',
+    },
+    {
+        path: '/app/attendance/holidays',
+        component: 'attendance/HolidayPage',
+        permission: 'attendance.mark',
+    },
+    {
+        path: '/app/attendance/biometric',
+        component: 'attendance/BiometricPage',
+        permission: 'attendance.sync',
+    },
+    {
+        path: '/app/attendance/reports',
+        component: 'attendance/ReportsPage',
+        permission: 'attendance.verify',
+    },
+    {
+        path: '/app/attendance/analytics',
+        component: 'attendance/AnalyticsPage',
+        permission: 'attendance.verify',
+    },
+    {
+        path: '/app/attendance/settings',
+        component: 'attendance/SettingsPage',
+        permission: 'attendance.verify',
     }
 ];

@@ -12,4 +12,15 @@ export interface IStudentRepository {
     
     findParents(studentId: string): Promise<StudentParent[]>;
     saveParent(parent: StudentParent): Promise<void>;
+
+    list(params: {
+        page: number;
+        limit: number;
+        search?: string;
+        status?: string;
+        grade?: string;
+        section?: string;
+        academic_year?: string;
+        school_id: string | null;
+    }): Promise<{ data: any[]; total: number }>;
 }

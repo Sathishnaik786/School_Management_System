@@ -277,8 +277,9 @@ attendanceRouter.get('/admin/defaulters',
                 .select(`
                     student_id, 
                     attendance_percentage,
-                    total_sessions,
-                    present_sessions,
+                    total_present,
+                    total_absent,
+                    total_late,
                     student:student_id(full_name, student_code, student_sections(section:section_id(name, class:class_id(name))))
                 `)
                 .lt('attendance_percentage', 75)
@@ -287,16 +288,19 @@ attendanceRouter.get('/admin/defaulters',
 
             if (error) throw error;
 
-            const result = defaulters?.map((d: any) => ({
-                id: d.student_id,
-                name: d.student?.full_name,
-                code: d.student?.student_code,
-                class_name: d.student?.student_sections?.[0]?.section?.class?.name || '-',
-                section_name: d.student?.student_sections?.[0]?.section?.name || '-',
-                percent: d.attendance_percentage,
-                present: d.present_sessions,
-                total: d.total_sessions
-            }));
+            const result = defaulters?.map((d: any) => {
+                const total = (d.total_present || 0) + (d.total_absent || 0) + (d.total_late || 0);
+                return {
+                    id: d.student_id,
+                    name: d.student?.full_name,
+                    code: d.student?.student_code,
+                    class_name: d.student?.student_sections?.[0]?.section?.class?.name || '-',
+                    section_name: d.student?.student_sections?.[0]?.section?.name || '-',
+                    percent: d.attendance_percentage,
+                    present: d.total_present || 0,
+                    total
+                };
+            });
 
             res.json(result || []);
         } catch (err: any) {

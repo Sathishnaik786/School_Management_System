@@ -24,6 +24,8 @@ import { staffRouter } from './modules/staff/staff.routes';
 import departmentRouter from './modules/departments/department.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 import { bulkRouter } from './modules/admin/bulk.routes';
+import { workflowRouter } from './workflows/workflow.routes';
+import { taskRouter } from './workflows/task.routes';
 
 import { env } from './config/env';
 
@@ -167,6 +169,8 @@ router.use('/dashboard', dashboardRouter);
 router.use('/fees', feesRouter);
 router.use('/transport', transportRouter);
 router.use('/import', importRouter);
+router.use('/v1/workflows', workflowRouter);
+router.use('/v1/tasks', taskRouter);
 
 
 router.use('/admin', staffRouter);

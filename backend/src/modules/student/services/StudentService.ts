@@ -68,4 +68,17 @@ export class StudentService {
     public async getStudent(id: string): Promise<Student | null> {
         return this.studentRepo.findById(id);
     }
+
+    public async listStudents(params: {
+        page: number;
+        limit: number;
+        search?: string;
+        status?: string;
+        grade?: string;
+        section?: string;
+        academic_year?: string;
+        school_id: string | null;
+    }) {
+        return this.studentRepo.list(params);
+    }
 }

@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useSettingsStore } from '../../store/settings.store';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type FontSize = 'small' | 'medium' | 'large';
-export type LayoutDensity = 'compact' | 'normal';
+export type LayoutDensity = 'compact' | 'comfortable' | 'spacious';
+export type ColorPreset = 'blue' | 'purple' | 'emerald' | 'slate' | 'corporate';
 
 export const useTheme = () => {
-    const [theme, setTheme] = useState<ThemeMode>(
-        (localStorage.getItem('erp-theme') as ThemeMode) || 'system'
-    );
-    const [fontSize, setFontSize] = useState<FontSize>(
-        (localStorage.getItem('erp-font-size') as FontSize) || 'medium'
-    );
-    const [density, setDensity] = useState<LayoutDensity>(
-        (localStorage.getItem('erp-density') as LayoutDensity) || 'normal'
-    );
+    const {
+        theme,
+        colorPreset,
+        density,
+        reducedMotion,
+        highContrast,
+        setTheme,
+        setColorPreset,
+        setDensity,
+        toggleReducedMotion,
+        toggleHighContrast
+    } = useSettingsStore();
 
     useEffect(() => {
         const root = document.documentElement;
 
-        // Apply dark/light theme classes
+        // 1. Apply Dark Mode class
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         const activeTheme = theme === 'system' ? systemTheme : theme;
         
@@ -28,27 +32,53 @@ export const useTheme = () => {
             root.classList.remove('dark');
         }
 
-        localStorage.setItem('erp-theme', theme);
+        // Listen to system theme changes if set to 'system'
+        if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handleChange = (e: MediaQueryListEvent) => {
+                if (e.matches) {
+                    root.classList.add('dark');
+                } else {
+                    root.classList.remove('dark');
+                }
+            };
+            mediaQuery.addEventListener('change', handleChange);
+            return () => mediaQuery.removeEventListener('change', handleChange);
+        }
     }, [theme]);
 
     useEffect(() => {
         const root = document.documentElement;
-        root.setAttribute('data-font-size', fontSize);
-        localStorage.setItem('erp-font-size', fontSize);
-    }, [fontSize]);
+
+        // 2. Apply Color Preset classes
+        root.classList.forEach(className => {
+            if (className.startsWith('theme-')) {
+                root.classList.remove(className);
+            }
+        });
+        root.classList.add(`theme-${colorPreset}`);
+    }, [colorPreset]);
 
     useEffect(() => {
         const root = document.documentElement;
+        
+        // 3. Apply Attributes for Density, Reduced Motion, High Contrast
         root.setAttribute('data-density', density);
-        localStorage.setItem('erp-density', density);
-    }, [density]);
+        root.setAttribute('data-reduced-motion', String(reducedMotion));
+        root.setAttribute('data-high-contrast', String(highContrast));
+    }, [density, reducedMotion, highContrast]);
 
     return {
         theme,
-        fontSize,
+        colorPreset,
         density,
+        reducedMotion,
+        highContrast,
         setTheme,
-        setFontSize,
+        setColorPreset,
         setDensity,
+        toggleReducedMotion,
+        toggleHighContrast
     };
 };
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../../lib/api-client';
@@ -6,117 +6,50 @@ import { QUERY_KEYS } from '../../../lib/queryKeys';
 import {
     CalendarCheck, BookOpen, DollarSign, Bus, Library, ClipboardList,
     Bell, TrendingUp, Clock, CheckCircle2, AlertCircle, ArrowRight,
-    GraduationCap, Calendar, Activity, FileText, Wifi
+    GraduationCap, Calendar, Activity, FileText, Wifi, Sparkles
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { PageWrapper } from '../../../components/layout/PageWrapper';
 
-// ─── Widget: KPI Stat Card ───────────────────────────────────────────────────
-function StatCard({
-    icon: Icon,
-    label,
-    value,
-    sub,
-    color,
-    trend,
-}: {
-    icon: React.ElementType;
-    label: string;
-    value: string;
-    sub?: string;
-    color: string;
-    trend?: { value: number; label: string };
-}) {
-    return (
-        <motion.div
-            whileHover={{ y: -2, boxShadow: '0 12px 30px rgba(0,0,0,0.08)' }}
-            className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-start gap-4"
-        >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-                <Icon className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-                <p className="text-2xl font-black text-gray-900 leading-tight">{value}</p>
-                {sub && <p className="text-xs text-gray-500 font-medium mt-0.5">{sub}</p>}
-                {trend && (
-                    <div className={`inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${trend.value >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                        <TrendingUp className="w-3 h-3" />
-                        {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
-}
+const AnimatedNumber = ({ value }: { value: number }) => {
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, (latest) => Math.round(latest));
+    const [displayVal, setDisplayVal] = useState(0);
 
-// ─── Widget: Quick Action Button ──────────────────────────────────────────────
-function QuickActionButton({ icon: Icon, label, href, color }: {
-    icon: React.ElementType; label: string; href: string; color: string;
-}) {
-    return (
-        <a
-            href={href}
-            className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group text-center"
-        >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} group-hover:scale-110 transition-transform`}>
-                <Icon className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-gray-700">{label}</span>
-        </a>
-    );
-}
+    useEffect(() => {
+        const controls = animate(count, value, { duration: 1.2, ease: 'easeOut' });
+        return rounded.on("change", (latest) => setDisplayVal(latest));
+    }, [value]);
 
-// ─── Widget: Today's Schedule Row ─────────────────────────────────────────────
-function ScheduleRow({ time, subject, teacher, room, status }: {
-    time: string; subject: string; teacher: string; room: string; status: 'upcoming' | 'ongoing' | 'done';
-}) {
-    const statusConfig = {
-        upcoming: { dot: 'bg-blue-400', label: 'Upcoming', text: 'text-blue-600 bg-blue-50' },
-        ongoing: { dot: 'bg-green-400 animate-pulse', label: 'Ongoing', text: 'text-green-600 bg-green-50' },
-        done: { dot: 'bg-gray-300', label: 'Done', text: 'text-gray-400 bg-gray-50' },
-    };
-    const s = statusConfig[status];
+    return <span>{displayVal.toLocaleString()}</span>;
+};
 
-    return (
-        <div className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
-            <div className="w-16 text-right shrink-0">
-                <span className="text-xs font-bold text-gray-500">{time}</span>
-            </div>
-            <div className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
-            <div className="flex-1 min-w-0">
-                <p className={`text-xs font-black truncate ${status === 'done' ? 'text-gray-400' : 'text-gray-900'}`}>
-                    {subject}
-                </p>
-                <p className="text-[10px] text-gray-400 font-medium">{teacher} · {room}</p>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${s.text}`}>
-                {s.label}
-            </span>
-        </div>
-    );
-}
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export function StudentDashboard() {
     const { user } = useAuth();
 
     // Fetch student summary from the dashboard API
-    const { data: summary } = useQuery({
+    const { data: summary, isLoading } = useQuery({
         queryKey: QUERY_KEYS.DASHBOARD.METRICS('student', new Date().toDateString()),
         queryFn: async () => {
             try {
                 const res = await apiClient.get('/dashboard/student-summary');
                 return res.data;
             } catch {
-                return null; // Graceful fallback to mock data
+                return null; // Graceful fallback
             }
         },
         staleTime: 5 * 60 * 1000,
     });
 
-    // Mock data for widgets while backend endpoint is wired
+    if (isLoading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Loading Academic Portal...</p>
+        </div>
+    );
+
     const attendancePercent = summary?.attendancePercent ?? 87;
     const feeDue = summary?.feeDue ?? 12500;
     const upcomingExams = summary?.upcomingExams ?? 3;
@@ -136,215 +69,173 @@ export function StudentDashboard() {
     ];
 
     const quickActions = [
-        { icon: CalendarCheck, label: 'My Attendance', href: '/app/attendance/my', color: 'bg-green-100 text-green-600' },
-        { icon: DollarSign, label: 'Pay Fees', href: '/app/fees/my', color: 'bg-amber-100 text-amber-600' },
-        { icon: GraduationCap, label: 'My Results', href: '/app/my-results', color: 'bg-purple-100 text-purple-600' },
-        { icon: BookOpen, label: 'My Assignments', href: '/app/my-assignments', color: 'bg-blue-100 text-blue-600' },
-        { icon: FileText, label: 'My Timetable', href: '/app/my-timetable', color: 'bg-indigo-100 text-indigo-600' },
-        { icon: Bus, label: 'My Transport', href: '/app/transport/my', color: 'bg-orange-100 text-orange-600' },
-        { icon: Library, label: 'Library', href: '/app/library', color: 'bg-teal-100 text-teal-600' },
-        { icon: ClipboardList, label: 'Leave Request', href: '/app/attendance/leaves', color: 'bg-rose-100 text-rose-600' },
+        { icon: CalendarCheck, label: 'My Attendance', href: '/app/attendance/my', color: 'bg-green-500/10 text-green-500 border border-green-500/20' },
+        { icon: DollarSign, label: 'Pay Fees', href: '/app/fees/my', color: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' },
+        { icon: GraduationCap, label: 'My Results', href: '/app/exams/results', color: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' },
+        { icon: BookOpen, label: 'Assignments', href: '/app/student/assignments', color: 'bg-blue-500/10 text-blue-500 border border-blue-500/20' },
+        { icon: FileText, label: 'My Timetable', href: '/app/timetable/my', color: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' },
+        { icon: Bus, label: 'My Transport', href: '/app/transport/my', color: 'bg-orange-500/10 text-orange-500 border border-orange-500/20' },
+        { icon: Library, label: 'Library', href: '/app/library', color: 'bg-teal-500/10 text-teal-500 border border-teal-500/20' },
+        { icon: ClipboardList, label: 'Leave Logs', href: '/app/attendance/my', color: 'bg-rose-500/10 text-rose-500 border border-rose-500/20' },
     ];
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
-    };
-    const itemVariants = {
-        hidden: { opacity: 0, y: 16 },
-        visible: { opacity: 1, y: 0 },
-    };
+    const kpis = [
+        { label: 'Attendance', value: attendancePercent, icon: Activity, color: 'text-green-500 bg-green-500/10 border-green-500/20', format: '%', sub: 'Required 75%+' },
+        { label: 'Outstanding Fees', value: feeDue, icon: DollarSign, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', format: '₹', sub: 'Pay online' },
+        { label: 'Upcoming Exams', value: upcomingExams, icon: GraduationCap, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', sub: 'Starts next week' },
+        { label: 'Pending tasks', value: pendingAssignments, icon: ClipboardList, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', sub: 'Grades active' }
+    ];
+
+    const kpiElements = kpis.map((c, i) => (
+        <div key={i} className="group relative bg-white dark:bg-card p-6 rounded-3xl border border-border/50 shadow-premium-sm hover:shadow-premium-md transition-all duration-300 card-hover-lift flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${c.color}`}>
+                    <c.icon className="w-6 h-6" />
+                </div>
+            </div>
+
+            <div className="mt-5 space-y-1">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">
+                    {c.label}
+                </p>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        {c.format !== '%' && c.format}
+                        <AnimatedNumber value={c.value} />
+                        {c.format === '%' && c.format}
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground ml-1">{c.sub}</span>
+                </div>
+            </div>
+        </div>
+    ));
 
     return (
-        <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-6 pb-8"
-        >
-            {/* Greeting Header */}
-            <motion.div variants={itemVariants} className="bg-gradient-to-r from-primary to-blue-700 rounded-2xl p-6 text-white shadow-lg shadow-primary/20">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-blue-100 text-sm font-semibold">Welcome back 👋</p>
-                        <h1 className="text-2xl font-black mt-0.5">{user?.full_name || 'Student'}</h1>
-                        <p className="text-blue-100 text-xs mt-1 font-medium">
-                            {formatDate(new Date())} · Have a productive day!
-                        </p>
-                    </div>
-                    <div className="hidden sm:block w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-3xl font-black text-white/60 border border-white/20">
-                        {user?.full_name?.charAt(0) || 'S'}
-                    </div>
-                </div>
-            </motion.div>
-
-            {/* KPI Stats Row */}
-            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    icon={Activity}
-                    label="Attendance"
-                    value={`${attendancePercent}%`}
-                    sub="This semester"
-                    color="bg-green-100 text-green-600"
-                    trend={{ value: attendancePercent >= 75 ? 2.1 : -3.5, label: 'vs last month' }}
-                />
-                <StatCard
-                    icon={DollarSign}
-                    label="Fee Due"
-                    value={feeDue > 0 ? formatCurrency(feeDue) : 'Paid'}
-                    sub={feeDue > 0 ? 'Due by 15th July' : 'All cleared ✓'}
-                    color={feeDue > 0 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}
-                />
-                <StatCard
-                    icon={GraduationCap}
-                    label="Upcoming Exams"
-                    value={String(upcomingExams)}
-                    sub="Next: Physics — Jul 2"
-                    color="bg-purple-100 text-purple-600"
-                />
-                <StatCard
-                    icon={ClipboardList}
-                    label="Pending Tasks"
-                    value={String(pendingAssignments)}
-                    sub={`${pendingAssignments} assignments due`}
-                    color="bg-blue-100 text-blue-600"
-                />
-            </motion.div>
-
-            {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-3 gap-6">
-                {/* Today's Timetable */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-primary" />
-                            Today's Schedule
+        <PageWrapper
+            title={`Good Morning, ${user?.full_name?.split(' ')[0] || 'Student'}`}
+            description={`Academic Year 2026–27 | Section A | Standard Grade Portal`}
+            icon={Sparkles}
+            kpis={<>{kpiElements}</>}
+            timeline={
+                <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
+                        <h2 className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                            <Bell className="w-4.5 h-4.5 text-primary" />
+                            Notice Bulletin
                         </h2>
-                        <a href="/app/my-timetable" className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline">
-                            Full timetable <ArrowRight className="w-3 h-3" />
-                        </a>
                     </div>
-                    <div>
-                        {todaySchedule.map((cls: any, i: number) => (
-                            <ScheduleRow key={i} {...cls} />
-                        ))}
-                    </div>
-                </motion.div>
-
-                {/* Announcements */}
-                <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-primary" />
-                            Announcements
-                        </h2>
-                        <a href="/notifications" className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
-                            See all <ArrowRight className="w-3 h-3" />
-                        </a>
-                    </div>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {announcements.map((ann: any) => (
-                            <div key={ann.id} className={`p-3 rounded-xl border-l-2 ${
-                                ann.priority === 'high' ? 'border-red-400 bg-red-50/50' :
-                                ann.priority === 'medium' ? 'border-amber-400 bg-amber-50/50' :
-                                'border-blue-200 bg-blue-50/20'
+                            <div key={ann.id} className={`p-4 rounded-2xl border-l-2 bg-gray-50/50 dark:bg-muted/10 ${
+                                ann.priority === 'high' ? 'border-red-500' :
+                                ann.priority === 'medium' ? 'border-amber-500' :
+                                'border-blue-400'
                             }`}>
-                                <p className="text-xs font-black text-gray-900">{ann.title}</p>
-                                <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{ann.body}</p>
-                                <p className="text-[10px] text-gray-400 font-medium mt-1">{ann.time}</p>
+                                <p className="text-xs font-black text-gray-900 dark:text-white">{ann.title}</p>
+                                <p className="text-[10px] text-muted-foreground font-semibold mt-1 leading-relaxed">{ann.body}</p>
+                                <p className="text-[9px] text-muted-foreground/60 font-black uppercase mt-2">{ann.time}</p>
                             </div>
                         ))}
                     </div>
-                </motion.div>
-            </div>
-
-            {/* Quick Actions */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <h2 className="text-sm font-black text-gray-900 mb-4 flex items-center gap-2">
-                    <Wifi className="w-4 h-4 text-primary" />
-                    Quick Actions
-                </h2>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-                    {quickActions.map(action => (
-                        <QuickActionButton key={action.label} {...action} />
-                    ))}
                 </div>
-            </motion.div>
-
-            {/* Bottom Row: Attendance Alert + Leave Status + Transport */}
-            <div className="grid sm:grid-cols-3 gap-4">
-                {/* Attendance Alert */}
-                <motion.div variants={itemVariants} className={`rounded-2xl p-5 border ${attendancePercent < 75 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-                    <div className="flex items-center gap-3 mb-3">
-                        {attendancePercent < 75
-                            ? <AlertCircle className="w-5 h-5 text-red-500" />
-                            : <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        }
-                        <h3 className="text-xs font-black text-gray-900">Attendance Status</h3>
+            }
+        >
+            <div className="space-y-6 lg:space-y-8">
+                {/* Timetable / Classes List */}
+                <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
+                        <h2 className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                            <Clock className="w-4 h-4 text-primary" />
+                            Session Timetable
+                        </h2>
                     </div>
-                    <div className="text-3xl font-black text-gray-900 mb-1">{attendancePercent}%</div>
-                    <p className={`text-xs font-semibold ${attendancePercent < 75 ? 'text-red-600' : 'text-green-600'}`}>
-                        {attendancePercent < 75
-                            ? '⚠️ Below 75% — Risk of detention'
-                            : '✓ Attendance is satisfactory'
-                        }
-                    </p>
-                    <div className="mt-3 h-2 bg-white/60 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full rounded-full transition-all ${attendancePercent < 75 ? 'bg-red-500' : 'bg-green-500'}`}
-                            style={{ width: `${attendancePercent}%` }}
-                        />
+                    <div className="space-y-0.5">
+                        {todaySchedule.map((cls: any, i: number) => {
+                            const statusStyle = ({
+                                upcoming: 'text-blue-500 bg-blue-500/10 border border-blue-500/20',
+                                ongoing: 'text-green-500 bg-green-500/10 border border-green-500/20 animate-pulse',
+                                done: 'text-muted-foreground bg-muted/40 opacity-60'
+                            } as Record<string, string>)[cls.status as string] || '';
+
+                            return (
+                                <div key={i} className="flex items-center gap-4 py-3 border-b border-border/40 last:border-0">
+                                    <span className="text-xs font-bold text-muted-foreground/80 w-16 text-right shrink-0">{cls.time}</span>
+                                    <div className={`w-2 h-2 rounded-full shrink-0 ${cls.status === 'ongoing' ? 'bg-green-500 animate-ping' : 'bg-border'}`} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-xs text-gray-900 dark:text-white truncate">{cls.subject}</p>
+                                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{cls.teacher} · {cls.room}</p>
+                                    </div>
+                                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shrink-0 ${statusStyle}`}>
+                                        {cls.status}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
-                </motion.div>
+                </div>
 
-                {/* Leave Status */}
-                <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <h3 className="text-xs font-black text-gray-900 mb-3 flex items-center gap-2">
-                        <CalendarCheck className="w-4 h-4 text-primary" /> Leave Balance
+                {/* Quick actions row */}
+                <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
+                    <h3 className="text-xs font-black text-gray-900 dark:text-white mb-6 uppercase tracking-wider pb-4 border-b border-border/40 flex items-center gap-2">
+                        <Wifi className="w-4 h-4 text-primary" />
+                        Operation Shortcuts
                     </h3>
-                    {[
-                        { type: 'Casual Leave', used: 2, total: 10, color: 'bg-blue-500' },
-                        { type: 'Medical Leave', used: 1, total: 5, color: 'bg-purple-500' },
-                    ].map(leave => (
-                        <div key={leave.type} className="mb-3">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] font-bold text-gray-600">{leave.type}</span>
-                                <span className="text-[10px] font-black text-gray-800">{leave.total - leave.used} remaining</span>
-                            </div>
-                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${leave.color}`} style={{ width: `${(leave.used / leave.total) * 100}%` }} />
-                            </div>
-                        </div>
-                    ))}
-                    <a href="/app/attendance/leaves" className="text-[10px] font-bold text-primary hover:underline mt-2 flex items-center gap-1">
-                        Apply for Leave <ArrowRight className="w-3 h-3" />
-                    </a>
-                </motion.div>
-
-                {/* Transport Status */}
-                <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <h3 className="text-xs font-black text-gray-900 mb-3 flex items-center gap-2">
-                        <Bus className="w-4 h-4 text-primary" /> Transport Info
-                    </h3>
-                    <div className="space-y-2 text-xs">
-                        {[
-                            { label: 'Route', value: 'Route 7 – Gachibowli' },
-                            { label: 'Bus No', value: 'TS 09 EF 4521' },
-                            { label: 'Pickup', value: '7:45 AM · Stop 3B' },
-                            { label: 'Drop', value: '4:30 PM · Stop 3B' },
-                        ].map(item => (
-                            <div key={item.label} className="flex justify-between border-b border-gray-50 pb-1.5 last:border-0">
-                                <span className="font-bold text-gray-400">{item.label}</span>
-                                <span className="font-black text-gray-700 text-right">{item.value}</span>
-                            </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {quickActions.map((action, i) => (
+                            <a
+                                key={i}
+                                href={action.href}
+                                className="flex flex-col items-center justify-center p-5 bg-gray-50/50 dark:bg-muted/10 border border-border/40 rounded-2xl transition-all duration-200 group hover:bg-white dark:hover:bg-card hover:border-primary/20 hover:shadow-premium-md hover:scale-[1.01]"
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.color} group-hover:scale-110 transition-transform mb-3`}>
+                                    <action.icon className="w-5 h-5" />
+                                </div>
+                                <span className="text-xs font-black text-gray-800 dark:text-gray-200">{action.label}</span>
+                            </a>
                         ))}
                     </div>
-                    <a href="/app/transport/my" className="text-[10px] font-bold text-primary hover:underline mt-3 flex items-center gap-1">
-                        Track Bus <ArrowRight className="w-3 h-3" />
-                    </a>
-                </motion.div>
+                </div>
+
+                {/* Bottom details grids */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                    {/* Attendance stats alert */}
+                    <div className={`p-6 rounded-3xl border ${attendancePercent < 75 ? 'bg-red-500/5 border-red-500/10' : 'bg-emerald-500/5 border-emerald-500/10'}`}>
+                        <div className="flex items-center gap-3 mb-4">
+                            {attendancePercent < 75 ? <AlertCircle className="w-5 h-5 text-red-500" /> : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                            <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">Attendance Eligibility</h3>
+                        </div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white">{attendancePercent}%</div>
+                        <p className={`text-xs font-semibold mt-2 ${attendancePercent < 75 ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {attendancePercent < 75 ? '⚠️ Attendance is below the mandatory 75% threshold.' : '✓ Your attendance criteria is fully matched.'}
+                        </p>
+                        <div className="mt-4 h-2 bg-gray-200/50 dark:bg-muted/20 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${attendancePercent < 75 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${attendancePercent}%` }} />
+                        </div>
+                    </div>
+
+                    {/* Transport details widget */}
+                    <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
+                        <h3 className="text-xs font-black text-gray-900 dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-border/40">
+                            <Bus className="w-4 h-4 text-primary" />
+                            Transport Route Logs
+                        </h3>
+                        <div className="space-y-2.5 text-xs font-semibold">
+                            {[
+                                { label: 'Route Plan', value: 'Route 7 – Gachibowli Area' },
+                                { label: 'Bus Registry', value: 'TS 09 EF 4521' },
+                                { label: 'Scheduled Pickup', value: '7:45 AM · Stop 3B' },
+                                { label: 'Scheduled Drop', value: '4:30 PM · Stop 3B' },
+                            ].map(item => (
+                                <div key={item.label} className="flex justify-between border-b border-border/20 pb-2 last:border-0">
+                                    <span className="text-muted-foreground">{item.label}</span>
+                                    <span className="text-gray-900 dark:text-white font-bold">{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </motion.div>
+        </PageWrapper>
     );
 }
 
