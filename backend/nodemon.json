@@ -4,11 +4,11 @@
     ],
     "ext": "ts,json",
     "ignore": [
+        "src/**/*.spec.ts",
         "dist",
         "node_modules",
         "uploads",
-        "logs",
-        "src/**/*.spec.ts"
+        "logs"
     ],
     "exec": "node --max-old-space-size=4096 -r ts-node/register src/server.ts"
 }
