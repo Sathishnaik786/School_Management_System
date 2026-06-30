@@ -152,6 +152,13 @@ import { EnrollmentPage } from '../modules/admission/pages/EnrollmentPage';
 import { ReportsPage as AdmissionReportsPage } from '../modules/admission/pages/ReportsPage';
 import { SettingsPage as AdmissionSettingsPage } from '../modules/admission/pages/SettingsPage';
 
+// Upgraded Phase 3 Admissions UI Pages
+import WorkspaceDashboard from '../modules/admission/pages/Workspace';
+import Applicant360Page from '../modules/admission/pages/Applicant360';
+import PipelinePage from '../modules/admission/pages/Pipeline';
+import AnalyticsPage from '../modules/admission/pages/Analytics';
+import ReportsPage from '../modules/admission/pages/Reports';
+
 
 export const AppRouter = () => {
     return (
@@ -204,12 +211,12 @@ export const AppRouter = () => {
                         {/* Admission Module Routes */}
                         <Route path="admissions/dashboard" element={
                             <PermissionGuard permission="admission.review">
-                                <AdmissionDashboardPage />
+                                <WorkspaceDashboard />
                             </PermissionGuard>
                         } />
                         <Route path="admissions/analytics" element={
                             <PermissionGuard permission="admission.review">
-                                <AdmissionAnalyticsPage />
+                                <AnalyticsPage />
                             </PermissionGuard>
                         } />
                         <Route path="admissions/inquiries" element={
@@ -244,7 +251,7 @@ export const AppRouter = () => {
                         } />
                         <Route path="admissions/review" element={
                             <PermissionGuard permission="admission.review">
-                                <ApplicationListPage />
+                                <PipelinePage />
                             </PermissionGuard>
                         } />
                         <Route path="admissions/review/:id" element={
@@ -254,7 +261,7 @@ export const AppRouter = () => {
                         } />
                         <Route path="admissions/:id" element={
                             <PermissionGuard permission="admission.view_own">
-                                <ApplicationDetails />
+                                <Applicant360Page />
                             </PermissionGuard>
                         } />
                         <Route path="admissions/verification" element={
@@ -299,7 +306,7 @@ export const AppRouter = () => {
                         } />
                         <Route path="admissions/reports" element={
                             <PermissionGuard permission="admission.review">
-                                <AdmissionReportsPage />
+                                <ReportsPage />
                             </PermissionGuard>
                         } />
                         <Route path="admissions/settings" element={

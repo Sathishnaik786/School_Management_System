@@ -13,8 +13,8 @@ export default function Dashboard() {
     const { user } = useAuth();
 
     // Determine Role Logic
-    const isAdmin = user?.roles.some(r => ['ADMIN', 'HEAD_OF_INSTITUTE'].includes(r));
-    const isExamAdmin = user?.roles.includes('EXAM_CELL_ADMIN');
+    const isAdmin = user?.roles.some(r => ['ADMIN', 'HEAD_OF_INSTITUTE'].includes(r.toUpperCase()));
+    const isExamAdmin = user?.roles.some(r => r.toUpperCase() === 'EXAM_CELL_ADMIN');
 
     // Phase 4: Enforce Dedicated Dashboards
     // If Admin, go to Admin Dashboard (Governance)
@@ -27,14 +27,30 @@ export default function Dashboard() {
         return <Navigate to="/app/exam-admin/dashboard" replace />;
     }
 
+    // Consolidated Admissions Role Redirects
+    const isReceptionist = user?.roles.some(r => ['RECEPTIONIST', 'FRONT_DESK'].includes(r.toUpperCase()));
+    const isCounselor = user?.roles.some(r => ['COUNSELOR', 'COUNSELLOR'].includes(r.toUpperCase()));
+    const isFinance = user?.roles.some(r => ['FINANCE_OFFICER', 'ACCOUNTANT'].includes(r.toUpperCase()));
+    const isAdmissionOfficer = user?.roles.some(r => r.toUpperCase() === 'ADMISSION_OFFICER');
+
+    if (isReceptionist || isCounselor) {
+        return <Navigate to="/app/admissions/inquiries" replace />;
+    }
+    if (isFinance) {
+        return <Navigate to="/app/admissions/fees" replace />;
+    }
+    if (isAdmissionOfficer) {
+        return <Navigate to="/app/admissions/dashboard" replace />;
+    }
+
     // Others stay on generic dashboard dispatcher for now, OR we can route them too.
     // User asked "FACULTY -> existing faculty dashboard".
     // I will render Faculty/Parent/Driver inline here as before, to maintain "existing" behavior without new routes if not requested.
 
-    const isFaculty = user?.roles.includes('FACULTY');
-    const isParent = user?.roles.some(r => ['PARENT', 'STUDENT'].includes(r));
-    const isTransportAdmin = user?.roles.includes('TRANSPORT_ADMIN');
-    const isDriver = user?.roles.includes('BUS_DRIVER');
+    const isFaculty = user?.roles.some(r => r.toUpperCase() === 'FACULTY');
+    const isParent = user?.roles.some(r => ['PARENT', 'STUDENT'].includes(r.toUpperCase()));
+    const isTransportAdmin = user?.roles.some(r => r.toUpperCase() === 'TRANSPORT_ADMIN');
+    const isDriver = user?.roles.some(r => r.toUpperCase() === 'BUS_DRIVER');
 
     return (
         <div className="space-y-6">

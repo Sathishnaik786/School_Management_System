@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const hasRole = (role: string) => {
-        return user?.roles?.includes(role) || false;
+        return user?.roles?.some(r => r.toUpperCase() === role.toUpperCase()) || false;
     };
 
     const value: AuthContextType = {

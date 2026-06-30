@@ -107,6 +107,14 @@ export const DashboardLayout = () => {
     const isDriver = hasRole('BUS_DRIVER');
     const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
 
+    // Consolidated Admission Roles
+    const isReceptionist = hasRole('RECEPTIONIST') || hasRole('FRONT_DESK');
+    const isCounselor = hasRole('COUNSELOR') || hasRole('COUNSELLOR');
+    const isAdmissionOfficer = hasRole('ADMISSION_OFFICER') || hasRole('ADMIN');
+    const isExamCell = hasRole('EXAM_CELL') || hasRole('EXAM_CELL_ADMIN');
+    const isPrincipal = hasRole('PRINCIPAL') || hasRole('HOI') || hasRole('HEAD_OF_INSTITUTE');
+    const isFinance = hasRole('FINANCE_OFFICER') || hasRole('ACCOUNTANT');
+
     // Menu list
     const menuGroups = [
         // EXAM CELL ADMIN MENU
@@ -330,6 +338,76 @@ export const DashboardLayout = () => {
                 items: [
                     { label: 'My Trips', icon: Bus, path: '/app/transport/driver' },
                     { label: 'My Profile', icon: UserCircle, path: '/app/profile' },
+                ]
+            }
+        ] : []),
+
+        // RECEPTIONIST MENU
+        ...(isReceptionist ? [
+            {
+                label: 'Reception Desk',
+                items: [
+                    { label: 'Walk-ins Log', icon: Users, path: '/app/admissions/inquiries' },
+                    { label: 'New Inquiry', icon: FileText, path: '/app/admissions/inquiries#new' }
+                ]
+            }
+        ] : []),
+
+        // COUNSELOR MENU
+        ...(isCounselor ? [
+            {
+                label: 'Counseling Desk',
+                items: [
+                    { label: 'Assigned Leads', icon: ClipboardList, path: '/app/admissions/inquiries' },
+                    { label: 'Follow-up Scheduler', icon: Calendar, path: '/app/admissions/inquiries#calls' }
+                ]
+            }
+        ] : []),
+
+        // ADMISSION OFFICER MENU
+        ...(isAdmissionOfficer ? [
+            {
+                label: 'Admissions Desk',
+                items: [
+                    { label: 'Overview', icon: LayoutDashboard, path: '/app/admissions/dashboard' },
+                    { label: 'Applications Pipeline', icon: FileText, path: '/app/admissions/review' },
+                    { label: 'Document Checklist', icon: ShieldCheck, path: '/app/admissions/verification' },
+                    { label: 'Enrollment Handoff', icon: GraduationCap, path: '/app/admissions/enrollment' }
+                ]
+            }
+        ] : []),
+
+        // EXAM CELL DESK (ADMISSIONS ADDITIONS)
+        ...(isExamCell ? [
+            {
+                label: 'Exam Cell Desk',
+                items: [
+                    { label: 'Entrance Exams', icon: Calendar, path: '/app/admissions/exams' },
+                    { label: 'Interviews Panel', icon: Users, path: '/app/admissions/interviews' },
+                    { label: 'Merit List Desk', icon: FileText, path: '/app/admissions/merit' },
+                    { label: 'Offer Dispatch Desk', icon: GraduationCap, path: '/app/admissions/offers' }
+                ]
+            }
+        ] : []),
+
+        // PRINCIPAL / HOI MENU
+        ...(isPrincipal ? [
+            {
+                label: 'Principal Desk',
+                items: [
+                    { label: 'Merit Approvals', icon: ShieldCheck, path: '/app/admissions/merit' },
+                    { label: 'Offer Dispatch approvals', icon: FileText, path: '/app/admissions/offers' },
+                    { label: 'Admissions Funnel', icon: BarChart3, path: '/app/admissions/analytics' }
+                ]
+            }
+        ] : []),
+
+        // FINANCE OFFICER MENU
+        ...(isFinance ? [
+            {
+                label: 'Finance Desk',
+                items: [
+                    { label: 'Fee Collection', icon: Coins, path: '/app/admissions/fees' }
                 ]
             }
         ] : []),

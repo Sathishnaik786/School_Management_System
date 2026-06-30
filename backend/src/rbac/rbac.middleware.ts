@@ -1,6 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
 import { PermissionCode } from './permissions';
 
+const ROLE_ALIASES: Record<string, string[]> = {
+    'HEAD_OF_INSTITUTE': ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
+    'HOI': ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
+    'PRINCIPAL': ['HOI', 'HEAD_OF_INSTITUTE', 'PRINCIPAL'],
+    'COUNSELLOR': ['COUNSELOR', 'COUNSELLOR'],
+    'COUNSELOR': ['COUNSELOR', 'COUNSELLOR'],
+    'ACCOUNTANT': ['FINANCE_OFFICER', 'ACCOUNTANT'],
+    'FINANCE_OFFICER': ['FINANCE_OFFICER', 'ACCOUNTANT'],
+    'DRIVER': ['BUS_DRIVER', 'DRIVER'],
+    'BUS_DRIVER': ['BUS_DRIVER', 'DRIVER']
+};
+
+export const getEffectiveRoles = (roles: string[]): string[] => {
+    const effective = new Set<string>();
+    for (const role of roles) {
+        effective.add(role);
+        const aliases = ROLE_ALIASES[role];
+        if (aliases) {
+            aliases.forEach(alias => effective.add(alias));
+        }
+    }
+    return Array.from(effective);
+};
+
 /**
  * Middleware to enforce RBAC permissions using cached context.
  */
@@ -11,7 +35,8 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return res.status(401).json({ error: 'Unauthorized: No session context' });
         }
 
-        const { roles, permissions } = req.context.user;
+        const permissions = req.context.user.permissions;
+        const roles = getEffectiveRoles(req.context.user.roles);
         console.log(`[RBAC] User: ${req.context.user.email}, Required: ${requiredPermission}, Has: ${permissions.length} perms`);
         if (!permissions.includes(requiredPermission) && !roles.includes('ADMIN')) {
             console.log(`[RBAC] Permission Missing! User perms: ${JSON.stringify(permissions)}`);
@@ -84,7 +109,7 @@ export const checkRole = (allowedRoles: string[]) => {
             return res.status(401).json({ error: 'Unauthorized: No session context' });
         }
 
-        const userRoles = req.context.user.roles;
+        const userRoles = getEffectiveRoles(req.context.user.roles);
         const hasRole = userRoles.some(r => allowedRoles.includes(r));
 
         if (hasRole || userRoles.includes('ADMIN')) {
