@@ -152,9 +152,13 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
     if (!app) return <div className="p-8 text-center text-red-500">Application not found</div>;
 
     // Filter audit logs for non-staff
-    const publicActions = ['SUBMITTED', 'APPROVED', 'REJECTED', 'ENROLLED'];
+    const publicActions = [
+        'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'DOCS_VERIFIED', 
+        'PAYMENT_PENDING', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 
+        'PAYMENT_CORRECTION', 'RECOMMENDED', 'APPROVED', 'REJECTED', 'ENROLLED'
+    ];
     const filteredLogs = app.admission_audit_logs?.filter(log =>
-        isStaff || publicActions.includes(log.action)
+        isStaff || publicActions.includes(log.action.toUpperCase())
     ) || [];
 
     return (
@@ -277,19 +281,20 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                     )}
                 </div>
 
-                {/* Actions Sidebar - Staff Only */}
-                {isStaff && (
-                    <div className="w-full md:w-80 space-y-6">
-                        {/* Visual Application Timeline */}
-                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                            <h3 className="text-sm font-black text-gray-900 mb-4 flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-primary" />
-                                Processing Timeline
-                            </h3>
-                            <AdmissionTimeline steps={getAdmissionTimelineSteps(app.status, app.admission_audit_logs)} />
-                        </div>
+                {/* Actions Sidebar */}
+                <div className="w-full md:w-80 space-y-6">
+                    {/* Visual Application Timeline */}
+                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                        <h3 className="text-sm font-black text-gray-900 mb-4 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-primary" />
+                            Processing Timeline
+                        </h3>
+                        <AdmissionTimeline steps={getAdmissionTimelineSteps(app.status, app.admission_audit_logs)} />
+                    </div>
 
-                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    {isStaff && (
+                        <>
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <ShieldCheck className="w-5 h-5 text-indigo-600" />
                                 Take Action
@@ -448,8 +453,8 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                                 {isStaff ? "These remarks are visible to all staff members but restricted for parents based on action type." : ""}
                             </p>
                         </div>
-                    </div>
-                )}
+                    </>)}
+                </div>
             </div>
         </div>
     );
