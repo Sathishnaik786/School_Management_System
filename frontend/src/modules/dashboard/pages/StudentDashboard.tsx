@@ -26,7 +26,19 @@ const AnimatedNumber = ({ value }: { value: number }) => {
     return <span>{displayVal.toLocaleString()}</span>;
 };
 
+import { DashboardProvider } from '../core/DashboardProvider';
+import { useDashboard } from '../hooks/useDashboard';
+import { DashboardMapper } from '../utils/dashboard.mapper';
+
 export function StudentDashboard() {
+    return (
+        <DashboardProvider>
+            <StudentDashboardInner />
+        </DashboardProvider>
+    );
+}
+
+function StudentDashboardInner() {
     const { user } = useAuth();
     const [admissions, setAdmissions] = useState<any[]>([]);
 
@@ -44,40 +56,39 @@ export function StudentDashboard() {
         fetchAdmissions();
     }, []);
 
-    // Fetch student summary from the dashboard API
-    const { data: summary, isLoading } = useQuery({
-        queryKey: QUERY_KEYS.DASHBOARD.METRICS('student', new Date().toDateString()),
-        queryFn: async () => {
-            try {
-                const res = await apiClient.get('/dashboard/student-summary');
-                return res.data;
-            } catch {
-                return null; // Graceful fallback
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-    });
+    const { kpis: engineKPIs, notifications: engineNotifications, loading: dashboardLoading } = useDashboard();
 
-    if (isLoading) return (
+    const getKPIValue = (id: string, fallback: number) => {
+        const item = engineKPIs.find(k => k.id === id);
+        return item ? DashboardMapper.safeNumber(item.value) : fallback;
+    };
+
+    if (dashboardLoading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Loading Academic Portal...</p>
         </div>
     );
 
-    const attendancePercent = summary?.attendancePercent ?? 87;
-    const feeDue = summary?.feeDue ?? 12500;
-    const upcomingExams = summary?.upcomingExams ?? 3;
-    const pendingAssignments = summary?.pendingAssignments ?? 2;
+    const attendancePercent = getKPIValue('student.kpi.attendance', 87);
+    const feeDue = getKPIValue('student.kpi.fees_due', 12500);
+    const upcomingExams = getKPIValue('student.kpi.exams', 3);
+    const pendingAssignments = getKPIValue('student.kpi.tasks', 2);
 
-    const todaySchedule = summary?.todaySchedule ?? [
+    const todaySchedule = [
         { time: '9:00 AM', subject: 'Mathematics', teacher: 'Mr. Ramesh', room: 'Room 101', status: 'done' as const },
         { time: '10:00 AM', subject: 'Physics', teacher: 'Mrs. Lakshmi', room: 'Lab 3', status: 'ongoing' as const },
         { time: '11:00 AM', subject: 'English Literature', teacher: 'Ms. Priya', room: 'Room 204', status: 'upcoming' as const },
         { time: '12:00 PM', subject: 'Chemistry', teacher: 'Mr. Venkat', room: 'Lab 1', status: 'upcoming' as const },
     ];
 
-    const announcements = summary?.announcements ?? [
+    const announcements = engineNotifications && engineNotifications.length > 0 ? engineNotifications.map(n => ({
+        id: n.id,
+        title: n.title,
+        body: n.message,
+        time: n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : 'Just now',
+        priority: n.type === 'error' ? 'high' : n.type === 'warning' ? 'medium' : 'low'
+    })) : [
         { id: '1', title: 'Annual Day Practice', body: 'All students must report to auditorium by 3 PM today.', time: '2h ago', priority: 'high' },
         { id: '2', title: 'Library Book Return', body: 'Books issued in April must be returned by this Friday.', time: '1d ago', priority: 'medium' },
         { id: '3', title: 'Sports Day Registration', body: 'Register for track and field events before June 30.', time: '2d ago', priority: 'low' },

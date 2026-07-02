@@ -60,7 +60,19 @@ const AnimatedNumber = ({ value }: { value: number }) => {
     return <span>{displayVal.toLocaleString()}</span>;
 };
 
+import { DashboardProvider } from '../core/DashboardProvider';
+import { useDashboard } from '../hooks/useDashboard';
+import { DashboardMapper } from '../utils/dashboard.mapper';
+
 export const AdminDashboard = () => {
+    return (
+        <DashboardProvider>
+            <AdminDashboardInner />
+        </DashboardProvider>
+    );
+};
+
+const AdminDashboardInner = () => {
     const { user, hasRole } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -89,6 +101,13 @@ export const AdminDashboard = () => {
     }, []);
 
     const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
+
+    const { kpis, charts, loading: dashboardLoading, error: dashboardError } = useDashboard();
+
+    const getKPIValue = (id: string, fallback: number) => {
+        const item = kpis.find((k: any) => k.id === id);
+        return item ? DashboardMapper.safeNumber(item.value) : fallback;
+    };
 
     // Greeting Message based on local time
     const getGreeting = () => {
@@ -123,10 +142,10 @@ export const AdminDashboard = () => {
     ];
 
     const cards = [
-        { label: 'Total Students', value: stats?.students || 0, icon: Users, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', trend: '+12% this term', sparkColor: '#3B82F6' },
-        { label: 'Pending Admissions', value: stats?.pendingAdmissions || 0, icon: ClipboardList, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', trend: '14 actions required', link: '/app/admissions/review', sparkColor: '#F59E0B' },
-        { label: 'Exams Scheduled', value: stats?.exams || 0, icon: BookOpen, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', trend: 'Next scheduled in 4d', sparkColor: '#8B5CF6' },
-        { label: 'Outstanding Fees', value: stats?.feeCollection ? parseInt(stats.feeCollection) : 230000, icon: Coins, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', trend: '96% collection rate', format: '₹', sparkColor: '#10B981' },
+        { label: 'Total Students', value: getKPIValue('admin.kpi.students', stats?.students || 0), icon: Users, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', trend: '+12% this term', sparkColor: '#3B82F6' },
+        { label: 'Pending Admissions', value: getKPIValue('admin.kpi.admissions', stats?.pendingAdmissions || 0), icon: ClipboardList, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', trend: '14 actions required', link: '/app/admissions/review', sparkColor: '#F59E0B' },
+        { label: 'Exams Scheduled', value: getKPIValue('admin.kpi.exams', stats?.exams || 0), icon: BookOpen, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', trend: 'Next scheduled in 4d', sparkColor: '#8B5CF6' },
+        { label: 'Outstanding Fees', value: getKPIValue('admin.kpi.outstanding_fees', stats?.feeCollection ? parseInt(stats.feeCollection) : 230000), icon: Coins, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', trend: '96% collection rate', format: '₹', sparkColor: '#10B981' },
     ];
 
     const quickActions = [
@@ -146,15 +165,16 @@ export const AdminDashboard = () => {
         { label: 'System Settings', icon: Settings, link: '/app/settings', desc: 'Global configuration' },
     ];
 
-    // Mock Chart Data for beautiful representations
-    const admissionsFunnelData = [
+    const funnelChart = charts.find((c: any) => c.id === 'admin.chart.funnel');
+    const admissionsFunnelData = funnelChart?.data || [
         { name: 'Submitted', value: stats?.totalApplications || 150 },
         { name: 'Reviewed', value: Math.round((stats?.totalApplications || 150) * 0.8) },
         { name: 'Invited', value: Math.round((stats?.totalApplications || 150) * 0.6) },
         { name: 'Enrolled', value: Math.round((stats?.totalApplications || 150) * 0.45) },
     ];
 
-    const revenueTrendData = [
+    const revenueChart = charts.find((c: any) => c.id === 'admin.chart.revenue');
+    const revenueTrendData = revenueChart?.data || [
         { month: 'Jan', collected: 120000, target: 150000 },
         { month: 'Feb', collected: 145000, target: 150000 },
         { month: 'Mar', collected: 180000, target: 160000 },
@@ -163,7 +183,13 @@ export const AdminDashboard = () => {
         { month: 'Jun', collected: 245000, target: 220000 }
     ];
 
-    const classDistributionData = [
+    const classesChart = charts.find((c: any) => c.id === 'admin.chart.classes');
+    const classColors = ['#3B82F6', '#8B5CF6', '#10B981'];
+    const classDistributionData = classesChart?.data.map((d: any, i: number) => ({
+        name: d.name,
+        value: d.value,
+        color: classColors[i % classColors.length]
+    })) || [
         { name: 'Primary (Grade 1-5)', value: 240, color: '#3B82F6' },
         { name: 'Middle (Grade 6-8)', value: 160, color: '#8B5CF6' },
         { name: 'Secondary (Grade 9-10)', value: 100, color: '#10B981' }
@@ -336,7 +362,7 @@ export const AdminDashboard = () => {
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie data={classDistributionData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={3} dataKey="value">
-                                        {classDistributionData.map((entry, index) => (
+                                        {classDistributionData.map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
                                         ))}
                                     </Pie>
@@ -345,7 +371,7 @@ export const AdminDashboard = () => {
                             </ResponsiveContainer>
                         </div>
                         <div className="space-y-2 mt-4">
-                            {classDistributionData.map((d, i) => (
+                            {classDistributionData.map((d: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-xs">
                                     <div className="flex items-center gap-2">
                                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }}></span>

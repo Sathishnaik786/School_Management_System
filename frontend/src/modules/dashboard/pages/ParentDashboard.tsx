@@ -70,7 +70,21 @@ const AnimatedNumber = ({ value }: { value: number }) => {
     return <span>{displayVal.toLocaleString()}</span>;
 };
 
+import { DashboardProvider } from '../core/DashboardProvider';
+import { useDashboard } from '../hooks/useDashboard';
+
+import { ParentDashboardService } from '../services/ParentDashboardService';
+import { DashboardMapper } from '../utils/dashboard.mapper';
+
 export const ParentDashboard = () => {
+    return (
+        <DashboardProvider>
+            <ParentDashboardInner />
+        </DashboardProvider>
+    );
+};
+
+const ParentDashboardInner = () => {
     const [children, setChildren] = useState<any[]>([]);
     const [admissions, setAdmissions] = useState<any[]>([]);
     const [feeData, setFeeData] = useState<any[]>([]);
@@ -79,13 +93,13 @@ export const ParentDashboard = () => {
     useEffect(() => {
         const load = async () => {
             try {
-                const [childRes, feeRes] = await Promise.all([
-                    apiClient.get('/dashboard/parent/overview'),
-                    apiClient.get('/fees/my')
+                const [childData, feeDataRes] = await Promise.all([
+                    ParentDashboardService.getOverview(),
+                    ParentDashboardService.getMyFees()
                 ]);
-                setChildren(childRes.data.children || []);
-                setAdmissions(childRes.data.admissions || []);
-                setFeeData(feeRes.data || []);
+                setChildren(childData.children || []);
+                setAdmissions(childData.admissions || []);
+                setFeeData(feeDataRes || []);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -128,6 +142,13 @@ export const ParentDashboard = () => {
         return 'DUE';
     };
 
+    const { kpis: engineKPIs } = useDashboard();
+
+    const getKPIValue = (id: string, fallback: number) => {
+        const item = engineKPIs.find((k: any) => k.id === id);
+        return item ? DashboardMapper.safeNumber(item.value) : fallback;
+    };
+
     const trackerContext = useMemo(() => {
         const activeApps = (admissions || []).filter(a => getTrackerState(a) !== 'HIDDEN');
         const hasDue = activeApps.some(a => getTrackerState(a) === 'DUE');
@@ -150,7 +171,8 @@ export const ParentDashboard = () => {
     const totalAdmissionFeesPending = admissions
         .filter(a => a.payment_enabled && a.status === 'payment_pending')
         .reduce((sum, a) => sum + Number(a.payment_amount || 0), 0);
-    const totalDue = feeData.reduce((sum, f) => sum + (f.summary?.balance || 0), 0) + totalAdmissionFeesPending;
+    const calculatedDue = feeData.reduce((sum, f) => sum + (f.summary?.balance || 0), 0) + totalAdmissionFeesPending;
+    const totalDue = getKPIValue('student.kpi.fees_due', calculatedDue);
 
     // Dynamically calculate the active admissions status tag
     const activeAdmissionsCount = admissions.filter(a => a.status !== 'enrolled' && a.status !== 'rejected').length;

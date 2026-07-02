@@ -32,7 +32,19 @@ const AnimatedNumber = ({ value }: { value: number }) => {
     return <span>{displayVal.toLocaleString()}</span>;
 };
 
+import { DashboardProvider } from '../core/DashboardProvider';
+import { useDashboard } from '../hooks/useDashboard';
+import { DashboardMapper } from '../utils/dashboard.mapper';
+
 export const FacultyDashboard = () => {
+    return (
+        <DashboardProvider>
+            <FacultyDashboardInner />
+        </DashboardProvider>
+    );
+};
+
+const FacultyDashboardInner = () => {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -43,6 +55,13 @@ export const FacultyDashboard = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    const { kpis: engineKPIs } = useDashboard();
+
+    const getKPIValue = (id: string, fallback: number) => {
+        const item = engineKPIs.find(k => k.id === id);
+        return item ? DashboardMapper.safeNumber(item.value) : fallback;
+    };
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -51,9 +70,9 @@ export const FacultyDashboard = () => {
     );
 
     const kpis = [
-        { label: 'Classes Today', value: stats?.classes_today || 0, icon: Clock, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
-        { label: 'My Sections', value: stats?.sections_count || 0, icon: Users, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-        { label: 'Pending Works', value: stats?.pending_assignments || 0, icon: BookOpen, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
+        { label: 'Classes Today', value: getKPIValue('faculty.kpi.classes_today', stats?.classes_today || 0), icon: Clock, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
+        { label: 'My Sections', value: getKPIValue('faculty.kpi.my_sections', stats?.sections_count || 0), icon: Users, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
+        { label: 'Pending Works', value: getKPIValue('faculty.kpi.pending_works', stats?.pending_assignments || 0), icon: BookOpen, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
         { label: 'Avg Attendance', value: 98, icon: UserCheck, color: 'text-rose-500 bg-rose-500/10 border-rose-500/20', format: '%' },
     ];
 

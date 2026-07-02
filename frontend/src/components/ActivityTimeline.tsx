@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { apiClient } from '../lib/api-client';
+import React from 'react';
 import {
     FileText,
     UserCheck,
@@ -19,16 +18,39 @@ const ICON_MAP: Record<string, any> = {
     MessageSquare
 };
 
-export const ActivityTimeline = () => {
-    const [events, setEvents] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+import { useDashboard } from '../modules/dashboard/hooks/useDashboard';
 
-    useEffect(() => {
-        apiClient.get('/dashboard/timeline')
-            .then(res => setEvents(res.data))
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
-    }, []);
+export const ActivityTimeline = () => {
+    const { activities, loading } = useDashboard();
+
+    const events = activities.map(act => {
+        let color = 'indigo';
+        let icon = 'Clock';
+        
+        const titleL = act.title.toLowerCase();
+        if (titleL.includes('admission') || titleL.includes('applied') || titleL.includes('enrol')) {
+            color = 'emerald';
+            icon = 'UserCheck';
+        } else if (titleL.includes('pay') || titleL.includes('fee') || titleL.includes('ledger')) {
+            color = 'amber';
+            icon = 'CreditCard';
+        } else if (titleL.includes('exam') || titleL.includes('grade') || titleL.includes('score')) {
+            color = 'indigo';
+            icon = 'BookOpen';
+        } else if (titleL.includes('message') || titleL.includes('notice') || titleL.includes('announc')) {
+            color = 'rose';
+            icon = 'MessageSquare';
+        }
+        
+        return {
+            id: act.id,
+            title: act.title,
+            description: act.description,
+            time: act.timestamp,
+            icon,
+            color
+        };
+    });
 
     if (loading) return (
         <div className="space-y-4">

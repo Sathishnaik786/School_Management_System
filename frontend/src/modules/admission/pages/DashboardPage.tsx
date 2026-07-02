@@ -10,6 +10,8 @@ import {
 import { motion } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+import { DashboardMapper } from '../../dashboard/utils/dashboard.mapper';
+
 function MetricCard({ title, value, sub, icon: Icon, color }: any) {
     return (
         <motion.div
@@ -28,7 +30,18 @@ function MetricCard({ title, value, sub, icon: Icon, color }: any) {
     );
 }
 
+import { DashboardProvider } from '../../dashboard/core/DashboardProvider';
+import { useDashboard } from '../../dashboard/hooks/useDashboard';
+
 export function DashboardPage() {
+    return (
+        <DashboardProvider>
+            <DashboardPageInner />
+        </DashboardProvider>
+    );
+}
+
+function DashboardPageInner() {
     const { user } = useAuth();
     const roles = user?.roles || [];
 
@@ -40,6 +53,13 @@ export function DashboardPage() {
     const isPrincipal = roles.some(r => ['PRINCIPAL', 'HOI', 'HEAD_OF_INSTITUTE'].includes(r.toUpperCase()));
     const isFinance = roles.some(r => ['FINANCE_OFFICER', 'ACCOUNTANT'].includes(r.toUpperCase()));
     const isParent = roles.some(r => r.toUpperCase() === 'PARENT');
+
+    const { kpis: engineKPIs, tasks: engineTasks } = useDashboard();
+
+    const getKPIValue = (id: string, fallback: number | string) => {
+        const item = engineKPIs.find(k => k.id === id);
+        return item ? item.value : fallback;
+    };
 
     const { data: stats } = useQuery({
         queryKey: ['admissions', 'stats-summary'],
@@ -104,9 +124,9 @@ export function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <MetricCard title="Walk-ins Today" value="12" sub="Logged visitors" icon={Users} color="text-blue-600 bg-blue-50" />
-                    <MetricCard title="New Inquiries" value="8" sub="Added to CRM flow" icon={FilePlus} color="text-purple-600 bg-purple-50" />
-                    <MetricCard title="Appointments Scheduled" value="5" sub="Counselor slots booked" icon={Calendar} color="text-amber-600 bg-amber-50" />
+                    <MetricCard title="Walk-ins Today" value={getKPIValue('reception.kpi.walkins', 12)} sub="Logged visitors" icon={Users} color="text-blue-600 bg-blue-50" />
+                    <MetricCard title="New Inquiries" value={8} sub="Added to CRM flow" icon={FilePlus} color="text-purple-600 bg-purple-50" />
+                    <MetricCard title="Appointments Scheduled" value={5} sub="Counselor slots booked" icon={Calendar} color="text-amber-600 bg-amber-50" />
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -159,16 +179,20 @@ export function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <MetricCard title="Assigned Leads" value="28" sub="Assigned to your queue" icon={Users} color="text-blue-600 bg-blue-50" />
                     <MetricCard title="Pending Follow-ups" value="6" sub="Due calls today" icon={PhoneCall} color="text-amber-600 bg-amber-50" />
-                    <MetricCard title="Conversion Rate" value="48%" sub="Inquiry to Application" icon={TrendingUp} color="text-emerald-600 bg-emerald-50" />
+                    <MetricCard title="Conversion Rate" value={getKPIValue('principal.kpi.conversions', '48%')} sub="Inquiry to Application" icon={TrendingUp} color="text-emerald-600 bg-emerald-50" />
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <h2 className="text-sm font-black text-gray-900 mb-4">Assigned Leads Queue</h2>
                     <div className="space-y-3">
-                        {[
+                        {(engineTasks && engineTasks.length > 0 ? engineTasks.map((t: any) => ({
+                            name: t.title,
+                            grade: t.description || 'Grade General',
+                            details: t.status
+                        })) : [
                             { name: 'Amit Verma', grade: 'Grade 5', details: 'Waiting for follow-up callback' },
                             { name: 'Sunita Patel', grade: 'Grade 8', details: 'Requested syllabus info' }
-                        ].map((lead, i) => (
+                        ]).map((lead: any, i: number) => (
                             <div key={i} className="p-4 rounded-xl border border-solid border-gray-100 flex items-center justify-between text-xs">
                                 <div>
                                     <p className="font-bold text-gray-900">{lead.name} ({lead.grade})</p>
@@ -197,18 +221,22 @@ export function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <MetricCard title="Pending Reviews" value="18" sub="Awaiting verification" icon={FileText} color="text-blue-600 bg-blue-50" />
+                    <MetricCard title="Pending Reviews" value={getKPIValue('admissions.kpi.pending', 18)} sub="Awaiting verification" icon={FileText} color="text-blue-600 bg-blue-50" />
                     <MetricCard title="Docs Incomplete" value="4" sub="Required re-uploads" icon={ShieldAlert} color="text-rose-600 bg-rose-50" />
-                    <MetricCard title="Ready to Enroll" value="7" sub="Fee verified" icon={CheckCircle} color="text-emerald-600 bg-emerald-50" />
+                    <MetricCard title="Ready to Enroll" value={getKPIValue('admissions.kpi.verified', 7)} sub="Fee verified" icon={CheckCircle} color="text-emerald-600 bg-emerald-50" />
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <h2 className="text-sm font-black text-gray-900 mb-4">Pending Enrollment Pipeline</h2>
                     <div className="space-y-3">
-                        {[
+                        {(engineTasks && engineTasks.length > 0 ? engineTasks.map((t: any) => ({
+                            name: t.title,
+                            ref: t.id,
+                            status: t.status
+                        })) : [
                             { name: 'Rohan Sharma', ref: 'APP-9021', status: 'Payment Verified' },
                             { name: 'Kavya Singh', ref: 'APP-9022', status: 'Payment Verified' }
-                        ].map((app, i) => (
+                        ]).map((app: any, i: number) => (
                             <div key={i} className="p-4 rounded-xl border border-solid border-gray-100 flex items-center justify-between text-xs">
                                 <div>
                                     <p className="font-bold text-gray-900">{app.name} ({app.ref})</p>
@@ -285,9 +313,9 @@ export function DashboardPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <MetricCard title="Merit Approvals" value="2 Lists" sub="Awaiting validation" icon={Award} color="text-rose-600 bg-rose-50" />
-                    <MetricCard title="Offers Pending" value="15" sub="Ready to dispatch" icon={FileText} color="text-blue-600 bg-blue-50" />
-                    <MetricCard title="Funnel Conversion" value="62%" sub="Inquiry to Admission" icon={TrendingUp} color="text-emerald-600 bg-emerald-50" />
-                    <MetricCard title="Total Admissions" value="42" sub="Academic year total" icon={CheckCircle} color="text-indigo-600 bg-indigo-50" />
+                    <MetricCard title="Offers Pending" value={getKPIValue('admissions.kpi.verified', 15)} sub="Ready to dispatch" icon={FileText} color="text-blue-600 bg-blue-50" />
+                    <MetricCard title="Funnel Conversion" value={getKPIValue('principal.kpi.conversions', '62%')} sub="Inquiry to Admission" icon={TrendingUp} color="text-emerald-600 bg-emerald-50" />
+                    <MetricCard title="Total Admissions" value={getKPIValue('admissions.kpi.enrolled', 42)} sub="Academic year total" icon={CheckCircle} color="text-indigo-600 bg-indigo-50" />
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -329,9 +357,9 @@ export function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <MetricCard title="Payments Pending" value="8 Transactions" sub="Awaiting verification" icon={Clock} color="text-rose-600 bg-rose-50" />
-                    <MetricCard title="Reconciled Today" value="₹1,80,000" sub="Verified collections" icon={CheckCircle} color="text-emerald-600 bg-emerald-50" />
-                    <MetricCard title="Outstanding Fees" value="₹2,10,000" sub="Unpaid draft offers" icon={DollarSign} color="text-amber-600 bg-amber-50" />
+                    <MetricCard title="Payments Pending" value={getKPIValue('finance.kpi.ledger', 8) + " Transactions"} sub="Awaiting verification" icon={Clock} color="text-rose-600 bg-rose-50" />
+                    <MetricCard title="Reconciled Today" value={DashboardMapper.formatRupee(Number(getKPIValue('finance.kpi.collected', 180000)))} sub="Verified collections" icon={CheckCircle} color="text-emerald-600 bg-emerald-50" />
+                    <MetricCard title="Outstanding Fees" value={DashboardMapper.formatRupee(Number(getKPIValue('finance.kpi.pending', 210000)))} sub="Unpaid draft offers" icon={DollarSign} color="text-amber-600 bg-amber-50" />
                     <MetricCard title="Scholarships" value="4 Candidates" sub="Approved allocations" icon={Award} color="text-indigo-600 bg-indigo-50" />
                 </div>
 
@@ -349,28 +377,27 @@ export function DashboardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr className="border-b border-gray-50 text-gray-700">
-                                    <td className="py-3 font-bold">Dev Sharma</td>
-                                    <td className="py-3">NEFT Transfer</td>
-                                    <td className="py-3">₹45,000</td>
-                                    <td className="py-3">TXN-90210</td>
-                                    <td className="py-3 text-right">
-                                        <button className="px-3.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 transition-colors">
-                                            Verify Payment
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr className="text-gray-700">
-                                    <td className="py-3 font-bold">Gauri Gupta</td>
-                                    <td className="py-3">Credit Card</td>
-                                    <td className="py-3">₹45,000</td>
-                                    <td className="py-3">TXN-88290</td>
-                                    <td className="py-3 text-right">
-                                        <button className="px-3.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 transition-colors">
-                                            Verify Payment
-                                        </button>
-                                    </td>
-                                </tr>
+                                {(engineTasks && engineTasks.length > 0 ? engineTasks.map((t: any) => ({
+                                    name: t.title,
+                                    mode: t.description || 'NEFT Transfer',
+                                    amount: '₹45,000',
+                                    txnId: t.id
+                                })) : [
+                                    { name: 'Dev Sharma', mode: 'NEFT Transfer', amount: '₹45,000', txnId: 'TXN-90210' },
+                                    { name: 'Gauri Gupta', mode: 'Credit Card', amount: '₹45,000', txnId: 'TXN-88290' }
+                                ]).map((row: any, i: number) => (
+                                    <tr key={i} className="border-b border-gray-50 last:border-0 text-gray-700">
+                                        <td className="py-3 font-bold">{row.name}</td>
+                                        <td className="py-3">{row.mode}</td>
+                                        <td className="py-3">{row.amount}</td>
+                                        <td className="py-3">{row.txnId}</td>
+                                        <td className="py-3 text-right">
+                                            <button className="px-3.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 transition-colors">
+                                                Verify Payment
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
@@ -383,22 +410,22 @@ export function DashboardPage() {
     // FALLBACK DEFAULT ADMISSIONSFunnel (ADMIN overview)
     // ----------------------------------------------------
     const kpis = [
-        { title: 'Total Inquiries', value: '142', sub: 'CRM Inbound leads', icon: Users, color: 'bg-blue-100 text-blue-600' },
-        { title: 'Total Applications', value: stats?.total || '86', sub: 'Parent submissions', icon: FileText, color: 'bg-purple-100 text-purple-600' },
-        { title: 'Conversion Rate', value: '62%', sub: 'Inquiry to Application', icon: TrendingUp, color: 'bg-green-100 text-green-600' },
-        { title: 'Fees Collected', value: '₹4,52,000', sub: 'Admission fees received', icon: DollarSign, color: 'bg-amber-100 text-amber-600' },
+        { title: 'Total Inquiries', value: getKPIValue('reception.kpi.walkins', '142'), sub: 'CRM Inbound leads', icon: Users, color: 'bg-blue-100 text-blue-600' },
+        { title: 'Total Applications', value: getKPIValue('admissions.kpi.total', stats?.total || '86'), sub: 'Parent submissions', icon: FileText, color: 'bg-purple-100 text-purple-600' },
+        { title: 'Conversion Rate', value: getKPIValue('principal.kpi.conversions', '62%'), sub: 'Inquiry to Application', icon: TrendingUp, color: 'bg-green-100 text-green-600' },
+        { title: 'Fees Collected', value: DashboardMapper.formatRupee(Number(getKPIValue('finance.kpi.collected', 452000))), sub: 'Admission fees received', icon: DollarSign, color: 'bg-amber-100 text-amber-600' },
     ];
 
     const chartData = [
-        { name: 'Inquiry', count: 142 },
-        { name: 'Application', count: 86 },
-        { name: 'Doc Verified', count: 72 },
+        { name: 'Inquiry', count: Number(getKPIValue('reception.kpi.walkins', 142)) },
+        { name: 'Application', count: Number(getKPIValue('admissions.kpi.total', stats?.total || 86)) },
+        { name: 'Doc Verified', count: Number(getKPIValue('admissions.kpi.verified', 72)) },
         { name: 'Exam', count: 65 },
         { name: 'Interview', count: 58 },
         { name: 'Merit', count: 45 },
         { name: 'Offer', count: 40 },
         { name: 'Payment', count: 36 },
-        { name: 'Enrolled', count: 32 },
+        { name: 'Enrolled', count: Number(getKPIValue('admissions.kpi.enrolled', 32)) },
     ];
 
     const quickActions = [
