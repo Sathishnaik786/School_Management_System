@@ -1,7 +1,7 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { admissionApi } from '../admission.api';
+import { useAdmission } from '../hooks/useAdmission';
 import { useAuth } from '../../../context/AuthContext';
+import { AdmissionPermissions } from '../core/AdmissionPermissions';
 import {
     Users, FileText, CheckSquare, Award, DollarSign, ArrowRight,
     TrendingUp, FilePlus, UserPlus, Calendar, CreditCard, ShieldAlert,
@@ -42,17 +42,17 @@ export function DashboardPage() {
 }
 
 function DashboardPageInner() {
-    const { user } = useAuth();
+    const { user, hasPermission, hasRole } = useAuth();
     const roles = user?.roles || [];
+    const permCtx = { roles, hasPermission, hasRole };
 
-    // Consolidated role flags
-    const isReceptionist = roles.some(r => ['RECEPTIONIST', 'FRONT_DESK'].includes(r.toUpperCase()));
-    const isCounselor = roles.some(r => ['COUNSELOR', 'COUNSELLOR'].includes(r.toUpperCase()));
-    const isAdmissionOfficer = roles.some(r => r.toUpperCase() === 'ADMISSION_OFFICER');
-    const isExamCell = roles.some(r => ['EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r.toUpperCase()));
-    const isPrincipal = roles.some(r => ['PRINCIPAL', 'HOI', 'HEAD_OF_INSTITUTE'].includes(r.toUpperCase()));
-    const isFinance = roles.some(r => ['FINANCE_OFFICER', 'ACCOUNTANT'].includes(r.toUpperCase()));
-    const isParent = roles.some(r => r.toUpperCase() === 'PARENT');
+    const isReceptionist = AdmissionPermissions.isReceptionist(permCtx);
+    const isCounselor = AdmissionPermissions.isCounselor(permCtx);
+    const isAdmissionOfficer = AdmissionPermissions.isAdmissionOfficer(permCtx);
+    const isExamCell = AdmissionPermissions.isExamCell(permCtx);
+    const isPrincipal = AdmissionPermissions.isPrincipal(permCtx);
+    const isFinance = AdmissionPermissions.isFinance(permCtx);
+    const isParent = AdmissionPermissions.isParent(permCtx);
 
     const { kpis: engineKPIs, tasks: engineTasks } = useDashboard();
 
@@ -61,10 +61,7 @@ function DashboardPageInner() {
         return item ? item.value : fallback;
     };
 
-    const { data: stats } = useQuery({
-        queryKey: ['admissions', 'stats-summary'],
-        queryFn: () => admissionApi.getStats().then(res => res.data).catch(() => null),
-    });
+    const { stats } = useAdmission();
 
     // ----------------------------------------------------
     // 1. PARENT WORKSPACE

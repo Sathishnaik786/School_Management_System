@@ -41,6 +41,7 @@ import {
     SlidersHorizontal,
     MessageSquare,
     CheckSquare,
+    Sparkles,
     Palette,
     Moon,
     Sun,
@@ -55,6 +56,7 @@ import { useNotificationStore } from '../store/notification.store';
 import { Breadcrumb } from '../components/navigation/Breadcrumb';
 import { useNavigationStore } from '../store/navigation.store';
 import { ROUTE_LABEL_MAP } from '../lib/breadcrumb';
+import { useWorkspaceOptional } from '../modules/common/workspace/WorkspaceContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
 
@@ -82,6 +84,7 @@ export const DashboardLayout = () => {
 
     // Command palette, notification store, navigation visits
     const { isOpen: isPaletteOpen, open: openPalette, close: closePalette } = useCommandPalette();
+    const workspace = useWorkspaceOptional();
     const { unreadCount, togglePanel: toggleNotifications } = useNotificationStore();
     const { trackVisit, recentlyVisited } = useNavigationStore();
 
@@ -749,7 +752,7 @@ export const DashboardLayout = () => {
                             <div className="flex items-center gap-2 sm:gap-4">
                                 {/* Global search trigger (⌘K) */}
                                 <button
-                                    onClick={openPalette}
+                                    onClick={() => workspace?.setSearchOpen(true) ?? openPalette()}
                                     className="bg-gray-50 dark:bg-muted/10 rounded-2xl px-4 py-2 hidden md:flex items-center gap-3 w-48 lg:w-56 ring-1 ring-border/40 hover:ring-primary/30 hover:bg-white dark:hover:bg-background transition-all group shrink-0"
                                 >
                                     <Search className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
@@ -760,10 +763,18 @@ export const DashboardLayout = () => {
                                 </button>
                                 
                                 <button
-                                    onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                    onClick={() => workspace?.setSearchOpen(true)}
                                     className="md:hidden p-2 text-muted-foreground hover:bg-muted/50 border border-border/40 rounded-xl"
                                 >
                                     <Search className="w-4.5 h-4.5" />
+                                </button>
+
+                                <button
+                                    onClick={() => workspace?.setProductivityOpen(true)}
+                                    className="hidden md:flex p-2 text-muted-foreground hover:bg-muted/50 border border-border/40 rounded-xl hover:text-primary transition-colors"
+                                    title="Productivity Hub"
+                                >
+                                    <Sparkles className="w-4.5 h-4.5" />
                                 </button>
 
                                 {/* Theme Mode Switcher Popover */}

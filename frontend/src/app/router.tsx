@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { WorkspaceShell } from '../modules/common/workspace/WorkspaceShell';
 import LoginPage from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import UnauthorizedPage from '../pages/Unauthorized';
@@ -45,6 +46,7 @@ import { SubjectManagement } from '../modules/exam/pages/SubjectManagement';
 import { ExamManagement } from '../modules/exam/pages/ExamManagement';
 import { AcademicYearManagement } from '../modules/academic/pages/AcademicYearManagement';
 import { BulkOperations } from '../modules/admin/pages/BulkOperations';
+import { ExecutiveOverview } from '../modules/common/executive/ExecutiveOverview';
 
 import { MarksEntry } from '../modules/exam/pages/MarksEntry';
 import { StudentResults } from '../modules/exam/pages/StudentResults';
@@ -140,6 +142,7 @@ import { StudentDashboard } from '../modules/dashboard/pages/StudentDashboard';
 import { DashboardPage as AdmissionDashboardPage } from '../modules/admission/pages/DashboardPage';
 import { AnalyticsPage as AdmissionAnalyticsPage } from '../modules/admission/pages/AnalyticsPage';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
+import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { ApplicationListPage } from '../modules/admission/pages/ApplicationListPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/DocumentVerificationPage';
@@ -163,6 +166,7 @@ import ReportsPage from '../modules/admission/pages/Reports';
 export const AppRouter = () => {
     return (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <WorkspaceShell>
             <Routes>
                 {/* Public Site Routes */}
                 <Route element={<PublicLayout />}>
@@ -202,6 +206,11 @@ export const AppRouter = () => {
                                 <AdminDashboard />
                             </PermissionGuard>
                         } />
+                        <Route path="executive" element={
+                            <PermissionGuard permission="DASHBOARD_VIEW_ADMIN">
+                                <ExecutiveOverview />
+                            </PermissionGuard>
+                        } />
                         <Route path="exam-admin/dashboard" element={
                             <PermissionGuard permission="EXAM_VIEW">
                                 <ExamDashboard />
@@ -220,19 +229,19 @@ export const AppRouter = () => {
                             </PermissionGuard>
                         } />
                         <Route path="admissions/inquiries" element={
-                            <PermissionGuard permission="admission.review">
+                            <AdmissionInquiryGuard>
                                 <InquiryListPage />
-                            </PermissionGuard>
+                            </AdmissionInquiryGuard>
                         } />
                         <Route path="admissions/enquiry" element={
-                            <PermissionGuard permission="admission.review">
+                            <AdmissionInquiryGuard>
                                 <InquiryListPage />
-                            </PermissionGuard>
+                            </AdmissionInquiryGuard>
                         } />
                         <Route path="admissions/assign" element={
-                            <PermissionGuard permission="admission.review">
+                            <AdmissionInquiryGuard>
                                 <InquiryListPage />
-                            </PermissionGuard>
+                            </AdmissionInquiryGuard>
                         } />
                         <Route path="admissions/new" element={
                             <PermissionGuard permission="admission.create">
@@ -845,6 +854,7 @@ export const AppRouter = () => {
                 <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
                 <Route path="*" element={<Home />} />
             </Routes>
+            </WorkspaceShell>
         </BrowserRouter>
     );
 };

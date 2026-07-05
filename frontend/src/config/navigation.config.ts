@@ -37,7 +37,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
             {
                 title: 'Inquiry CRM',
                 path: '/app/admissions/inquiries',
-                permission: 'admission.review',
+                permission: PERMISSIONS.ADMISSION.ENQUIRY_VIEW,
                 icon: 'PhoneCall',
             },
             {

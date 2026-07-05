@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { admissionApi } from '../admission.api';
 import { Admission, AdmissionDocument, AdmissionAuditLog } from '../admission.types';
+import { useApplication, useWorkflow, type WorkflowActionType } from '../hooks/useAdmission';
 import { useAuth } from '../../../context/AuthContext';
 import {
     CheckCircle2,
@@ -57,53 +57,30 @@ export const AdmissionReviewPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { hasPermission, hasRole } = useAuth();
-    const [app, setApp] = useState<Admission | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { application: app, isLoading: loading, refetch: fetchDetails } = useApplication(id);
+    const { executeAction, isSubmitting: submitting } = useWorkflow(id);
     const [remarks, setRemarks] = useState('');
-    const [submitting, setSubmitting] = useState(false);
     const [showConfirm, setShowConfirm] = useState<{ type: string; action: () => void } | null>(null);
-
-    useEffect(() => {
-        if (id) fetchDetails();
-    }, [id]);
-
-    const fetchDetails = async () => {
-        try {
-            const { data } = await admissionApi.getById(id!);
-            setApp(data);
-        } catch (error) {
-            console.error('Failed to fetch details', error);
-            toast.error('Could not load application details');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleAction = async (action: string, data?: any) => {
         if (action === 'fetch') {
             fetchDetails();
             return;
         }
-        setSubmitting(true);
         try {
-            switch (action) {
-                case 'review': await admissionApi.review(id!, remarks); break;
-                case 'verify': await admissionApi.verifyDocs(id!, remarks); break;
-                case 'billing': await admissionApi.billing(id!, data.fee_ids); break; // Added just in case
-                case 'initiate_payment': await admissionApi.initiatePayment(id!, data.amount); break;
-                case 'verify_fee': await admissionApi.verifyFee(id!, data.status, remarks); break;
-                case 'recommend': await admissionApi.recommend(id!, remarks); break;
-                case 'approve': await admissionApi.approve(id!, remarks); break;
-                case 'enrol': await admissionApi.enrol(id!); break;
-                case 'reject': await admissionApi.reject(id!, remarks); break;
-            }
+            await executeAction(action as WorkflowActionType, {
+                remark: remarks,
+                ...data,
+                status: data?.status,
+                fee_ids: data?.fee_ids,
+                amount: data?.amount,
+            });
             toast.success(`Action ${action.replace('_', ' ')} successful`);
             setRemarks('');
             fetchDetails();
         } catch (error: any) {
             toast.error(error.response?.data?.error || 'Action failed');
         } finally {
-            setSubmitting(false);
             setShowConfirm(null);
         }
     };
