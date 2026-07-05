@@ -34,4 +34,11 @@ export class StudentMasterProvisioner {
 
         return studentId;
     }
+
+    public async rollback(studentId: string): Promise<void> {
+        const { error } = await supabase.from('students').delete().eq('id', studentId);
+        if (error && !error.message.includes('does not exist')) {
+            throw error;
+        }
+    }
 }

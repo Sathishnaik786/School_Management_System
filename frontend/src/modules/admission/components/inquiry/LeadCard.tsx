@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, FileText, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Lead } from '../../types/admission.types';
 import { LeadAvatar } from './LeadAvatar';
+import { useAuth } from '../../../../context/AuthContext';
 import { LeadPriorityBadge } from './LeadPriorityBadge';
 import { LeadStatusChip } from './LeadStatusChip';
 import { LeadQuickActions } from './LeadQuickActions';
@@ -33,9 +35,13 @@ export function LeadCard({
     isAssigning,
     defaultExpanded = false,
 }: LeadCardProps) {
-    const [expanded, setExpanded] = useState(defaultExpanded);
+    const { hasPermission } = useAuth();
+    const [expanded, setExpanded] = useState(defaultExpanded ?? false);
     const [showComm, setShowComm] = useState(false);
     const { timeline } = useLeadTimeline(expanded ? lead : null);
+
+    const canManageLeads = hasPermission('admission.leads.manage');
+    const canAssign = canManageLeads || hasPermission('admission.visitors.manage') || hasPermission('admission.enquiry.create');
 
     const phone = lead.phone ?? lead.parent_phone;
     const email = lead.email ?? lead.parent_email;
@@ -72,15 +78,25 @@ export function LeadCard({
                                 <p className="font-medium text-gray-700 dark:text-gray-300">{lead.assigned_counselor ?? 'Unassigned'}</p>
                             </div>
                             <div>
-                                <span className="text-gray-400 font-bold uppercase">Created</span>
+                                <span className="text-gray-400 font-bold uppercase">
+                                    {lead.application_id ? 'Converted At' : 'Created'}
+                                </span>
                                 <p className="font-medium text-gray-700 dark:text-gray-300">
-                                    {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
+                                    {lead.application_id
+                                        ? (lead.updated_at ? new Date(lead.updated_at).toLocaleDateString() : '—')
+                                        : (lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—')
+                                    }
                                 </p>
                             </div>
                             <div>
-                                <span className="text-gray-400 font-bold uppercase">Next Follow-up</span>
-                                <p className="font-medium text-gray-700 dark:text-gray-300">
-                                    {lead.next_followup_at ? new Date(lead.next_followup_at).toLocaleString() : '—'}
+                                <span className="text-gray-400 font-bold uppercase">
+                                    {lead.application_id ? 'Application ID' : 'Next Follow-up'}
+                                </span>
+                                <p className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+                                    {lead.application_id
+                                        ? lead.application_id.slice(0, 8) + '...'
+                                        : (lead.next_followup_at ? new Date(lead.next_followup_at).toLocaleString() : '—')
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -96,16 +112,30 @@ export function LeadCard({
                         </div>
 
                         <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
-                            <LeadQuickActions
-                                lead={lead}
-                                onConvert={onConvert}
-                                onAssign={onAssign}
-                                onFollowup={onFollowup}
-                                onCommunicate={() => setShowComm(v => !v)}
-                                isConverting={isConverting}
-                                isAssigning={isAssigning}
-                                showAssign={showAssign}
-                            />
+                            {lead.application_id ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] px-2 py-0.5 rounded bg-green-50 text-green-700 font-semibold border border-green-200">
+                                        Converted
+                                    </span>
+                                    <Link
+                                        to={`/app/admissions/${lead.application_id}`}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors shadow-sm"
+                                    >
+                                        Open Application
+                                    </Link>
+                                </div>
+                            ) : (
+                                <LeadQuickActions
+                                    lead={lead}
+                                    onConvert={onConvert}
+                                    onAssign={onAssign}
+                                    onFollowup={onFollowup}
+                                    onCommunicate={() => setShowComm(v => !v)}
+                                    isConverting={isConverting}
+                                    isAssigning={isAssigning}
+                                    showAssign={showAssign && !lead.assigned_counselor_id}
+                                />
+                            )}
                             <button
                                 type="button"
                                 onClick={() => setExpanded(v => !v)}
@@ -117,7 +147,7 @@ export function LeadCard({
                     </div>
                 </div>
             </div>
-
+ 
             {showComm && (
                 <div className="border-t border-gray-100 p-4">
                     <CommunicationCenter
@@ -128,11 +158,33 @@ export function LeadCard({
                     />
                 </div>
             )}
-
+ 
             {expanded && (
                 <div className="border-t border-gray-100 p-4 space-y-4 bg-gray-50/50 dark:bg-muted/20">
-                    {showAssign && (
-                        <LeadAssignment lead={lead} counselorId={counselorId} onAssigned={() => setExpanded(true)} />
+                    {lead.assigned_counselor_id ? (
+                        <div className="text-[10px] text-gray-600 space-y-1 bg-white dark:bg-card p-3 rounded-lg border border-gray-100 dark:border-muted/50">
+                            <p className="font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Assignment Details</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <span className="text-gray-400 uppercase font-bold">Counselor: </span>
+                                    <span className="font-semibold text-gray-800 dark:text-gray-200">{lead.assigned_counselor ?? 'Assigned'}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-400 uppercase font-bold">Assigned At: </span>
+                                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                        {(lead.assigned_at ?? lead.updated_at) ? new Date((lead.assigned_at ?? lead.updated_at)!).toLocaleString() : '—'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-400 uppercase font-bold">Assigned By: </span>
+                                    <span className="font-semibold text-gray-800 dark:text-gray-200">{lead.assigned_by ?? 'Admissions Desk'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        showAssign && canAssign && (
+                            <LeadAssignment lead={lead} counselorId={counselorId} onAssigned={() => setExpanded(true)} />
+                        )
                     )}
                     <div>
                         <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Timeline</h4>

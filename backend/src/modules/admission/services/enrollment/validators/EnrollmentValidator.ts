@@ -14,8 +14,11 @@ export class EnrollmentValidator {
             throw new BusinessRuleError('Application has been soft-deleted and cannot be enrolled');
         }
 
-        if (app.status !== 'SUBMITTED') {
-            throw new BusinessRuleError(`Application workflow status is ${app.status}. Must be SUBMITTED before enrollment.`);
+        const enrollableStatuses = new Set(['OFFERED', 'FEE_VERIFIED', 'FEE_PENDING', 'ENROLLED']);
+        if (!enrollableStatuses.has(app.status)) {
+            throw new BusinessRuleError(
+                `Application workflow status is ${app.status}. Must be approved with fees settled before enrollment.`
+            );
         }
     }
 }

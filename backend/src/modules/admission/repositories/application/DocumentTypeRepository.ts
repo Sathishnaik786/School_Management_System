@@ -24,4 +24,15 @@ export class DocumentTypeRepository {
         if (error) throw error;
         return data;
     }
+
+    public async findActiveMandatory(): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('document_types')
+            .select('*')
+            .eq('active', true)
+            .eq('mandatory', true);
+
+        if (error) throw error;
+        return data ?? [];
+    }
 }

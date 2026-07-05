@@ -4,19 +4,45 @@ import { TimelineEngine } from '../timeline/TimelineEngine';
 import SLAIndicator from '../timeline/SLAIndicator';
 import { LeadTimeline } from '../inquiry/LeadTimeline';
 import { CommunicationCenter } from '../../../common/communication/CommunicationCenter';
+import { Applicant360DocumentsPanel } from './Applicant360DocumentsPanel';
+import { ApplicationProgressPanel } from './ApplicationProgressPanel';
+import { Applicant360InterviewPanel } from './Applicant360InterviewPanel';
+import { Applicant360ExamPanel } from './Applicant360ExamPanel';
+import { Applicant360FeesPanel } from './Applicant360FeesPanel';
+import { Applicant360ReviewPanel } from './Applicant360ReviewPanel';
 import type { Applicant360View } from '../../utils/applicant360.mapper';
+import type { ApplicationProgressReport } from '../../hooks/useApplicationProgress';
 import {
-    User, ShieldAlert, PhoneCall, Award, DollarSign, MessageSquare, ClipboardList, Info,
+    User, ShieldAlert, PhoneCall, Award, DollarSign, MessageSquare, ClipboardList, Info, FileText,
 } from 'lucide-react';
 import { scoreTierLabel } from '../../utils/lead.score';
+
+const STAFF_TABS = ['overview', 'timeline', 'crm', 'documents', 'evaluation', 'interview', 'exam', 'fees', 'comms', 'audits'] as const;
+const PARENT_TABS = ['overview', 'timeline', 'documents', 'interview', 'exam', 'fees'] as const;
+type ProfileTab = typeof STAFF_TABS[number];
 
 interface Applicant360ProfileProps {
     applicant: Applicant360View;
     applicationId: string;
+    progress?: ApplicationProgressReport | null;
+    progressLoading?: boolean;
+    readOnlyMode?: boolean;
+    initialTab?: ProfileTab;
 }
 
-export function Applicant360Profile({ applicant, applicationId }: Applicant360ProfileProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'crm' | 'evaluation' | 'fees' | 'comms' | 'audits'>('overview');
+export function Applicant360Profile({
+    applicant,
+    applicationId,
+    progress,
+    progressLoading,
+    readOnlyMode = false,
+    initialTab = 'overview',
+}: Applicant360ProfileProps) {
+    const tabs = readOnlyMode ? PARENT_TABS : STAFF_TABS;
+    const resolvedTab = tabs.includes(initialTab as typeof PARENT_TABS[number]) ? initialTab : 'overview';
+    const [activeTab, setActiveTab] = useState<ProfileTab>(resolvedTab);
+
+    const displayProgress = progress?.progressPercent ?? applicant.progressPercent;
 
     return (
         <div className="space-y-6">
@@ -24,47 +50,54 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="space-y-6">
+                    <ApplicationProgressPanel progress={progress ?? null} isLoading={progressLoading} />
+
                     <div className="bg-white dark:bg-card p-5 border border-gray-150 dark:border-border/60 rounded-2xl shadow-sm space-y-4">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200">
-                            Process Metadata
+                            {readOnlyMode ? 'Application Progress' : 'Process Metadata'}
                         </h3>
 
-                        <SLAIndicator
-                            hoursRemaining={applicant.slaRemainingHours}
-                            totalHours={applicant.slaTotalHours}
-                        />
+                        {!readOnlyMode && (
+                            <>
+                                <SLAIndicator
+                                    hoursRemaining={applicant.slaRemainingHours}
+                                    totalHours={applicant.slaTotalHours}
+                                />
 
-                        <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
-                            <span className="text-gray-400 font-bold uppercase text-[10px]">Assigned Officer</span>
-                            <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                                <User className="w-3.5 h-3.5 text-gray-400" />
-                                {applicant.counselor || 'Unassigned'}
-                            </span>
-                        </div>
+                                <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
+                                    <span className="text-gray-400 font-bold uppercase text-[10px]">Assigned Officer</span>
+                                    <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                        <User className="w-3.5 h-3.5 text-gray-400" />
+                                        {applicant.counselor || 'Unassigned'}
+                                    </span>
+                                </div>
 
-                        <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
-                            <span className="text-gray-400 font-bold uppercase text-[10px]">Lead Score</span>
-                            <span className="px-2 py-0.5 rounded font-black text-[9px] bg-indigo-50 text-indigo-600">
-                                {scoreTierLabel(applicant.crmLeadTemp)} ({applicant.crmLeadScore})
-                            </span>
-                        </div>
+                                <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
+                                    <span className="text-gray-400 font-bold uppercase text-[10px]">Lead Score</span>
+                                    <span className="px-2 py-0.5 rounded font-black text-[9px] bg-indigo-50 text-indigo-600">
+                                        {scoreTierLabel(applicant.crmLeadTemp)} ({applicant.crmLeadScore})
+                                    </span>
+                                </div>
 
-                        <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
-                            <span className="text-gray-400 font-bold uppercase text-[10px]">Process Risk</span>
-                            {applicant.slaRemainingHours <= 0 ? (
-                                <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-black text-[9px] flex items-center gap-0.5 animate-pulse">
-                                    <ShieldAlert className="w-3 h-3" /> SLA BREACH
-                                </span>
-                            ) : (
-                                <span className="text-emerald-600 font-black text-[10px]">LOW RISK</span>
-                            )}
-                        </div>
+                                <div className="flex items-center justify-between text-xs py-2.5 border-b border-gray-50 dark:border-border/10">
+                                    <span className="text-gray-400 font-bold uppercase text-[10px]">Process Risk</span>
+                                    {applicant.slaRemainingHours <= 0 ? (
+                                        <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-black text-[9px] flex items-center gap-0.5 animate-pulse">
+                                            <ShieldAlert className="w-3 h-3" /> SLA BREACH
+                                        </span>
+                                    ) : (
+                                        <span className="text-emerald-600 font-black text-[10px]">LOW RISK</span>
+                                    )}
+                                </div>
+                            </>
+                        )}
 
                         <div className="space-y-2 pt-2">
                             <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase text-[10px]">
                                 <span>Checklist completeness</span>
                                 <span>
-                                    {applicant.documentChecklist.filter(d => d.verified).length} / {applicant.documentChecklist.length}
+                                    {progress?.sections.documents.completed ?? applicant.documentChecklist.filter(d => d.verified).length} /{' '}
+                                    {progress?.sections.documents.total ?? applicant.documentChecklist.length}
                                 </span>
                             </div>
                             <div className="space-y-1.5">
@@ -85,7 +118,7 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
 
                 <div className="lg:col-span-2 space-y-4">
                     <div className="bg-white dark:bg-card border border-gray-150 dark:border-border/60 rounded-2xl p-1.5 shadow-sm flex flex-wrap gap-1 text-xs">
-                        {(['overview', 'timeline', 'crm', 'evaluation', 'fees', 'comms', 'audits'] as const).map(tab => (
+                        {tabs.map(tab => (
                             <button
                                 key={tab}
                                 type="button"
@@ -110,8 +143,9 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
                                     </h3>
                                     <p className="text-xs text-gray-500 font-medium leading-relaxed mt-2">
                                         {applicant.name} applied for {applicant.grade}. Current stage: {applicant.status}.
-                                        Progress: {applicant.progressPercent}%. Documents verified:{' '}
-                                        {applicant.documentChecklist.filter(d => d.verified).length} of {applicant.documentChecklist.length}.
+                                        Progress: {displayProgress}%. Documents verified:{' '}
+                                        {progress?.sections.documents.completed ?? applicant.documentChecklist.filter(d => d.verified).length} of{' '}
+                                        {progress?.sections.documents.total ?? applicant.documentChecklist.length}.
                                     </p>
                                 </div>
 
@@ -141,12 +175,14 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
                         {activeTab === 'timeline' && (
                             applicant.timelineNodes.length > 0 ? (
                                 <TimelineEngine nodes={applicant.timelineNodes} />
+                            ) : readOnlyMode ? (
+                                <p className="text-xs text-gray-400">Timeline will appear as your application progresses.</p>
                             ) : (
                                 <LeadTimeline entries={applicant.auditLogs} />
                             )
                         )}
 
-                        {activeTab === 'crm' && (
+                        {!readOnlyMode && activeTab === 'crm' && (
                             <div className="space-y-6">
                                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                                     <PhoneCall className="w-4 h-4 text-indigo-500" /> Lead Intelligence
@@ -169,54 +205,27 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
                             </div>
                         )}
 
-                        {activeTab === 'evaluation' && (
-                            <div className="space-y-6">
-                                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                                    <Award className="w-4 h-4 text-indigo-500" /> Entrance exam & interview
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="p-4 border rounded-xl bg-gray-50/50 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200">Written Entrance Exam</span>
-                                            <span className="text-xs font-bold text-indigo-600">{applicant.examStatus}</span>
-                                        </div>
-                                        {applicant.examScore !== undefined && (
-                                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                                <div className="bg-indigo-500 h-full" style={{ width: `${Math.min(applicant.examScore, 100)}%` }} />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-4 border rounded-xl bg-gray-50/50 flex items-center justify-between">
-                                        <span className="text-xs font-black text-gray-800 dark:text-gray-200">Panel Interview Evaluation</span>
-                                        <span className="text-xs font-bold text-indigo-600">{applicant.interviewStatus}</span>
-                                    </div>
-                                </div>
-                            </div>
+                        {activeTab === 'documents' && (
+                            <Applicant360DocumentsPanel applicationId={applicationId} progress={progress} readOnlyMode={readOnlyMode} />
+                        )}
+
+                        {!readOnlyMode && activeTab === 'evaluation' && (
+                            <Applicant360ReviewPanel applicationId={applicationId} />
+                        )}
+
+                        {activeTab === 'interview' && (
+                            <Applicant360InterviewPanel applicationId={applicationId} readOnlyMode={readOnlyMode} />
+                        )}
+
+                        {activeTab === 'exam' && (
+                            <Applicant360ExamPanel applicationId={applicationId} readOnlyMode={readOnlyMode} />
                         )}
 
                         {activeTab === 'fees' && (
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                                    <DollarSign className="w-4 h-4 text-indigo-500" /> Payment & receipts
-                                </h3>
-                                <div className="p-4 border rounded-xl space-y-2">
-                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                                        Status: {applicant.feeStatus}
-                                    </p>
-                                    {applicant.paymentAmount !== undefined && applicant.paymentAmount > 0 && (
-                                        <p className="text-xs text-gray-500">Amount: ₹{applicant.paymentAmount}</p>
-                                    )}
-                                    {applicant.paymentReference && (
-                                        <p className="text-xs text-gray-500">Reference: {applicant.paymentReference}</p>
-                                    )}
-                                    {applicant.enrollmentStatus && (
-                                        <p className="text-xs text-gray-500">Enrollment: {applicant.enrollmentStatus}</p>
-                                    )}
-                                </div>
-                            </div>
+                            <Applicant360FeesPanel applicationId={applicationId} readOnlyMode={readOnlyMode} />
                         )}
 
-                        {activeTab === 'comms' && (
+                        {!readOnlyMode && activeTab === 'comms' && (
                             <CommunicationCenter
                                 recipientId={applicationId}
                                 recipientName={applicant.name}
@@ -225,7 +234,7 @@ export function Applicant360Profile({ applicant, applicationId }: Applicant360Pr
                             />
                         )}
 
-                        {activeTab === 'audits' && (
+                        {!readOnlyMode && activeTab === 'audits' && (
                             <div className="space-y-4">
                                 <h3 className="text-sm font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                                     <ClipboardList className="w-4 h-4 text-indigo-500" /> Audit log events

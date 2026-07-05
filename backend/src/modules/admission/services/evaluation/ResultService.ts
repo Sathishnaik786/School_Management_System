@@ -2,12 +2,17 @@ import { ExamRepository } from '../../repositories/evaluation/ExamRepository';
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
 import { ExamResult } from '../../domain/evaluation/ExamResult';
 import { AuditService } from '../AuditService';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from '../application/ApplicationWorkflowOrchestrator';
 
 export class ResultService {
     constructor(
         private readonly examRepo: ExamRepository,
         private readonly appRepo: ApplicationRepository,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {}
 
     public async recordMarks(
@@ -64,8 +69,6 @@ export class ResultService {
         // Check if all template subjects are fully evaluated
         const recordedResults = await this.examRepo.findResultsByCandidateId(candidateId);
         if (recordedResults.length === subjects.length) {
-            // Update exam status if this candidate is the last one, or just update candidate status
-            // For Simplicity, log candidate marks published
             await this.appRepo.logWorkflow(
                 candidate.application_id,
                 'EXAM_MARKS_PUBLISHED',
@@ -74,6 +77,19 @@ export class ResultService {
                 evaluatorId,
                 `Exam result grading published. Candidate evaluated successfully.`
             );
+
+            if (this.workflowOrchestrator) {
+                const application = await this.appRepo.findById(candidate.application_id);
+                const ctx: WorkflowEventContext = {
+                    userId: evaluatorId,
+                    role: 'EXAM_CELL',
+                    correlationId,
+                    notes: 'All exam subjects evaluated',
+                    schoolId: application?.schoolId,
+                    academicYearId: application?.academicYearId,
+                };
+                await this.workflowOrchestrator.publish('EXAM_COMPLETED', candidate.application_id, ctx);
+            }
         }
 
         // Audit Trail log

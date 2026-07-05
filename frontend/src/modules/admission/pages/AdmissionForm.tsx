@@ -4,11 +4,13 @@ import { admissionApi } from '../admission.api';
 import { useAuth } from '../../../context/AuthContext';
 import { apiClient } from '../../../lib/api-client';
 import { ArrowLeft, Save, Send, User, Phone, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { useMasterData } from '../context/MasterDataContext';
 
 export const AdmissionForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated, loading: authLoading } = useAuth();
+    const { grades } = useMasterData();
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('draft');
     const [submitted, setSubmitted] = useState(false);
@@ -40,6 +42,12 @@ export const AdmissionForm = () => {
         confirmPassword: ''
     });
 
+    useEffect(() => {
+        if (grades.length > 0 && !formData.grade_applied_for && !id) {
+            setFormData((prev: any) => ({ ...prev, grade_applied_for: grades[0].name }));
+        }
+    }, [grades, id]);
+
     const handleRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.name === 'confirmPassword') {
             setRegData({ ...regData, confirmPassword: e.target.value });
@@ -57,11 +65,26 @@ export const AdmissionForm = () => {
             try {
                 // 1. Fetch existing data if editing (requires auth)
                 if (id && user) {
-                    const { data } = await admissionApi.getById(id);
-                    setStatus(data.status);
+                    const { data } = await admissionApi.getCrmApplication(id);
+                    const mapped = data?.application ?? data;
+                    const enquiry = data?.enquiry ?? {};
+                    const parents = data?.parents ?? {};
+                    const profile = data?.profile ?? {};
+                    setStatus((mapped?.status ?? 'draft').toLowerCase());
                     setFormData({
-                        ...data,
-                        parent_password: '' // Don't show password even if it exists in DB
+                        student_name: enquiry.student_name ?? enquiry.studentName ?? '',
+                        date_of_birth: profile.date_of_birth ?? enquiry.date_of_birth ?? '',
+                        gender: profile.gender ?? enquiry.gender ?? 'Male',
+                        grade_applied_for: enquiry.grade_applied_for ?? enquiry.gradeAppliedFor ?? '',
+                        school_id: mapped.school_id ?? mapped.schoolId ?? user?.school_id ?? '',
+                        academic_year_id: mapped.academic_year_id ?? mapped.academicYearId ?? '',
+                        mother_name: parents.mother_name ?? '',
+                        mother_email: parents.mother_email ?? '',
+                        mother_phone: parents.mother_phone ?? '',
+                        father_name: parents.father_name ?? '',
+                        father_email: parents.father_email ?? '',
+                        father_phone: parents.father_phone ?? '',
+                        parent_password: '',
                     });
                 } else if (user) {
                     // Fetch context for logged in user
@@ -92,7 +115,7 @@ export const AdmissionForm = () => {
         initializeForm();
     }, [id, user, authLoading]);
 
-    const isReadOnly = status !== 'draft';
+    const isReadOnly = !['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'].includes(status);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         if (isReadOnly) return;
@@ -160,35 +183,52 @@ export const AdmissionForm = () => {
             return;
         }
 
-        // Authenticated user path
+        // Authenticated user path — CRM pipeline
         setLoading(true);
         try {
-            console.log('[ADMISSION] Calling internal save/update...', formData);
-            let res;
-            if (id) {
-                res = await admissionApi.update(id, formData);
-            } else {
+            const isParent = user?.roles?.includes('PARENT');
+
+            if (!id && isParent) {
+                const parent_email = formData.mother_email || formData.father_email || user?.email;
+                const parent_name = formData.mother_name || formData.father_name;
+                const parent_phone = formData.mother_phone || formData.father_phone;
                 const finalData = {
                     ...formData,
-                    school_id: (formData.school_id && formData.school_id !== '') ? formData.school_id : (user?.school_id || ''),
-                    academic_year_id: (formData.academic_year_id && formData.academic_year_id !== '') ? formData.academic_year_id : null
+                    parent_email,
+                    parent_name,
+                    parent_phone,
+                    school_id: formData.school_id || user?.school_id || '',
+                    academic_year_id: formData.academic_year_id || null,
                 };
-
-                // Fallback for missing academic year
                 if (!finalData.academic_year_id) {
                     const yearRes = await apiClient.get('/academic-years/current').catch(() => null);
-                    finalData.academic_year_id = yearRes?.data?.id || '8db7f474-3252-475a-bc84-9092be0f8f12';
+                    finalData.academic_year_id = yearRes?.data?.id;
                 }
-
-                res = await admissionApi.create(finalData);
+                await admissionApi.parentApply(finalData);
+                navigate('/app/admissions/my');
+                return;
             }
 
-            if (isSubmit) {
-                console.log('[ADMISSION] Triggering immediate submission...');
-                await admissionApi.submit(res.data.id);
+            let applicationId = id;
+            if (!applicationId) {
+                const yearRes = await apiClient.get('/academic-years/current').catch(() => null);
+                const createRes = await admissionApi.createCrmApplication({
+                    lead_id: formData.lead_id,
+                    grade: formData.grade_applied_for,
+                    date_of_birth: formData.date_of_birth,
+                    gender: formData.gender,
+                    student_name: formData.student_name,
+                    academic_year_id: formData.academic_year_id || yearRes?.data?.id,
+                });
+                applicationId = createRes.data?.id ?? createRes.data?.application?.id;
             }
 
-            console.log('[ADMISSION] Save successful, navigating...');
+            if (isSubmit && applicationId) {
+                await admissionApi.submitCrmApplication(applicationId, {
+                    change_reason: 'Application submitted via portal',
+                });
+            }
+
             navigate('/app/admissions/my');
         } catch (error: any) {
             console.error('[ADMISSION] Save failed:', error);
@@ -335,14 +375,21 @@ export const AdmissionForm = () => {
                                 </div>
                                 <div className="space-y-2 group">
                                     <label className="text-sm font-semibold text-gray-700">Grade Applied For <span className="text-red-500">*</span></label>
-                                    <input
+                                    <select
                                         name="grade_applied_for"
                                         value={formData.grade_applied_for}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="e.g., Grade 1, Grade 10"
-                                    />
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 hover:border-gray-300 cursor-pointer bg-white"
+                                    >
+                                        {grades.length === 0 ? (
+                                            <option value="">Loading grades...</option>
+                                        ) : (
+                                            grades.map(g => (
+                                                <option key={g.id} value={g.name}>{g.name}</option>
+                                            ))
+                                        )}
+                                    </select>
                                 </div>
                             </div>
                         </section>

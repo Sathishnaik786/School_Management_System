@@ -20,8 +20,8 @@ export const auditMiddleware = (req: Request, res: Response, next: NextFunction)
             entityName,
             entityId: req.body?.id || req.params?.id || 'none',
             afterState: req.body || null,
-            ipAddress,
-            userAgent,
+            ipAddress: ipAddress || undefined,
+            userAgent: userAgent || undefined,
             correlationId: (req.headers['x-correlation-id'] as string) || undefined
         }).catch(err => {
             console.error('[Audit Middleware] Failed to record log:', err);

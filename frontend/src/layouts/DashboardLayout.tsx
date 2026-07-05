@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/theme/useTheme';
+import { useMasterData } from '../modules/admission/context/MasterDataContext';
+
 import { useSettingsStore } from '../store/settings.store';
 import {
     LayoutDashboard,
@@ -62,6 +64,7 @@ import { Button } from '../components/ui/button';
 
 export const DashboardLayout = () => {
     const { user, signOut, hasPermission, hasRole, systemMode } = useAuth();
+    const { schools, academicYears, activeSchoolId, activeAcademicYearId, changeSchool, changeAcademicYear } = useMasterData();
     const location = useLocation();
     const navigate = useNavigate();
     
@@ -251,9 +254,19 @@ export const DashboardLayout = () => {
         // PARENT
         ...(isParent ? [
             {
+                label: 'Admission',
+                items: [
+                    { label: 'My Admission', icon: ClipboardList, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Documents', icon: FileText, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Timeline', icon: Clock, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Admission Fees', icon: Coins, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Offer Letter', icon: GraduationCap, path: '/app/admissions/my', permission: 'admission.view_own' },
+                ]
+            },
+            {
                 label: 'Core',
                 items: [
-                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
+                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/admissions/my' },
                 ]
             },
             {
@@ -726,24 +739,34 @@ export const DashboardLayout = () => {
                                 {/* Campus / Institution Selector */}
                                 <div className="hidden sm:block">
                                     <select
-                                        defaultValue="primary"
+                                        value={activeSchoolId}
+                                        onChange={e => changeSchool(e.target.value)}
                                         className="bg-gray-50 dark:bg-muted/10 border border-border text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
                                     >
-                                        <option value="primary">🏛️ RR Village Campus</option>
-                                        <option value="international">🏫 International Campus</option>
-                                        <option value="prep">🏫 Prep School Campus</option>
+                                        {schools.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                🏛️ {s.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
                                 {/* Academic Year Switcher */}
                                 <div className="hidden md:block">
                                     <select
-                                        defaultValue="2026-27"
+                                        value={activeAcademicYearId}
+                                        onChange={e => changeAcademicYear(e.target.value)}
                                         className="bg-gray-50 dark:bg-muted/10 border border-border text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
                                     >
-                                        <option value="2025-26">AY 2025 – 26</option>
-                                        <option value="2026-27">AY 2026 – 27</option>
-                                        <option value="2027-28">AY 2027 – 28</option>
+                                        {academicYears.length === 0 ? (
+                                            <option value="">No Academic Year</option>
+                                        ) : (
+                                            academicYears.map(y => (
+                                                <option key={y.id} value={y.id}>
+                                                    AY {y.year_label}
+                                                </option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                             </div>

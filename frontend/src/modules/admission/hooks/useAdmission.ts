@@ -22,6 +22,10 @@ export function useAdmission(schoolId?: string) {
             ADMISSION_EVENTS.INQUIRY_CREATED,
             ADMISSION_EVENTS.INQUIRY_UPDATED,
             ADMISSION_EVENTS.INQUIRY_CONVERTED,
+            ADMISSION_EVENTS.APPLICATION_CREATED,
+            ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.COUNSELOR_ASSIGNED,
+            ADMISSION_EVENTS.TIMELINE_REFRESH,
         ].map(event => admissionEventBus.subscribe(event, refresh));
         return () => unsubs.forEach(u => u());
     }, [statsQuery.refetch]);
@@ -61,6 +65,8 @@ export {
 
 export { useWorkflow, type WorkflowActionType } from './useWorkflow';
 export { useApplicant360 } from './useApplicant360';
+export { useApplicationProgress } from './useApplicationProgress';
+export { useCrmDocuments, useUploadDocument } from './useCrmDocuments';
 export { useEnrollment, useEnrollStudent, useEnrollmentStatus } from './useEnrollment';
 export { useDocuments, useDocumentVerificationQueue } from './useDocuments';
 export { usePayments, useFeesSummary, useCollectPayment } from './usePayments';

@@ -13,8 +13,8 @@ export function useLeadAssignment() {
     const queryClient = useQueryClient();
 
     const assignMutation = useMutation({
-        mutationFn: ({ id, counselorId }: { id: string; counselorId: string }) =>
-            admissionApi.assignLead(id, counselorId),
+        mutationFn: ({ id, counselorId, strategy }: { id: string; counselorId?: string; strategy?: string }) =>
+            admissionApi.assignLead(id, counselorId, strategy),
         onSuccess: (_, variables) => {
             dispatchAssignmentEvents(queryClient, variables.id);
         },
@@ -32,7 +32,7 @@ export function useLeadAssignment() {
     });
 
     return {
-        assign: (id: string, counselorId: string) => assignMutation.mutateAsync({ id, counselorId }),
+        assign: (id: string, counselorId?: string, strategy?: string) => assignMutation.mutateAsync({ id, counselorId, strategy }),
         reassign: (id: string, counselorId: string) => assignMutation.mutateAsync({ id, counselorId }),
         unassign: (id: string) =>
             updateMutation.mutateAsync({
@@ -51,8 +51,8 @@ export function useLeadAssignment() {
 export function useAssignLead() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, counselorId }: { id: string; counselorId: string }) =>
-            admissionApi.assignLead(id, counselorId),
+        mutationFn: ({ id, counselorId, strategy }: { id: string; counselorId?: string; strategy?: string }) =>
+            admissionApi.assignLead(id, counselorId, strategy),
         onSuccess: (_, variables) => {
             dispatchAssignmentEvents(queryClient, variables.id);
         },

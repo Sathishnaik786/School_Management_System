@@ -7,6 +7,10 @@ import { Document } from '../../domain/Document';
 import { NotFoundError } from '../../errors/NotFoundError';
 import { AuditService } from '../AuditService';
 import { supabase } from '../../../../config/supabase';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from './ApplicationWorkflowOrchestrator';
 
 export class DocumentVerificationService extends BaseService {
     constructor(
@@ -14,7 +18,8 @@ export class DocumentVerificationService extends BaseService {
         private readonly typeRepo: DocumentTypeRepository,
         private readonly appRepo: ApplicationRepository,
         private readonly stateMachine: DocumentStateMachine,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {
         super();
     }
@@ -95,6 +100,39 @@ export class DocumentVerificationService extends BaseService {
         return doc;
     }
 
+    private async publishWorkflowAfterDocumentChange(
+        doc: Document,
+        event: 'DOCUMENT_VERIFIED' | 'DOCUMENT_REJECTED',
+        reviewerId: string | null,
+        role: string,
+        remarks: string | null,
+        correlationId?: string
+    ): Promise<void> {
+        if (!this.workflowOrchestrator) {
+            return;
+        }
+
+        const application = await this.appRepo.findById(doc.applicationId);
+        if (!application) {
+            return;
+        }
+
+        const ctx: WorkflowEventContext = {
+            userId: reviewerId,
+            role,
+            correlationId,
+            notes: remarks ?? undefined,
+            schoolId: application.schoolId,
+            academicYearId: application.academicYearId,
+        };
+
+        if (event === 'DOCUMENT_VERIFIED') {
+            await this.workflowOrchestrator.publish('DOCUMENT_VERIFIED', doc.applicationId, ctx);
+        } else {
+            await this.workflowOrchestrator.publish('DOCUMENT_REJECTED', doc.applicationId, ctx);
+        }
+    }
+
     public async verify(
         id: string,
         reviewerId: string | null,
@@ -102,7 +140,13 @@ export class DocumentVerificationService extends BaseService {
         role: string,
         correlationId?: string
     ): Promise<Document> {
-        return this.executeTransition(id, 'VERIFIED', reviewerId, role, remarks, correlationId);
+        const existing = await this.docRepo.findById(id);
+        if (existing && (existing.status === 'UPLOADED' || existing.status === 'REUPLOADED')) {
+            await this.executeTransition(id, 'PENDING_VERIFICATION', reviewerId, role, remarks, correlationId);
+        }
+        const doc = await this.executeTransition(id, 'VERIFIED', reviewerId, role, remarks, correlationId);
+        await this.publishWorkflowAfterDocumentChange(doc, 'DOCUMENT_VERIFIED', reviewerId, role, remarks, correlationId);
+        return doc;
     }
 
     public async reject(
@@ -112,7 +156,9 @@ export class DocumentVerificationService extends BaseService {
         role: string,
         correlationId?: string
     ): Promise<Document> {
-        return this.executeTransition(id, 'REJECTED', reviewerId, role, remarks, correlationId);
+        const doc = await this.executeTransition(id, 'REJECTED', reviewerId, role, remarks, correlationId);
+        await this.publishWorkflowAfterDocumentChange(doc, 'DOCUMENT_REJECTED', reviewerId, role, remarks, correlationId);
+        return doc;
     }
 
     public async requestCorrection(
@@ -123,5 +169,20 @@ export class DocumentVerificationService extends BaseService {
         correlationId?: string
     ): Promise<Document> {
         return this.executeTransition(id, 'CORRECTION_REQUIRED', reviewerId, role, remarks, correlationId);
+    }
+
+    public async bulkVerify(
+        documentIds: string[],
+        reviewerId: string | null,
+        role: string,
+        remarks: string | null,
+        correlationId?: string
+    ): Promise<Document[]> {
+        const results: Document[] = [];
+        for (const id of documentIds) {
+            const doc = await this.verify(id, reviewerId, remarks, role, correlationId);
+            results.push(doc);
+        }
+        return results;
     }
 }

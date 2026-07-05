@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { checkPermission } from '../../rbac/rbac.middleware';
+import { PERMISSIONS } from '../../rbac/permissions';
 import { checkIdempotency } from '../../middleware/idempotency.middleware';
 import { enrollmentController } from './index';
 
@@ -13,7 +14,7 @@ enrollmentRouter.post('/fees/assign',
 );
 
 enrollmentRouter.get('/fees/:applicationId',
-    checkPermission('admission.fees.manage'),
+    checkPermission(PERMISSIONS.APPLICATION_VIEW),
     enrollmentController.getFeesSummary
 );
 
@@ -55,6 +56,6 @@ enrollmentRouter.post('/enroll',
 );
 
 enrollmentRouter.get('/status/:applicationId',
-    checkPermission('admission.confirm.enroll'),
+    checkPermission(PERMISSIONS.APPLICATION_VIEW),
     enrollmentController.getEnrollmentStatus
 );

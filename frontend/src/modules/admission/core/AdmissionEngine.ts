@@ -51,34 +51,104 @@ class AdmissionEngineImpl {
         const appId = payload?.applicationId;
 
         switch (type) {
+            case ADMISSION_EVENTS.APPLICATION_CREATED:
             case ADMISSION_EVENTS.APPLICATION_UPDATED:
                 if (appId) {
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.documents(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
                 }
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.myApplications() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.followups() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.reviewQueue() });
+                if (payload?.inquiryId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.detail(payload.inquiryId) });
+                }
+                if (payload?.leadId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.detail(payload.leadId) });
+                }
                 break;
 
             case ADMISSION_EVENTS.APPLICATION_LIST_CHANGED:
             case ADMISSION_EVENTS.QUEUE_REFRESH:
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.myApplications() });
                 break;
 
             case ADMISSION_EVENTS.DOCUMENT_VERIFIED:
+            case ADMISSION_EVENTS.DOCUMENT_UPLOADED:
+            case ADMISSION_EVENTS.DOCUMENT_REJECTED:
+            case ADMISSION_EVENTS.CHECKLIST_UPDATED:
                 if (appId) {
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.documents(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
                 }
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.reviewQueue() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
                 break;
 
             case ADMISSION_EVENTS.PAYMENT_VERIFIED:
+            case ADMISSION_EVENTS.FEE_PAID:
                 if (appId) {
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.payments(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.feesSummary(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
                 }
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
+                break;
+
+            case ADMISSION_EVENTS.INTERVIEW_CREATED:
+            case ADMISSION_EVENTS.INTERVIEW_UPDATED:
+                if (appId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.interviewEvaluation(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                }
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                break;
+
+            case ADMISSION_EVENTS.EXAM_COMPLETED:
+                if (appId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.examResults(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                }
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                break;
+
+            case ADMISSION_EVENTS.APPLICATION_REVIEWED:
+            case ADMISSION_EVENTS.APPLICATION_APPROVED:
+                if (appId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
+                }
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.reviewQueue() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
+                break;
+
+            case ADMISSION_EVENTS.ERP_STUDENT_CREATED:
+                if (appId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.enrollment(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
+                }
+                queryClient.invalidateQueries({ queryKey: ['students'] });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
                 break;
 
             case ADMISSION_EVENTS.OFFER_SENT:
@@ -95,6 +165,7 @@ class AdmissionEngineImpl {
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.feesSummary(appId) });
                     queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.payments(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.progress(appId) });
                 }
                 queryClient.invalidateQueries({ queryKey: ['students'] });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
@@ -103,13 +174,31 @@ class AdmissionEngineImpl {
 
             case ADMISSION_EVENTS.INQUIRY_CREATED:
             case ADMISSION_EVENTS.INQUIRY_UPDATED:
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.followups() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
+                if (payload?.inquiryId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.detail(payload.inquiryId) });
+                }
+                break;
+
             case ADMISSION_EVENTS.INQUIRY_CONVERTED:
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.all });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.all });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.followups() });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
-                if (type === ADMISSION_EVENTS.INQUIRY_CONVERTED) {
-                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.reviewQueue() });
+                if (payload?.inquiryId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.detail(payload.inquiryId) });
+                }
+                if (payload?.leadId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.detail(payload.leadId) });
+                }
+                if (appId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.detail(appId) });
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.timeline(appId) });
                 }
                 break;
 
@@ -118,6 +207,14 @@ class AdmissionEngineImpl {
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.all });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.all });
                 queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.stats() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.followups() });
+                queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.all });
+                if (payload?.leadId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.lead.detail(payload.leadId) });
+                }
+                if (payload?.inquiryId) {
+                    queryClient.invalidateQueries({ queryKey: ADMISSION_CACHE_KEYS.inquiry.detail(payload.inquiryId) });
+                }
                 break;
 
             case ADMISSION_EVENTS.FOLLOWUP_COMPLETED:

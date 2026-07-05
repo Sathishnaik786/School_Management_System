@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { admissionApi } from '../admission.api';
 import { AdmissionEngine, ADMISSION_STALE_TIME } from '../core/AdmissionEngine';
-import { mapApplication, mapApplicationList } from '../utils/application.mapper';
+import { mapApplication, mapApplicationList, mapCrmApplicationResponse } from '../utils/application.mapper';
 import { admissionEventBus, ADMISSION_EVENTS } from '../core/AdmissionEvents';
 import type { Admission } from '../types';
 
@@ -15,21 +15,25 @@ export interface ApplicationListParams {
 }
 
 const LIST_REFRESH_EVENTS = [
+    ADMISSION_EVENTS.APPLICATION_CREATED,
     ADMISSION_EVENTS.APPLICATION_UPDATED,
     ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
+    ADMISSION_EVENTS.INQUIRY_CONVERTED,
+    ADMISSION_EVENTS.COUNSELOR_ASSIGNED,
     ADMISSION_EVENTS.QUEUE_REFRESH,
+    ADMISSION_EVENTS.DASHBOARD_REFRESH,
     ADMISSION_EVENTS.ENROLLMENT_COMPLETED,
     ADMISSION_EVENTS.PAYMENT_VERIFIED,
     ADMISSION_EVENTS.OFFER_SENT,
     ADMISSION_EVENTS.DOCUMENT_VERIFIED,
 ] as const;
 
-export function useApplication(id?: string, options?: { enabled?: boolean }) {
+export function useApplication(id?: string, options?: { enabled?: boolean; parentOnly?: boolean }) {
     const query = useQuery({
         queryKey: AdmissionEngine.cacheKeys.detail(id ?? ''),
         queryFn: async () => {
-            const { data } = await admissionApi.getById(id!);
-            return mapApplication(data);
+            const { data } = await admissionApi.getCrmApplication(id!);
+            return mapApplication(mapCrmApplicationResponse(data));
         },
         enabled: !!id && (options?.enabled ?? true),
         staleTime: ADMISSION_STALE_TIME,
@@ -39,6 +43,7 @@ export function useApplication(id?: string, options?: { enabled?: boolean }) {
         if (!id) return;
         const refresh = () => void query.refetch();
         const unsubs = [
+            ADMISSION_EVENTS.APPLICATION_CREATED,
             ADMISSION_EVENTS.APPLICATION_UPDATED,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.ENROLLMENT_COMPLETED,
@@ -61,10 +66,16 @@ export function useApplication(id?: string, options?: { enabled?: boolean }) {
     };
 }
 
-export function useApplicationList(params?: ApplicationListParams, options?: { enabled?: boolean }) {
+export function useApplicationList(params?: ApplicationListParams, options?: { enabled?: boolean; mine?: boolean }) {
     const query = useQuery({
-        queryKey: AdmissionEngine.cacheKeys.lists(params as Record<string, unknown>),
+        queryKey: options?.mine
+            ? AdmissionEngine.cacheKeys.myApplications()
+            : AdmissionEngine.cacheKeys.lists(params as Record<string, unknown>),
         queryFn: async () => {
+            if (options?.mine) {
+                const { data } = await admissionApi.listMyApplications();
+                return mapApplicationList(data);
+            }
             const { data } = await admissionApi.list(params);
             return mapApplicationList(data);
         },
@@ -101,8 +112,11 @@ export function useReviewQueue(status = 'submitted', options?: { enabled?: boole
         const refresh = () => void query.refetch();
         const unsubs = [
             ADMISSION_EVENTS.DOCUMENT_VERIFIED,
+            ADMISSION_EVENTS.APPLICATION_CREATED,
             ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.INQUIRY_CONVERTED,
             ADMISSION_EVENTS.QUEUE_REFRESH,
+            ADMISSION_EVENTS.DASHBOARD_REFRESH,
         ].map(event => admissionEventBus.subscribe(event, refresh));
         return () => unsubs.forEach(u => u());
     }, [query.refetch]);

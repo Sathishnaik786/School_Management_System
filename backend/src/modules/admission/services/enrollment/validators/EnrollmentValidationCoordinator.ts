@@ -18,22 +18,20 @@ export class EnrollmentValidationCoordinator {
     ) {}
 
     /**
-     * Executes sequential validation pipeline checks.
+     * Validates offer, fees, payments, and receipts before admission confirmation is created.
+     */
+    public async validatePreConfirmation(applicationId: string): Promise<void> {
+        await this.offerVal.validate(applicationId);
+        await this.feeVal.validate(applicationId);
+        await this.paymentVal.validate(applicationId);
+        await this.receiptVal.validate(applicationId);
+    }
+
+    /**
+     * Executes sequential validation pipeline checks (post-confirmation / pre-provision).
      */
     public async validatePreEnrollment(applicationId: string): Promise<void> {
-        // Step 1: Offer accepted checks
-        await this.offerVal.validate(applicationId);
-
-        // Step 2: Fee assignments config checks
-        await this.feeVal.validate(applicationId);
-
-        // Step 3: Zero outstanding balance checks
-        await this.paymentVal.validate(applicationId);
-
-        // Step 4: Metadata receipts checks
-        await this.receiptVal.validate(applicationId);
-
-        // Step 5: Admission confirmation check
+        await this.validatePreConfirmation(applicationId);
         await this.confirmationVal.validate(applicationId);
     }
 

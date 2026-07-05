@@ -1,14 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { UserPlus, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useLeadDashboard } from '../../hooks/useLeads';
 import { useCreateEnquiry, useCreateVisitor } from '../../hooks/useInquiry';
 import { useFollowups, useCompleteFollowup } from '../../hooks/useFollowups';
 import { LeadMetricsPanel } from '../../components/inquiry/LeadMetrics';
 import { ActionQueueWidget } from '../../components/widgets/DashboardWidgets';
 import { findDuplicates } from '../../utils/duplicate.detector';
+import { parseAdmissionApiError } from '../../utils/admissionError.utils';
 import { LeadDuplicateAlert } from '../../components/inquiry/LeadDuplicateAlert';
+import { useAuth } from '../../../../context/AuthContext';
+import { useMasterData } from '../../context/MasterDataContext';
 
 export function ReceptionistDashboard() {
+    const { hasPermission } = useAuth();
+    const { grades } = useMasterData();
+    const canManageLeads = hasPermission('admission.leads.manage');
+
     const { metrics, allRecords, refetch } = useLeadDashboard();
     const { buckets } = useFollowups();
     const createEnquiry = useCreateEnquiry();
@@ -19,8 +27,15 @@ export function ReceptionistDashboard() {
     const [studentName, setStudentName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [grade, setGrade] = useState('Grade 1');
+    const [grade, setGrade] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
+
+    // Initialize default grade from dynamic master data
+    React.useEffect(() => {
+        if (grades.length > 0 && !grade) {
+            setGrade(grades[0].name);
+        }
+    }, [grades, grade]);
 
     const duplicates = useMemo(
         () =>
@@ -73,7 +88,7 @@ export function ReceptionistDashboard() {
                 setPhone('');
             }, 2000);
         } catch (err) {
-            console.error(err);
+            toast.error(parseAdmissionApiError(err).message);
         }
     };
 
@@ -151,9 +166,13 @@ export function ReceptionistDashboard() {
                                     onChange={e => setGrade(e.target.value)}
                                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer"
                                 >
-                                    {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(g => (
-                                        <option key={g} value={g}>{g}</option>
-                                    ))}
+                                    {grades.length === 0 ? (
+                                        <option value="">Loading grades...</option>
+                                    ) : (
+                                        grades.map(g => (
+                                            <option key={g.id} value={g.name}>{g.name}</option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                             <button
@@ -167,12 +186,14 @@ export function ReceptionistDashboard() {
                     )}
                 </div>
 
-                <div className="space-y-6">
-                    <ActionQueueWidget
-                        items={actionItems}
-                        onItemClick={(id: string) => completeFollowup.mutate(id)}
-                    />
-                </div>
+                {canManageLeads && (
+                    <div className="space-y-6">
+                        <ActionQueueWidget
+                            items={actionItems}
+                            onItemClick={(id: string) => completeFollowup.mutate(id)}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

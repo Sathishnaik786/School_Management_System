@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { admissionApi } from '../admission.api';
 import { AdmissionEngine, ADMISSION_EVENTS, ADMISSION_STALE_TIME } from '../core/AdmissionEngine';
+import { admissionEventBus } from '../core/AdmissionEvents';
 import {
     mapFollowups,
     categorizeFollowups,
@@ -9,18 +10,38 @@ import {
     type FollowupBucket,
 } from '../utils/followup.mapper';
 import type { Followup } from '../types/admission.types';
+import { useAuth } from '../../../context/AuthContext';
 
 export function useFollowups(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
+    const { hasPermission } = useAuth();
+    const canManage = hasPermission('admission.leads.manage');
     const query = useQuery({
         queryKey: AdmissionEngine.cacheKeys.followups(params),
         queryFn: () => admissionApi.getFollowups(params).then(res => res.data),
-        enabled: options?.enabled ?? true,
+        enabled: options?.enabled ?? canManage,
         staleTime: ADMISSION_STALE_TIME,
     });
 
     const followups = useMemo(() => mapFollowups(query.data), [query.data]);
     const buckets = useMemo(() => categorizeFollowups(followups), [followups]);
     const todayLeadIds = useMemo(() => getTodayFollowupLeadIds(followups), [followups]);
+
+    useEffect(() => {
+        const refresh = () => void query.refetch();
+        const unsubs = [
+            ADMISSION_EVENTS.INQUIRY_CREATED,
+            ADMISSION_EVENTS.INQUIRY_UPDATED,
+            ADMISSION_EVENTS.INQUIRY_CONVERTED,
+            ADMISSION_EVENTS.APPLICATION_CREATED,
+            ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.COUNSELOR_ASSIGNED,
+            ADMISSION_EVENTS.FOLLOWUP_COMPLETED,
+            ADMISSION_EVENTS.QUEUE_REFRESH,
+            ADMISSION_EVENTS.DASHBOARD_REFRESH,
+            ADMISSION_EVENTS.TIMELINE_REFRESH,
+        ].map(event => admissionEventBus.subscribe(event, refresh));
+        return () => unsubs.forEach(u => u());
+    }, [query.refetch]);
 
     return {
         followups,
@@ -44,6 +65,7 @@ export function useCreateFollowup() {
         onSuccess: () => {
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.INQUIRY_UPDATED);
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
+            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
         },
     });
 }

@@ -85,7 +85,7 @@ async function seed() {
         console.log('--- Phase 3.5: Ensuring Role Permission Maps ---');
         const rolePermissionMap = {
             RECEPTIONIST: ['admission.enquiry.create', 'admission.enquiry.view', 'admission.visitors.manage'],
-            COUNSELOR: ['admission.enquiry.view', 'admission.leads.manage'],
+            COUNSELOR: ['admission.enquiry.view', 'admission.leads.manage', 'admission.application.view', 'admission.document.upload', 'admission.document.view', 'admission.document.download'],
         };
         const { data: allPerms } = await supabase.from('permissions').select('id, code');
         const permByCode = {};

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../context/AuthContext';
 import { Toaster } from '../components/ui/sonner';
 import { WorkspaceProvider } from '../modules/common/workspace/WorkspaceProvider';
+import { MasterDataProvider } from '../modules/admission/context/MasterDataContext';
 
 // Initialize a shared, global QueryClient with default caching policies
 const queryClient = new QueryClient({
@@ -20,10 +21,13 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
         <QueryClientProvider client={queryClient}>
             <AuthProvider>
                 <WorkspaceProvider>
-                    {children}
-                    <Toaster position="top-right" richColors />
+                    <MasterDataProvider>
+                        {children}
+                        <Toaster position="top-right" richColors />
+                    </MasterDataProvider>
                 </WorkspaceProvider>
             </AuthProvider>
         </QueryClientProvider>
     );
 };
+

@@ -40,6 +40,32 @@ export class LeadRepository extends BaseRepository<AdmissionLead> implements ILe
         return data ? this.toDomain(data) : null;
     }
 
+    /**
+     * Finds a lead by its source enquiry_id (FK). Used to check if an enquiry
+     * was already auto-converted to a lead during counselor assignment.
+     */
+    public async findByEnquiryId(enquiryId: string): Promise<AdmissionLead | null> {
+        const { data, error } = await supabase
+            .from(this.tableName)
+            .select('*')
+            .is('deleted_at', null)
+            .eq('enquiry_id', enquiryId)
+            .maybeSingle();
+        if (error) throw error;
+        return data ? this.toDomain(data) : null;
+    }
+
+    public async findByEnquiryIds(enquiryIds: string[]): Promise<Map<string, AdmissionLead>> {
+        if (!enquiryIds.length) return new Map();
+        const { data, error } = await supabase
+            .from(this.tableName)
+            .select('*')
+            .is('deleted_at', null)
+            .in('enquiry_id', enquiryIds);
+        if (error) throw error;
+        return new Map((data ?? []).map(row => [row.enquiry_id, this.toDomain(row)]));
+    }
+
     public async save(lead: AdmissionLead): Promise<AdmissionLead> {
         const payload = this.toPersistence(lead);
         const { data, error } = await supabase

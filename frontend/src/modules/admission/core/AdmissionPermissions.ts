@@ -73,6 +73,18 @@ export const AdmissionPermissions = {
         );
     },
 
+    canViewApplication(ctx: PermissionContext): boolean {
+        if (AdmissionPermissions.isReceptionist(ctx) && !AdmissionPermissions.isAdmissionOfficer(ctx)) {
+            return false;
+        }
+        return (
+            AdmissionPermissions.canReviewApplications(ctx) ||
+            AdmissionPermissions.canViewOwnApplications(ctx) ||
+            AdmissionPermissions.isCounselor(ctx) ||
+            ctx.hasPermission('admission.application.view')
+        );
+    },
+
     canReviewApplications(ctx: PermissionContext): boolean {
         return ctx.hasPermission('admission.review') || AdmissionPermissions.isStaff(ctx);
     },

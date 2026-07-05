@@ -94,11 +94,22 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
     if (user.roles.some(r => ['ADMIN', 'FACULTY', 'HEAD_OF_INSTITUTE'].includes(r))) return next();
 
     if (user.login_status !== 'APPROVED') {
-        const allowedPaths = ['/me', '/admissions/my'];
+        const allowedPaths = [
+            '/me',
+            '/admissions/my',
+            '/v1/admission/my',
+            '/v1/admission/application/my',
+            '/v1/admission/application',
+            '/v1/admission/public-apply',
+            '/v1/admission/apply',
+        ];
         const isAllowed = allowedPaths.some(path => req.path === path || req.path.startsWith(path + '/'));
 
-        // Also allow specific admission detail view for status
+        // Legacy and CRM application detail views for pending-login parents
         if (req.path.match(/^\/admissions\/[0-9a-f-]{36}$/)) {
+            return next();
+        }
+        if (req.path.match(/^\/v1\/admission\/application\/[0-9a-f-]{36}(\/|$)/)) {
             return next();
         }
 

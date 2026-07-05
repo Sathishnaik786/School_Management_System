@@ -28,8 +28,8 @@ dashboardRouter.get('/admin/overview',
                 supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
                 supabase.from('classes').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
                 supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
-                supabase.from('admissions').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['submitted', 'under_review']),
-                supabase.from('admissions').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+                supabase.from('admission_applications').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['SUBMITTED', 'UNDER_REVIEW', 'DOCS_PENDING']),
+                supabase.from('admission_applications').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('is_current', true).is('deleted_at', null),
                 // PHASE-A: Real Fee Collection (Lifetime) - Note: In prod, replace with RPC for scale
                 supabase.from('payments').select('amount_paid'),
                 // PHASE-A: Real Attendance Activity (Today)
@@ -282,16 +282,40 @@ dashboardRouter.get('/parent/overview',
              `)
             .eq('parent_user_id', userId);
 
-        // 2. Fetch Active Admissions (In-progress)
-        const { data: admissions } = await supabase
-            .from('admissions')
-            .select('*')
-            .eq('applicant_user_id', userId)
-            .not('status', 'in', '("enrolled", "rejected")');
+        // 2. Fetch Active CRM Applications (In-progress)
+        const { data: crmApps } = await supabase
+            .from('admission_applications')
+            .select(`
+                id,
+                status,
+                created_at,
+                updated_at,
+                lead:lead_id (
+                    enquiry:enquiry_id (
+                        student_name,
+                        grade_applied_for,
+                        parent_email
+                    )
+                )
+            `)
+            .eq('created_by', userId)
+            .eq('is_current', true)
+            .is('deleted_at', null)
+            .not('status', 'in', '("ENROLLED","REJECTED","WITHDRAWN")');
+
+        const admissions = (crmApps ?? []).map((app: any) => ({
+            id: app.id,
+            status: (app.status ?? 'DRAFT').toLowerCase(),
+            student_name: app.lead?.enquiry?.student_name ?? 'Applicant',
+            grade_applied_for: app.lead?.enquiry?.grade_applied_for ?? '',
+            parent_email: app.lead?.enquiry?.parent_email ?? '',
+            created_at: app.created_at,
+            updated_at: app.updated_at,
+        }));
 
         res.json({
             children: children || [],
-            admissions: admissions || []
+            admissions
         });
     }
 );

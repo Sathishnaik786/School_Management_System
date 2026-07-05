@@ -12,8 +12,17 @@ export function useTimeline(applicationId?: string) {
     const apiQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.timeline(applicationId ?? ''),
         queryFn: async () => {
-            const { data } = await admissionApi.getTimeline(applicationId!);
-            return mapTimelineApiResponse(data);
+            try {
+                const { data } = await admissionApi.getCrmApplicationTimeline(applicationId!);
+                return mapTimelineApiResponse(data).map(entry => ({
+                    ...entry,
+                    action: entry.action === 'INITIALIZE_DRAFT' ? 'Application Created' : (entry.action ?? 'Status Updated'),
+                    timestamp: entry.timestamp ?? (entry as { created_at?: string }).created_at ?? '',
+                }));
+            } catch {
+                const { data } = await admissionApi.getTimeline(applicationId!);
+                return mapTimelineApiResponse(data);
+            }
         },
         enabled: !!applicationId,
         staleTime: ADMISSION_STALE_TIME,
@@ -23,6 +32,7 @@ export function useTimeline(applicationId?: string) {
         if (!applicationId) return;
         const refresh = () => void apiQuery.refetch();
         const unsubs = [
+            ADMISSION_EVENTS.APPLICATION_CREATED,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.APPLICATION_UPDATED,
             ADMISSION_EVENTS.ENROLLMENT_COMPLETED,

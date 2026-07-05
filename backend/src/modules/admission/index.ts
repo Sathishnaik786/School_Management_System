@@ -20,6 +20,7 @@ import { PaymentRepository } from './repositories/enrollment/PaymentRepository';
 import { ConfirmationRepository } from './repositories/enrollment/ConfirmationRepository';
 import { EnrollmentRepository } from './repositories/enrollment/EnrollmentRepository';
 import { StudentProvisionRepository } from './repositories/enrollment/StudentProvisionRepository';
+import { AtomicProvisionRepository } from './repositories/enrollment/AtomicProvisionRepository';
 
 import { FeatureFlagService } from './services/FeatureFlagService';
 import { AuditService } from './services/AuditService';
@@ -38,8 +39,11 @@ import { WorkflowValidator } from './services/application/validators/WorkflowVal
 import { AcademicValidator } from './services/application/validators/AcademicValidator';
 import { ApplicationValidationService } from './services/application/ApplicationValidationService';
 import { ApplicationWorkflowService } from './services/application/ApplicationWorkflowService';
+import { ApplicationWorkflowOrchestrator } from './services/application/ApplicationWorkflowOrchestrator';
 import { DraftService } from './services/application/DraftService';
 import { ApplicationService } from './services/application/ApplicationService';
+import { PublicApplicationService } from './services/application/PublicApplicationService';
+import { ApplicationProgressService } from './services/application/ApplicationProgressService';
 
 import { SupabaseStorageProvider } from './storage/providers/SupabaseStorageProvider';
 import { DocumentStateMachine } from './services/application/state-machine/DocumentStateMachine';
@@ -118,6 +122,7 @@ import { LeadController } from './controllers/crm/LeadController';
 import { FollowUpController } from './controllers/crm/FollowUpController';
 import { VisitorController } from './controllers/crm/VisitorController';
 import { ApplicationController } from './controllers/application/ApplicationController';
+import { PublicApplicationController } from './controllers/application/PublicApplicationController';
 import { DocumentController } from './controllers/application/DocumentController';
 import { EvaluationController } from './controllers/evaluation/EvaluationController';
 import { EnrollmentController } from './controllers/enrollment/EnrollmentController';
@@ -147,6 +152,7 @@ export const paymentRepository = new PaymentRepository();
 export const confirmationRepository = new ConfirmationRepository();
 export const enrollmentRepository = new EnrollmentRepository();
 export const studentProvisionRepository = new StudentProvisionRepository();
+export const atomicProvisionRepository = new AtomicProvisionRepository();
 
 // ==========================================
 // 2. STORAGE PROVIDER SINGLETONS
@@ -160,9 +166,8 @@ export const auditService = new AuditService();
 export const featureFlagService = new FeatureFlagService(featureFlagRepository);
 export const transactionService = new AdmissionCRMTransactionService(enquiryRepository);
 
-export const enquiryService = new EnquiryService(enquiryRepository, transactionService, auditService);
-export const leadService = new LeadService(leadRepository, auditService);
-export const counselorAssignmentService = new CounselorAssignmentService(leadRepository, auditService);
+export const leadService = new LeadService(leadRepository, enquiryRepository, applicationRepository, auditService);
+export const counselorAssignmentService = new CounselorAssignmentService(leadRepository, auditService, enquiryRepository, transactionService);
 export const followUpService = new FollowUpService(followUpRepository, leadRepository, auditService);
 export const visitorService = new VisitorService(visitorRepository, auditService);
 
@@ -188,12 +193,54 @@ export const applicationWorkflowService = new ApplicationWorkflowService(
     auditService
 );
 
+export const applicationWorkflowOrchestrator = new ApplicationWorkflowOrchestrator(
+    applicationWorkflowService,
+    applicationRepository,
+    documentRepository,
+    documentChecklistRepository,
+    documentTypeRepository,
+    interviewRepository,
+    examRepository,
+    feeRepository,
+    paymentRepository,
+    auditService
+);
+
 export const draftService = new DraftService(applicationRepository, auditService);
 
 export const applicationService = new ApplicationService(
     applicationRepository,
     applicationValidationService,
     applicationWorkflowService,
+    auditService,
+    applicationWorkflowOrchestrator
+);
+
+export const applicationProgressService = new ApplicationProgressService(
+    applicationRepository,
+    documentRepository,
+    documentChecklistRepository,
+    documentTypeRepository,
+    interviewRepository,
+    examRepository,
+    feeRepository,
+    paymentRepository
+);
+
+export const enquiryService = new EnquiryService(
+    enquiryRepository,
+    transactionService,
+    auditService,
+    leadRepository,
+    applicationRepository,
+    applicationService
+);
+
+export const publicApplicationService = new PublicApplicationService(
+    enquiryService,
+    counselorAssignmentService,
+    applicationService,
+    applicationRepository,
     auditService
 );
 
@@ -226,7 +273,8 @@ export const documentUploadService = new DocumentUploadService(
     documentValidationService,
     documentStorageProvider,
     checksumService,
-    auditService
+    auditService,
+    applicationWorkflowOrchestrator
 );
 
 export const documentDownloadService = new DocumentDownloadService(
@@ -240,11 +288,12 @@ export const documentVerificationService = new DocumentVerificationService(
     documentTypeRepository,
     applicationRepository,
     documentStateMachine,
-    auditService
+    auditService,
+    applicationWorkflowOrchestrator
 );
 
 export const documentChecklistService = new DocumentChecklistService(documentChecklistRepository);
-export const documentVersionService = new DocumentVersionService(documentVersionRepository);
+export const documentVersionService = new DocumentVersionService(documentVersionRepository, documentRepository);
 export const documentService = new DocumentService(documentRepository);
 
 // Sprint 5 State Machines & Validators
@@ -254,16 +303,33 @@ export const offerStateMachine = new OfferStateMachine(offerRepository);
 
 export const evalApplicationValidator = new EvalApplicationValidator(applicationRepository);
 export const evalDocumentValidator = new EvalDocumentValidator(documentRepository, documentChecklistRepository, applicationRepository);
-export const examValidator = new ExamValidator(evalApplicationValidator, evalDocumentValidator);
-export const interviewValidator = new InterviewValidator(examRepository);
+export const examValidator = new ExamValidator(evalApplicationValidator, evalDocumentValidator, interviewRepository);
+export const interviewValidator = new InterviewValidator(applicationRepository, interviewRepository);
 export const meritValidator = new MeritValidator(examRepository, interviewRepository);
 
 // Sprint 5 Evaluation Services
 export const examService = new ExamService(examRepository, applicationRepository, examValidator, auditService);
 export const attendanceService = new AttendanceService(examRepository, applicationRepository, auditService);
-export const resultService = new ResultService(examRepository, applicationRepository, auditService);
-export const interviewService = new InterviewService(interviewRepository, applicationRepository, interviewValidator, auditService);
-export const interviewEvaluationService = new InterviewEvaluationService(interviewRepository, applicationRepository, interviewStateMachine, auditService);
+export const resultService = new ResultService(
+    examRepository,
+    applicationRepository,
+    auditService,
+    applicationWorkflowOrchestrator
+);
+export const interviewService = new InterviewService(
+    interviewRepository,
+    applicationRepository,
+    interviewValidator,
+    auditService,
+    applicationWorkflowOrchestrator
+);
+export const interviewEvaluationService = new InterviewEvaluationService(
+    interviewRepository,
+    applicationRepository,
+    interviewStateMachine,
+    auditService,
+    applicationWorkflowOrchestrator
+);
 export const weightCalculator = new WeightCalculator();
 export const tieBreaker = new TieBreaker();
 export const rankGenerator = new RankGenerator(tieBreaker);
@@ -285,9 +351,9 @@ export const evaluationService = new EvaluationService(evaluationRepository);
 // Sprint 6 State Machine & Validators
 export const enrollmentStateMachine = new EnrollmentStateMachine(enrollmentRepository);
 
-export const offerValidator = new OfferValidator(offerRepository);
-export const feeValidator = new FeeValidator(feeRepository);
-export const paymentValidator = new PaymentValidator(feeRepository);
+export const offerValidator = new OfferValidator(offerRepository, applicationRepository);
+export const feeValidator = new FeeValidator(feeRepository, paymentRepository);
+export const paymentValidator = new PaymentValidator(feeRepository, paymentRepository);
 export const receiptValidator = new ReceiptValidator(paymentRepository);
 export const confirmationValidator = new ConfirmationValidator(confirmationRepository);
 export const studentProvisionValidator = new StudentProvisionValidator(studentProvisionRepository);
@@ -318,7 +384,13 @@ export const feeStructureService = new FeeStructureService(feeRepository);
 export const feeAssignmentService = new FeeAssignmentService(feeRepository, auditService);
 export const feeCalculationService = new FeeCalculationService(feeRepository);
 export const feeWaiverService = new FeeWaiverService(feeRepository, auditService);
-export const paymentService = new PaymentService(paymentRepository, feeRepository, applicationRepository, auditService);
+export const paymentService = new PaymentService(
+    paymentRepository,
+    feeRepository,
+    applicationRepository,
+    auditService,
+    applicationWorkflowOrchestrator
+);
 export const receiptService = new ReceiptService(paymentRepository);
 export const paymentVerificationService = new PaymentVerificationService(paymentRepository, paymentService, auditService);
 export const admissionNumberGenerator = new AdmissionNumberGenerator(confirmationRepository);
@@ -332,15 +404,9 @@ export const admissionConfirmationService = new AdmissionConfirmationService(
 );
 export const studentProvisionService = new StudentProvisionService(
     studentProvisionRepository,
+    atomicProvisionRepository,
     applicationRepository,
-    studentMasterProvisioner,
-    academicProvisioner,
-    parentProvisioner,
-    userProvisioner,
-    transportProvisioner,
-    hostelProvisioner,
-    libraryProvisioner,
-    idCardProvisioner
+    auditService
 );
 export const enrollmentService = new EnrollmentService(
     enrollmentRepository,
@@ -349,7 +415,8 @@ export const enrollmentService = new EnrollmentService(
     enrollmentValidationCoordinator,
     studentProvisionService,
     enrollmentStateMachine,
-    auditService
+    auditService,
+    applicationWorkflowOrchestrator
 );
 export const enrollmentTimelineService = new EnrollmentTimelineService(enrollmentRepository);
 
@@ -364,15 +431,21 @@ export const applicationController = new ApplicationController(
     applicationService,
     draftService,
     applicationWorkflowService,
-    featureFlagService
+    applicationProgressService,
+    applicationWorkflowOrchestrator,
+    featureFlagService,
+    publicApplicationService
 );
+export const publicApplicationController = new PublicApplicationController(publicApplicationService);
 export const documentController = new DocumentController(
     documentService,
     documentUploadService,
     documentDownloadService,
     documentVerificationService,
     documentChecklistService,
-    featureFlagService
+    documentVersionService,
+    featureFlagService,
+    applicationService
 );
 export const evaluationController = new EvaluationController(
     examService,
@@ -384,6 +457,7 @@ export const evaluationController = new EvaluationController(
     offerService,
     evaluationService,
     applicationRepository,
+    applicationService,
     featureFlagService
 );
 export const enrollmentController = new EnrollmentController(
@@ -397,5 +471,6 @@ export const enrollmentController = new EnrollmentController(
     enrollmentService,
     enrollmentTimelineService,
     confirmationRepository,
-    featureFlagService
+    featureFlagService,
+    applicationService
 );

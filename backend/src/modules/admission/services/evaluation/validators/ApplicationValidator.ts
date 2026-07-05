@@ -15,9 +15,22 @@ export class ApplicationValidator {
             throw new BusinessRuleError(`Application with ID ${applicationId} is soft-deleted`);
         }
 
-        if (app.status !== 'SUBMITTED') {
+        const evaluationEligible = new Set([
+            'SUBMITTED',
+            'UNDER_REVIEW',
+            'DOCS_PENDING',
+            'DOCUMENT_VERIFIED',
+            'INTERVIEW',
+            'EXAM',
+            'MERIT',
+            'FEE_PENDING',
+            'FEE_VERIFIED',
+            'OFFERED',
+        ]);
+
+        if (!evaluationEligible.has(app.status)) {
             throw new BusinessRuleError(
-                `Application must be in SUBMITTED status before entering the evaluation pipeline. Current status: ${app.status}`
+                `Application is not eligible for the evaluation pipeline. Current status: ${app.status}`
             );
         }
     }

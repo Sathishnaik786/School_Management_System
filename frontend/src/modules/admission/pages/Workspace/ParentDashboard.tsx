@@ -6,8 +6,11 @@ import { useApplicant360 } from '../../hooks/useApplicant360';
 import { formatStatusLabel } from '../../core/AdmissionStatusMapper';
 
 export function ParentDashboard() {
-    const { applications, isLoading } = useApplicationList({ limit: 20 });
-    const primaryApp = applications[0];
+    const { applications, isLoading } = useApplicationList({ limit: 20 }, { mine: true });
+    const activeApplications = applications.filter(
+        app => !['enrolled', 'rejected', 'withdrawn'].includes(app.status.toLowerCase())
+    );
+    const primaryApp = activeApplications[0] ?? applications[0];
     const { view, isLoading: viewLoading } = useApplicant360(primaryApp?.id);
 
     if (isLoading || viewLoading) {

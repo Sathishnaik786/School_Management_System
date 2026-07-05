@@ -18,20 +18,20 @@ export const BULK_OPERATIONS: BulkOperationConfig[] = [
         id: 'admissions-verify-docs',
         label: 'Verify Documents',
         module: 'admissions',
-        endpoint: '/admissions/bulk/verify-docs',
+        endpoint: '/v1/admission/application/documents/verify/bulk',
         confirmMessage: 'Verify documents for selected applications?',
     },
     {
         id: 'admissions-assign-counselor',
         label: 'Assign Counselor',
         module: 'admissions',
-        endpoint: '/admissions/bulk/assign-counselor',
+        endpoint: '/v1/admission/crm/leads/bulk/assign',
     },
     {
         id: 'admissions-approve',
         label: 'Approve',
         module: 'admissions',
-        endpoint: '/admissions/bulk/approve',
+        endpoint: '/v1/admission/application/bulk/approve',
         confirmMessage: 'Approve selected applications?',
     },
     // Students

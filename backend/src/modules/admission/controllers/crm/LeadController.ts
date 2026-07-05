@@ -68,16 +68,23 @@ export class LeadController {
         try {
             await this.checkFlags(req);
             const { id } = req.params;
-            const { strategy, counselor_id, updated_at } = req.body;
+            const { strategy, counselor_id, counselorId, updated_at, updatedAt } = req.body;
+            const resolvedCounselorId = counselor_id || counselorId;
+            const resolvedUpdatedAt = updated_at || updatedAt;
             const correlationId = req.headers['x-correlation-id'] as string;
+            const userId = req.context?.user?.id || null;
 
             const data = await this.assignmentService.assignCounselor(
                 id,
                 strategy || 'manual',
-                { counselorId: counselor_id, updatedAt: updated_at },
-                correlationId
+                { counselorId: resolvedCounselorId, updatedAt: resolvedUpdatedAt },
+                correlationId,
+                userId
             );
-            res.json({ success: true, lead: data, message: 'Counselor assigned successfully' });
+            const message = (resolvedCounselorId && data.counselorId === resolvedCounselorId)
+                ? 'Lead already assigned'
+                : 'Counselor assigned successfully';
+            res.json({ success: true, lead: data, message });
         } catch (err) {
             handleControllerError(res, err);
         }

@@ -30,15 +30,15 @@ export function useGlobalSearch() {
 
             if (category === 'all' || category === 'admissions') {
                 try {
-                    const res = await apiClient.get('/admissions', { params: { search: query, limit: 5 } });
+                    const res = await apiClient.get('/v1/admission/application', { params: { search: query, limit: 5 } });
                     const items = res.data?.data || res.data?.admissions || res.data || [];
-                    (Array.isArray(items) ? items : []).slice(0, 5).forEach((a: { id: string; applicant_name?: string; application_code?: string }) => {
+                    (Array.isArray(items) ? items : []).slice(0, 5).forEach((a: { id: string; student_name?: string; applicant_name?: string; application_code?: string }) => {
                         apiResults.push({
                             id: `adm-${a.id}`,
-                            label: a.applicant_name || a.application_code || 'Application',
+                            label: a.student_name || a.applicant_name || a.application_code || 'Application',
                             sub: a.application_code,
                             module: 'admissions',
-                            href: `/app/admissions/review/${a.id}`,
+                            href: `/app/admissions/${a.id}`,
                         });
                     });
                 } catch {

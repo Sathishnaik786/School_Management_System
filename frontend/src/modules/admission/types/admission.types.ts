@@ -148,6 +148,11 @@ export interface AdmissionInquiry {
     assigned_counselor_id?: string;
     application_id?: string;
     counselor?: string;
+    enquiry_id?: string;
+    lead_id?: string;
+    converted_at?: string;
+    assigned_at?: string;
+    assigned_by?: string;
 }
 
 export interface Lead extends AdmissionInquiry {

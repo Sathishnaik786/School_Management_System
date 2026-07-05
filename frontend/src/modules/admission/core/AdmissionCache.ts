@@ -14,6 +14,8 @@ export const ADMISSION_CACHE_KEYS = {
     lists: (params?: Record<string, unknown>) =>
         [...ALL_KEY, 'list', params ?? {}] as const,
 
+    myApplications: () => [...ALL_KEY, 'my'] as const,
+
     detail: (id: string) => [...ALL_KEY, 'detail', id] as const,
 
     stats: (schoolId?: string) => [...ALL_KEY, 'stats', schoolId ?? 'all'] as const,
@@ -43,6 +45,8 @@ export const ADMISSION_CACHE_KEYS = {
     timeline: (applicationId: string) => [...ALL_KEY, 'timeline', applicationId] as const,
 
     documents: (applicationId: string) => [...ALL_KEY, 'documents', applicationId] as const,
+
+    progress: (applicationId: string) => [...ALL_KEY, 'progress', applicationId] as const,
 
     payments: (applicationId: string) => [...ALL_KEY, 'payments', applicationId] as const,
 

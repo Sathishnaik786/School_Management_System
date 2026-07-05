@@ -1,18 +1,27 @@
 import { BaseService } from '../BaseService';
 import { EnquiryRepository } from '../../repositories/crm/EnquiryRepository';
+import { LeadRepository } from '../../repositories/crm/LeadRepository';
+import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
 import { AdmissionEnquiry, EnquirySource } from '../../domain/AdmissionEnquiry';
 import { createEnquirySchema } from '../../dto/create-enquiry.dto';
 import { updateEnquirySchema } from '../../dto/update-enquiry.dto';
 import { AdmissionCRMTransactionService } from './AdmissionCRMTransactionService';
+import { ApplicationService } from '../application/ApplicationService';
 import { AuditService } from '../AuditService';
 import { ConflictError } from '../../errors/ConflictError';
 import { NotFoundError } from '../../errors/NotFoundError';
+import { BusinessRuleError } from '../../errors/BusinessRuleError';
+import { ValidationError } from '../../errors/ValidationError';
+import { mapEnquiryToApiRecord, resolveAssignmentHistory, resolveCounselorNames } from './CrmRecordMapper';
 
 export class EnquiryService extends BaseService {
     constructor(
         private readonly enquiryRepo: EnquiryRepository,
         private readonly transactionService: AdmissionCRMTransactionService,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly leadRepo: LeadRepository,
+        private readonly appRepo: ApplicationRepository,
+        private readonly applicationService: ApplicationService
     ) {
         super();
     }
@@ -112,12 +121,18 @@ export class EnquiryService extends BaseService {
         return saved;
     }
 
-    public async getEnquiryById(id: string): Promise<AdmissionEnquiry> {
+    public async getEnquiryById(id: string): Promise<Record<string, unknown>> {
         const enquiry = await this.enquiryRepo.findById(id);
         if (!enquiry) {
             throw new NotFoundError(`Enquiry with ID ${id} not found`);
         }
-        return enquiry;
+        const lead = await this.leadRepo.findByEnquiryId(id);
+        const applicationId = lead ? (await this.appRepo.findCurrentByLeadId(lead.id))?.id ?? null : null;
+        const counselorName = lead?.counselorId
+            ? (await resolveCounselorNames([lead.counselorId])).get(lead.counselorId) ?? null
+            : null;
+        const assignmentMap = lead ? await resolveAssignmentHistory([lead.id]) : new Map();
+        return mapEnquiryToApiRecord(enquiry, lead, applicationId, counselorName, lead ? assignmentMap.get(lead.id) : undefined);
     }
 
     public async deleteEnquiry(id: string, correlationId?: string): Promise<void> {
@@ -146,11 +161,46 @@ export class EnquiryService extends BaseService {
         search?: string,
         sortColumn?: string,
         sortOrder?: 'asc' | 'desc'
-    ): Promise<{ data: AdmissionEnquiry[]; total: number }> {
-        return this.enquiryRepo.findAll(schoolId, page, limit, filters, search, sortColumn, sortOrder);
+    ): Promise<{ data: Record<string, unknown>[]; total: number }> {
+        const { data: enquiries, total } = await this.enquiryRepo.findAll(
+            schoolId,
+            page,
+            limit,
+            filters,
+            search,
+            sortColumn,
+            sortOrder
+        );
+
+        const enquiryIds = enquiries.map(e => e.id);
+        const leadMap = await this.leadRepo.findByEnquiryIds(enquiryIds);
+        const applicationMap = await this.appRepo.findCurrentIdsByLeadIds(
+            [...leadMap.values()].map(l => l.id)
+        );
+        const counselorNames = await resolveCounselorNames(
+            [...leadMap.values()].map(l => l.counselorId).filter(Boolean) as string[]
+        );
+        const assignmentMap = await resolveAssignmentHistory([...leadMap.values()].map(l => l.id));
+
+        const data = await Promise.all(
+            enquiries.map(enquiry => {
+                const lead = leadMap.get(enquiry.id) ?? null;
+                const applicationId = lead ? applicationMap.get(lead.id) ?? null : null;
+                const counselorName = lead?.counselorId ? counselorNames.get(lead.counselorId) ?? null : null;
+                return mapEnquiryToApiRecord(
+                    enquiry,
+                    lead,
+                    applicationId,
+                    counselorName,
+                    lead ? assignmentMap.get(lead.id) : undefined
+                );
+            })
+        );
+
+        return { data, total };
     }
 
-    public async convertToLead(enquiryId: string, correlationId?: string): Promise<string> {
+    public async convertToLead(enquiryId: string, correlationId?: string, userId?: string | null): Promise<string> {
         const enquiry = await this.enquiryRepo.findById(enquiryId);
         if (!enquiry) {
             throw new NotFoundError(`Enquiry with ID ${enquiryId} not found`);
@@ -160,21 +210,120 @@ export class EnquiryService extends BaseService {
             throw new ConflictError('Enquiry is already converted to a lead');
         }
 
-        const leadId = crypto.randomUUID();
+        // Step 1: Look up an existing lead for this enquiry (created during assignment)
+        let existingLead = await this.leadRepo.findByEnquiryId(enquiryId);
 
-        // Perform atomic transition via transactional query executor
-        await this.transactionService.convertEnquiryToLead(enquiryId, leadId, correlationId);
+        // Step 2: Resolve counselorId — prefer lead.counselorId over remarks fallback
+        let counselorId: string | null | undefined = existingLead?.counselorId ?? null;
+
+        if (!counselorId) {
+            // Fallback: check remarks for legacy compatibility
+            let remarksObj: Record<string, any> = {};
+            if (enquiry.remarks) {
+                try {
+                    remarksObj = JSON.parse(enquiry.remarks);
+                } catch (e) {
+                    // Ignore parse errors for non-JSON remarks
+                }
+            }
+            counselorId = remarksObj.counselor_id || null;
+        }
+
+        if (!counselorId) {
+            throw new BusinessRuleError('Inquiry must be assigned a counselor before conversion');
+        }
+
+        let leadId: string;
+
+        if (existingLead) {
+            // Lead already exists (created during assignment) — only mark enquiry as converted
+            leadId = existingLead.id;
+            const { error } = await (await import('../../../../config/supabase')).supabase
+                .from('admission_enquiries')
+                .update({ status: 'converted', updated_at: new Date().toISOString() })
+                .eq('id', enquiryId);
+            if (error) {
+                this.logError('Failed to mark enquiry as converted', error, correlationId);
+                throw new Error(`Failed to update enquiry status: ${error.message}`);
+            }
+        } else {
+            // No lead yet — create it atomically via transaction
+            leadId = crypto.randomUUID();
+            await this.transactionService.convertEnquiryToLead(enquiryId, leadId, correlationId, counselorId);
+        }
 
         await this.auditService.logAudit({
-            userId: null,
+            userId: userId || null,
             action: 'CONVERT_ENQUIRY',
             entityName: 'admission_enquiries',
             entityId: enquiryId,
-            afterState: { leadId },
+            afterState: { leadId, counselorId },
             correlationId
         });
 
         return leadId;
+    }
+
+    /**
+     * Converts an enquiry to a lead and creates exactly one CRM application.
+     * Idempotent: returns existing application if already created for the lead.
+     */
+    public async convertToApplication(
+        enquiryId: string,
+        correlationId?: string,
+        userId?: string | null
+    ): Promise<{ leadId: string; applicationId: string }> {
+        const enquiry = await this.enquiryRepo.findById(enquiryId);
+        if (!enquiry) {
+            throw new NotFoundError(`Enquiry with ID ${enquiryId} not found`);
+        }
+
+        let leadId: string;
+        if (enquiry.status === 'converted') {
+            const existingLead = await this.leadRepo.findByEnquiryId(enquiryId);
+            if (!existingLead) {
+                throw new BusinessRuleError('Enquiry is converted but no lead record exists');
+            }
+            leadId = existingLead.id;
+        } else {
+            leadId = await this.convertToLead(enquiryId, correlationId, userId);
+        }
+
+        const existingApp = await this.appRepo.findCurrentByLeadId(leadId);
+        if (existingApp) {
+            return { leadId, applicationId: existingApp.id };
+        }
+
+        if (!enquiry.dateOfBirth) {
+            throw new ValidationError('Date of birth is required on the inquiry before converting to an application');
+        }
+
+        const application = await this.applicationService.createApplication(
+            enquiry.schoolId,
+            enquiry.academicYearId,
+            userId ?? null,
+            {
+                lead_id: leadId,
+                grade: enquiry.gradeAppliedFor,
+                student_name: enquiry.studentName,
+                date_of_birth: enquiry.dateOfBirth.toISOString().split('T')[0],
+                gender: enquiry.gender || 'Other',
+            },
+            correlationId
+        );
+
+        await this.auditService.logStatusChange({
+            entityName: 'admission_leads',
+            entityId: leadId,
+            oldStatus: null,
+            newStatus: 'INTERESTED',
+            changedBy: userId ?? null,
+            reason: 'Lead converted to application',
+            correlationId,
+            eventName: 'LeadConverted'
+        });
+
+        return { leadId, applicationId: application.id };
     }
 
     public async checkDuplicates(enquiryData: any): Promise<{ status: 'no_duplicate' | 'potentials_found' | 'exact_match' | 'merge_candidate'; matches: any[] }> {

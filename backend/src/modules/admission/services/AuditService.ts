@@ -28,7 +28,7 @@ export class AuditService extends BaseService {
                     after_state: logData.afterState || null,
                     ip_address: logData.ipAddress || null,
                     user_agent: logData.userAgent || null,
-                    correlation_id: logData.correlationId || null
+                    correlation_id: this.sanitizeCorrelationId(logData.correlationId)
                 });
 
             if (error) throw error;
@@ -63,7 +63,7 @@ export class AuditService extends BaseService {
                     changed_by: statusData.changedBy || null,
                     reason: statusData.reason || null,
                     metadata: statusData.metadata || null,
-                    correlation_id: statusData.correlationId || null,
+                    correlation_id: this.sanitizeCorrelationId(statusData.correlationId),
                     event_name: statusData.eventName || null
                 });
 

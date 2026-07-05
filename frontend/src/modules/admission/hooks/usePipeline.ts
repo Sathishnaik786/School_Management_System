@@ -19,6 +19,7 @@ import { AdmissionPermissions, type PermissionContext } from '../core/AdmissionP
 import type { WorkflowActionType } from './useWorkflow';
 
 const REFRESH_EVENTS = [
+    ADMISSION_EVENTS.APPLICATION_CREATED,
     ADMISSION_EVENTS.APPLICATION_UPDATED,
     ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
     ADMISSION_EVENTS.DOCUMENT_VERIFIED,
@@ -26,8 +27,10 @@ const REFRESH_EVENTS = [
     ADMISSION_EVENTS.OFFER_SENT,
     ADMISSION_EVENTS.ENROLLMENT_COMPLETED,
     ADMISSION_EVENTS.INQUIRY_CONVERTED,
+    ADMISSION_EVENTS.COUNSELOR_ASSIGNED,
     ADMISSION_EVENTS.QUEUE_REFRESH,
     ADMISSION_EVENTS.DASHBOARD_REFRESH,
+    ADMISSION_EVENTS.TIMELINE_REFRESH,
 ] as const;
 
 function canExecuteAction(action: WorkflowActionType, ctx: PermissionContext): boolean {
@@ -113,13 +116,17 @@ export function usePipeline(permissionCtx: PermissionContext, params?: { search?
             const action = resolvePipelineWorkflowAction(card.legacyStatus ?? '', targetColumn);
             if (action) {
                 const eventKey = workflowActionToEvent(action);
-                const eventMap = {
+                const eventMap: Record<string, typeof ADMISSION_EVENTS[keyof typeof ADMISSION_EVENTS]> = {
                     DOCUMENT_VERIFIED: ADMISSION_EVENTS.DOCUMENT_VERIFIED,
                     PAYMENT_VERIFIED: ADMISSION_EVENTS.PAYMENT_VERIFIED,
+                    FEE_PAID: ADMISSION_EVENTS.FEE_PAID,
                     ENROLLMENT_COMPLETED: ADMISSION_EVENTS.ENROLLMENT_COMPLETED,
+                    ERP_STUDENT_CREATED: ADMISSION_EVENTS.ERP_STUDENT_CREATED,
+                    APPLICATION_REVIEWED: ADMISSION_EVENTS.APPLICATION_REVIEWED,
+                    APPLICATION_APPROVED: ADMISSION_EVENTS.APPLICATION_APPROVED,
                     APPLICATION_UPDATED: ADMISSION_EVENTS.APPLICATION_UPDATED,
-                } as const;
-                AdmissionEngine.dispatch(queryClient, eventMap[eventKey], { applicationId: card.id });
+                };
+                AdmissionEngine.dispatch(queryClient, eventMap[eventKey] ?? ADMISSION_EVENTS.APPLICATION_UPDATED, { applicationId: card.id });
                 AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
                 AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
                 AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.TIMELINE_REFRESH, { applicationId: card.id });

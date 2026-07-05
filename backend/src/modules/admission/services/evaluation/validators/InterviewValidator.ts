@@ -1,22 +1,35 @@
-import { ExamRepository } from '../../../repositories/evaluation/ExamRepository';
+import { ApplicationRepository } from '../../../repositories/application/ApplicationRepository';
+import { InterviewRepository } from '../../../repositories/evaluation/InterviewRepository';
 import { BusinessRuleError } from '../../../errors/BusinessRuleError';
 
+const INTERVIEW_ELIGIBLE_STATUSES = new Set([
+    'DOCUMENT_VERIFIED',
+    'INTERVIEW',
+    'UNDER_REVIEW',
+    'SUBMITTED',
+]);
+
 export class InterviewValidator {
-    constructor(private readonly examRepo: ExamRepository) {}
+    constructor(
+        private readonly appRepo: ApplicationRepository,
+        private readonly interviewRepo: InterviewRepository
+    ) {}
 
     public async validate(applicationId: string): Promise<void> {
-        const candidate = await this.examRepo.findCandidateByApplicationId(applicationId);
-        if (!candidate) {
-            throw new BusinessRuleError(`Candidate has not been scheduled or allocated for any entrance exam.`);
+        const application = await this.appRepo.findById(applicationId);
+        if (!application) {
+            throw new BusinessRuleError(`Application ${applicationId} not found.`);
         }
 
-        if (candidate.attendance_status === 'ABSENT') {
-            throw new BusinessRuleError(`Candidate was marked ABSENT during the entrance exam session.`);
+        if (!INTERVIEW_ELIGIBLE_STATUSES.has(application.status)) {
+            throw new BusinessRuleError(
+                `Application must have verified documents before scheduling interview. Current status: ${application.status}.`
+            );
         }
 
-        const results = await this.examRepo.findResultsByCandidateId(candidate.id);
-        if (!results || results.length === 0) {
-            throw new BusinessRuleError(`Entrance exam evaluation marks have not been published for this candidate yet.`);
+        const existing = await this.interviewRepo.findByApplicationId(applicationId);
+        if (existing) {
+            throw new BusinessRuleError(`An interview is already scheduled for this application.`);
         }
     }
 }

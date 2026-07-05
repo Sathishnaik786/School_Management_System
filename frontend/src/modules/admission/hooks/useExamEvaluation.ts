@@ -24,7 +24,7 @@ import {
 } from '../utils/evaluation.workflow';
 
 function dispatchExamEvents(queryClient: ReturnType<typeof useQueryClient>, applicationId: string) {
-    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_UPDATED, { applicationId });
+    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.EXAM_COMPLETED, { applicationId });
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.TIMELINE_REFRESH, { applicationId });
@@ -45,7 +45,7 @@ export function useExamEvaluation(applicationId?: string, permissionCtx?: Permis
             void examQuery.refetch();
         };
         const unsubs = [
-            ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.EXAM_COMPLETED,
             ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.QUEUE_REFRESH,

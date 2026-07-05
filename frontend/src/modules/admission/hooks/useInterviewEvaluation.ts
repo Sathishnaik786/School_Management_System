@@ -22,8 +22,18 @@ import {
     type InterviewActionPayload,
 } from '../utils/interview.workflow';
 
-function dispatchInterviewEvents(queryClient: ReturnType<typeof useQueryClient>, applicationId: string) {
-    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_UPDATED, { applicationId });
+function dispatchInterviewEvents(
+    queryClient: ReturnType<typeof useQueryClient>,
+    applicationId: string,
+    action?: 'schedule' | 'evaluate' | 'update',
+) {
+    const event =
+        action === 'schedule'
+            ? ADMISSION_EVENTS.INTERVIEW_CREATED
+            : action === 'evaluate'
+              ? ADMISSION_EVENTS.INTERVIEW_UPDATED
+              : ADMISSION_EVENTS.INTERVIEW_UPDATED;
+    AdmissionEngine.dispatch(queryClient, event, { applicationId });
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_LIST_CHANGED);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
@@ -45,7 +55,8 @@ export function useInterviewEvaluation(applicationId?: string, permissionCtx?: P
             void meritQuery.refetch();
         };
         const unsubs = [
-            ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.INTERVIEW_CREATED,
+            ADMISSION_EVENTS.INTERVIEW_UPDATED,
             ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.QUEUE_REFRESH,
@@ -99,8 +110,10 @@ export function useInterviewEvaluation(applicationId?: string, permissionCtx?: P
         }) => executeInterviewApi(api, payload),
         onSuccess: (_, variables) => {
             const appId = (variables.payload.applicationId ?? variables.payload.application_id) as string | undefined;
-            if (appId) dispatchInterviewEvents(queryClient, appId);
-            else if (applicationId) dispatchInterviewEvents(queryClient, applicationId);
+            const apiAction =
+                variables.api === 'scheduleInterview' ? 'schedule' : 'evaluate';
+            if (appId) dispatchInterviewEvents(queryClient, appId, apiAction);
+            else if (applicationId) dispatchInterviewEvents(queryClient, applicationId, apiAction);
         },
     });
 
@@ -153,7 +166,7 @@ export function useInterviewEvaluation(applicationId?: string, permissionCtx?: P
                     await interviewMutation.mutateAsync({ api: plan.interviewApi, payload: plan.payload });
                 } else if (plan.workflowAction) {
                     await executeAction(plan.workflowAction, { remark: plan.remark });
-                    dispatchInterviewEvents(queryClient, applicationId);
+                    dispatchInterviewEvents(queryClient, applicationId, 'update');
                 }
                 toast.success(`${action.replace(/_/g, ' ')} completed`);
                 await Promise.all([refetchApp(), meritQuery.refetch()]);

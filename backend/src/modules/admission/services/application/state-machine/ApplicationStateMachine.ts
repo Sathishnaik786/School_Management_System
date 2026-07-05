@@ -18,19 +18,19 @@ export class ApplicationStateMachine {
         if (!isAllowed) {
             // Static fallback for safety/testing enforcing Phase 2 transition matrices
             const fallbackRules: Record<string, string[]> = {
-                'DRAFT': ['SUBMITTED', 'IN_PROGRESS'],
-                'IN_PROGRESS': ['UNDER_REVIEW', 'SUBMITTED'],
-                'SUBMITTED': ['UNDER_REVIEW'],
-                'UNDER_REVIEW': ['DOCS_PENDING', 'DOCUMENT_VERIFIED', 'CORRECTION_REQUIRED'],
-                'CORRECTION_REQUIRED': ['IN_PROGRESS'],
-                'DOCS_PENDING': ['UNDER_REVIEW', 'SUBMITTED'],
-                'DOCUMENT_VERIFIED': ['EXAM'],
-                'EXAM': ['INTERVIEW', 'MERIT'],
-                'INTERVIEW': ['MERIT'],
-                'MERIT': ['OFFERED'],
-                'OFFERED': ['FEE_PENDING'],
-                'FEE_PENDING': ['FEE_VERIFIED'],
-                'FEE_VERIFIED': ['ENROLLED'],
+                'DRAFT': ['SUBMITTED', 'IN_PROGRESS', 'DOCS_PENDING'],
+                'IN_PROGRESS': ['UNDER_REVIEW', 'SUBMITTED', 'DOCS_PENDING'],
+                'SUBMITTED': ['UNDER_REVIEW', 'DOCS_PENDING'],
+                'UNDER_REVIEW': ['DOCS_PENDING', 'DOCUMENT_VERIFIED', 'CORRECTION_REQUIRED', 'OFFERED'],
+                'CORRECTION_REQUIRED': ['IN_PROGRESS', 'DOCS_PENDING'],
+                'DOCS_PENDING': ['UNDER_REVIEW', 'SUBMITTED', 'DOCUMENT_VERIFIED'],
+                'DOCUMENT_VERIFIED': ['INTERVIEW', 'EXAM'],
+                'INTERVIEW': ['EXAM', 'MERIT', 'FEE_PENDING'],
+                'EXAM': ['MERIT', 'FEE_PENDING', 'UNDER_REVIEW'],
+                'MERIT': ['OFFERED', 'FEE_PENDING', 'UNDER_REVIEW'],
+                'OFFERED': ['FEE_PENDING', 'FEE_VERIFIED'],
+                'FEE_PENDING': ['FEE_VERIFIED', 'UNDER_REVIEW'],
+                'FEE_VERIFIED': ['ENROLLED', 'OFFERED'],
                 'ENROLLED': []
             };
 
@@ -43,6 +43,9 @@ export class ApplicationStateMachine {
 
             // Role-based Transition Restrictor (Except for ADMIN bypass)
             const normalizedRole = role.toUpperCase();
+            if (normalizedRole === 'WORKFLOW_ORCHESTRATOR') {
+                return;
+            }
             if (normalizedRole !== 'ADMIN') {
                 if (['DRAFT', 'DOCS_PENDING'].includes(fromStatus) && toStatus === 'SUBMITTED') {
                     if (normalizedRole !== 'PARENT' && normalizedRole !== 'COUNSELOR') {

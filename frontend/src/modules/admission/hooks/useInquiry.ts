@@ -50,13 +50,27 @@ export function useUpdateEnquiry() {
 export function useConvertEnquiry() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: string) => admissionApi.convertEnquiry(id),
-        onSuccess: (_, id) => {
-            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.INQUIRY_CONVERTED, { inquiryId: id });
+        mutationFn: async (enquiryId: string) => {
+            const res = await admissionApi.convertEnquiry(enquiryId);
+            return res.data as { lead_id: string; application_id: string };
+        },
+        onSuccess: (data, enquiryId) => {
+            const payload = {
+                inquiryId: enquiryId,
+                leadId: data.lead_id,
+                applicationId: data.application_id,
+            };
+            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.INQUIRY_CONVERTED, payload);
+            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_CREATED, payload);
+            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_UPDATED, payload);
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_LIST_CHANGED);
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
             AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
-            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.TIMELINE_REFRESH);
+            if (data.application_id) {
+                AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.TIMELINE_REFRESH, {
+                    applicationId: data.application_id,
+                });
+            }
         },
     });
 }

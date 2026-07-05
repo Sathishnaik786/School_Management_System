@@ -143,6 +143,7 @@ import { DashboardPage as AdmissionDashboardPage } from '../modules/admission/pa
 import { AnalyticsPage as AdmissionAnalyticsPage } from '../modules/admission/pages/AnalyticsPage';
 import { InquiryListPage } from '../modules/admission/pages/InquiryListPage';
 import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
+import { AdmissionApplicationGuard } from '../modules/admission/components/AdmissionApplicationGuard';
 import { ApplicationWizardPage } from '../modules/admission/pages/ApplicationWizardPage';
 import { ApplicationListPage } from '../modules/admission/pages/ApplicationListPage';
 import { DocumentVerificationPage } from '../modules/admission/pages/DocumentVerificationPage';
@@ -258,6 +259,21 @@ export const AppRouter = () => {
                                 <MyApplications />
                             </PermissionGuard>
                         } />
+                        <Route path="admissions/application/:id" element={
+                            <AdmissionApplicationGuard>
+                                <Applicant360Page />
+                            </AdmissionApplicationGuard>
+                        } />
+                        <Route path="admissions/documents/:id" element={
+                            <AdmissionApplicationGuard>
+                                <Applicant360Page />
+                            </AdmissionApplicationGuard>
+                        } />
+                        <Route path="admissions/timeline/:id" element={
+                            <AdmissionApplicationGuard>
+                                <Applicant360Page />
+                            </AdmissionApplicationGuard>
+                        } />
                         <Route path="admissions/review" element={
                             <PermissionGuard permission="admission.review">
                                 <PipelinePage />
@@ -269,9 +285,9 @@ export const AppRouter = () => {
                             </PermissionGuard>
                         } />
                         <Route path="admissions/:id" element={
-                            <PermissionGuard permission="admission.view_own">
+                            <AdmissionApplicationGuard>
                                 <Applicant360Page />
-                            </PermissionGuard>
+                            </AdmissionApplicationGuard>
                         } />
                         <Route path="admissions/verification" element={
                             <PermissionGuard permission="admission.review">

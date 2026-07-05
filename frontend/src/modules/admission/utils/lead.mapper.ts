@@ -36,6 +36,11 @@ export function normalizeInquiry(raw: Record<string, unknown>): AdmissionInquiry
         assigned_counselor: (raw.assigned_counselor ?? raw.counselor_name ?? raw.counselor) as string | undefined,
         assigned_counselor_id: (raw.assigned_counselor_id ?? raw.counselor_id ?? raw.counselorId) as string | undefined,
         application_id: (raw.application_id ?? raw.applicationId ?? raw.admission_id) as string | undefined,
+        enquiry_id: (raw.enquiry_id ?? raw.enquiryId) as string | undefined,
+        lead_id: (raw.lead_id ?? raw.leadId ?? raw.id) as string | undefined,
+        converted_at: (raw.converted_at ?? raw.convertedAt ?? (raw.status && (raw.status as string).toLowerCase().includes('convert') ? (raw.updated_at ?? raw.updatedAt) : undefined)) as string | undefined,
+        assigned_at: (raw.assigned_at ?? raw.assignedAt ?? ((raw.assigned_counselor_id ?? raw.counselor_id ?? raw.counselorId) ? (raw.updated_at ?? raw.updatedAt) : undefined)) as string | undefined,
+        assigned_by: (raw.assigned_by ?? raw.assignedBy) as string | undefined,
     };
 }
 
@@ -77,9 +82,9 @@ export function isOnlineSource(source?: string): boolean {
     return ONLINE_SOURCES.some(v => s.includes(v)) || s.includes('online');
 }
 
-export function isConverted(status?: string): boolean {
-    const s = (status ?? '').toLowerCase();
-    return s.includes('convert') || s === 'application_created' || s === 'enrolled';
+/** True only when a CRM application exists — not when enquiry status is merely 'converted' (lead created). */
+export function isConverted(lead: { status?: string; application_id?: string }): boolean {
+    return !!lead.application_id;
 }
 
 export function isArchived(status?: string): boolean {
@@ -110,10 +115,10 @@ export function computeLeadMetrics(
     const walkInsToday = allInquiries.filter(i => isWalkInSource(i.source) && isToday(i.created_at)).length
         || visitors.filter(v => isToday(String(v.visit_date ?? v.created_at ?? ''))).length;
     const onlineToday = allInquiries.filter(i => isOnlineSource(i.source) && isToday(i.created_at)).length;
-    const assigned = leads.filter(isAssigned).length;
-    const unassigned = leads.filter(l => !isAssigned(l)).length;
-    const converted = allInquiries.filter(i => isConverted(i.status)).length;
-    const pending = allInquiries.filter(i => !isConverted(i.status) && !isArchived(i.status)).length;
+    const assigned = allInquiries.filter(i => isAssigned(i) && !isConverted(i) && !isArchived(i.status)).length;
+    const unassigned = allInquiries.filter(i => !isAssigned(i) && !isConverted(i) && !isArchived(i.status)).length;
+    const converted = allInquiries.filter(i => isConverted(i)).length;
+    const pending = allInquiries.filter(i => !isConverted(i) && !isArchived(i.status)).length;
     const total = allInquiries.length || 1;
     const conversionRate = Math.round((converted / total) * 100);
     const applicationsSubmitted = allInquiries.filter(i => i.application_id).length;
@@ -177,7 +182,7 @@ export function buildInquiryTimeline(
     if (inquiry.created_at) {
         entries.push({
             id: `${inquiry.id}-created`,
-            action: 'Created',
+            action: 'Inquiry Created',
             timestamp: inquiry.created_at,
             remarks: inquiry.source ? `Source: ${inquiry.source}` : undefined,
         });
@@ -186,16 +191,16 @@ export function buildInquiryTimeline(
     if (isAssigned(inquiry)) {
         entries.push({
             id: `${inquiry.id}-assigned`,
-            action: 'Assigned',
-            timestamp: inquiry.updated_at ?? inquiry.created_at ?? new Date().toISOString(),
+            action: 'Counselor Assigned',
+            timestamp: inquiry.assigned_at ?? inquiry.updated_at ?? inquiry.created_at ?? new Date().toISOString(),
             actor: inquiry.assigned_counselor,
         });
     }
 
     followups
-        .filter(f => String(f.enquiry_id ?? f.lead_id) === inquiry.id)
+        .filter(f => String(f.enquiry_id ?? f.lead_id) === inquiry.id || String(f.enquiry_id ?? f.lead_id) === inquiry.enquiry_id)
         .forEach(f => {
-            const action = String(f.status ?? '').toLowerCase() === 'completed' ? 'Called' : 'Reminder';
+            const action = String(f.status ?? '').toLowerCase() === 'completed' ? 'Follow-up Completed' : 'Follow-up Scheduled';
             entries.push({
                 id: String(f.id),
                 action,
@@ -205,19 +210,33 @@ export function buildInquiryTimeline(
             });
         });
 
-    if (isConverted(inquiry.status)) {
+    if (inquiry.lead_id && !inquiry.application_id) {
         entries.push({
-            id: `${inquiry.id}-converted`,
-            action: 'Converted',
+            id: `${inquiry.id}-lead-created`,
+            action: 'Lead Created',
             timestamp: inquiry.updated_at ?? inquiry.created_at ?? new Date().toISOString(),
         });
     }
 
     if (inquiry.application_id) {
         entries.push({
+            id: `${inquiry.id}-converted`,
+            action: 'Lead Converted',
+            timestamp: inquiry.converted_at ?? inquiry.updated_at ?? inquiry.created_at ?? new Date().toISOString(),
+        });
+        entries.push({
             id: `${inquiry.id}-application`,
-            action: 'Application Submitted',
+            action: 'Application Created',
             timestamp: inquiry.updated_at ?? inquiry.created_at ?? new Date().toISOString(),
+        });
+    }
+
+    if (apiTimeline?.length) {
+        apiTimeline.forEach(entry => {
+            entries.push({
+                ...entry,
+                action: entry.action === 'INITIALIZE_DRAFT' ? 'Application Created' : (entry.action ?? 'Status Updated'),
+            });
         });
     }
 
@@ -229,11 +248,16 @@ export function buildInquiryTimeline(
         });
     }
 
-    if (apiTimeline?.length) {
-        entries.push(...apiTimeline);
-    }
+    // Deduplicate by action+timestamp to ensure each event appears exactly once
+    const seen = new Set<string>();
+    const deduped = entries.filter(entry => {
+        const key = `${entry.action}:${entry.timestamp}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 
-    return entries.sort(
+    return deduped.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 }
@@ -247,6 +271,28 @@ export type WorkspaceSection =
     | 'converted'
     | 'archived';
 
+/** Merge inquiry and lead lists without duplicate cards (keyed by enquiry_id). */
+export function mergeInquiriesAndLeads(inquiries: AdmissionInquiry[], leads: Lead[]): AdmissionInquiry[] {
+    const merged = new Map<string, AdmissionInquiry>();
+    inquiries.forEach(i => merged.set(i.enquiry_id || i.id, i));
+    leads.forEach(l => {
+        const key = l.enquiry_id || l.id;
+        const existing = merged.get(key);
+        if (existing) {
+            merged.set(key, {
+                ...existing,
+                ...l,
+                id: existing.id,
+                enquiry_id: l.enquiry_id || existing.enquiry_id || existing.id,
+                lead_id: l.lead_id || l.id,
+            });
+        } else {
+            merged.set(key, l);
+        }
+    });
+    return Array.from(merged.values());
+}
+
 export function filterBySection(
     section: WorkspaceSection,
     inquiries: AdmissionInquiry[],
@@ -257,17 +303,17 @@ export function filterBySection(
 
     switch (section) {
         case 'walkins':
-            return pool.filter(i => isWalkInSource(i.source) && !isConverted(i.status) && !isArchived(i.status));
+            return pool.filter(i => isWalkInSource(i.source) && !isConverted(i) && !isArchived(i.status));
         case 'online':
-            return pool.filter(i => isOnlineSource(i.source) && !isConverted(i.status) && !isArchived(i.status));
+            return pool.filter(i => isOnlineSource(i.source) && !isConverted(i) && !isArchived(i.status));
         case 'assigned':
-            return pool.filter(i => isAssigned(i) && !isConverted(i.status) && !isArchived(i.status));
+            return pool.filter(i => isAssigned(i) && !isConverted(i) && !isArchived(i.status));
         case 'unassigned':
-            return pool.filter(i => !isAssigned(i) && !isConverted(i.status) && !isArchived(i.status));
+            return pool.filter(i => !isAssigned(i) && !isConverted(i) && !isArchived(i.status));
         case 'followups':
-            return pool.filter(i => todayFollowupLeadIds.has(i.id));
+            return pool.filter(i => todayFollowupLeadIds.has(i.id) && !isConverted(i) && !isArchived(i.status));
         case 'converted':
-            return pool.filter(i => isConverted(i.status));
+            return pool.filter(i => isConverted(i));
         case 'archived':
             return pool.filter(i => isArchived(i.status));
         default:

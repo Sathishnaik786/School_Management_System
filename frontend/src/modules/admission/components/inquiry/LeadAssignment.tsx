@@ -1,6 +1,10 @@
+import { useState, useEffect } from 'react';
 import { UserCheck, UserMinus, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../../../../components/ui/button';
 import { useLeadAssignment } from '../../hooks/useLeadAssignment';
+import { useMasterData } from '../../context/MasterDataContext';
+import { parseAdmissionApiError } from '../../utils/admissionError.utils';
 import type { Lead } from '../../types/admission.types';
 
 interface LeadAssignmentProps {
@@ -12,28 +16,41 @@ interface LeadAssignmentProps {
 
 export function LeadAssignment({ lead, counselorId, counselorName, onAssigned }: LeadAssignmentProps) {
     const { assign, reassign, unassign, changeCounselor, isAssigning } = useLeadAssignment();
+    const { counselors } = useMasterData();
+    
+    // Default to the current assigned counselor or the passed counselorId
+    const currentCounselorId = lead.assigned_counselor_id || lead.counselor || counselorId || '';
+    const [selectedCounselorId, setSelectedCounselorId] = useState(currentCounselorId);
+
+    // Sync state if lead changes
+    useEffect(() => {
+        setSelectedCounselorId(lead.assigned_counselor_id || lead.counselor || counselorId || '');
+    }, [lead, counselorId]);
+
     const isAssigned = !!(lead.assigned_counselor ?? lead.assigned_counselor_id);
 
     const handleAssign = async () => {
-        if (!counselorId) return;
+        if (!selectedCounselorId || isAssigning) return;
         try {
             if (isAssigned) {
-                await changeCounselor(lead.id, counselorId);
+                await changeCounselor(lead.id, selectedCounselorId);
             } else {
-                await assign(lead.id, counselorId);
+                await assign(lead.id, selectedCounselorId);
             }
             onAssigned?.();
         } catch (e) {
-            console.error(e);
+            toast.error(parseAdmissionApiError(e).message);
         }
     };
 
     const handleUnassign = async () => {
+        if (isAssigning) return;
         try {
             await unassign(lead.id);
+            setSelectedCounselorId('');
             onAssigned?.();
         } catch (e) {
-            console.error(e);
+            toast.error(parseAdmissionApiError(e).message);
         }
     };
 
@@ -42,7 +59,22 @@ export function LeadAssignment({ lead, counselorId, counselorName, onAssigned }:
             <span className="text-[10px] text-gray-500">
                 {isAssigned ? lead.assigned_counselor ?? counselorName ?? 'Assigned' : 'Unassigned'}
             </span>
-            {counselorId && (
+
+            <select
+                value={selectedCounselorId}
+                onChange={e => setSelectedCounselorId(e.target.value)}
+                disabled={isAssigning}
+                className="bg-white dark:bg-card border border-gray-200 dark:border-gray-800 rounded-xl px-2 py-1 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+            >
+                <option value="">Select Counselor</option>
+                {counselors.map(c => (
+                    <option key={c.id} value={c.id}>
+                        {c.full_name}
+                    </option>
+                ))}
+            </select>
+
+            {selectedCounselorId && (
                 <Button
                     size="sm"
                     variant="outline"
@@ -57,6 +89,7 @@ export function LeadAssignment({ lead, counselorId, counselorName, onAssigned }:
                     )}
                 </Button>
             )}
+
             {isAssigned && (
                 <Button
                     size="sm"

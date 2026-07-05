@@ -1,16 +1,26 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { RefreshCw, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { AdmissionPermissions } from '../../core/AdmissionPermissions';
 import { useApplicant360 } from '../../hooks/useApplicant360';
+import { useApplicationProgress } from '../../hooks/useApplicationProgress';
 import Applicant360Profile from '../../components/profile360/Applicant360Profile';
 import { Button } from '../../../../components/ui/button';
 
 export function Applicant360Page() {
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const tabParam = searchParams.get('tab');
+    const pathTab = location.pathname.includes('/documents/')
+        ? 'documents'
+        : location.pathname.includes('/timeline/')
+          ? 'timeline'
+          : null;
     const { user, hasPermission, hasRole } = useAuth();
     const { view, isLoading, error, refetch, notFound } = useApplicant360(id);
+    const { progress, isLoading: progressLoading } = useApplicationProgress(id);
 
     const permCtx = {
         roles: user?.roles ?? [],
@@ -19,8 +29,8 @@ export function Applicant360Page() {
     };
 
     const canView =
-        AdmissionPermissions.canViewOwnApplications(permCtx) ||
-        AdmissionPermissions.canReviewApplications(permCtx);
+        AdmissionPermissions.canViewApplication(permCtx);
+    const readOnlyMode = AdmissionPermissions.isParent(permCtx) && !AdmissionPermissions.isStaff(permCtx);
 
     if (!canView) {
         return (
@@ -80,18 +90,29 @@ export function Applicant360Page() {
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                        Applicant 360° Profile
+                        {readOnlyMode ? 'My Application' : 'Applicant 360° Profile'}
                     </h2>
                     <p className="text-xs text-gray-400 font-semibold uppercase">
-                        Live data — application, timeline, documents, evaluation, fees
+                        {readOnlyMode
+                            ? 'View status, timeline, documents, interview, exam, and fees'
+                            : 'Live data — application, timeline, documents, evaluation, fees'}
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1">
-                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
-                </Button>
+                {!readOnlyMode && (
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1">
+                        <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                    </Button>
+                )}
             </div>
 
-            <Applicant360Profile applicant={view} applicationId={id} />
+            <Applicant360Profile
+                applicant={view}
+                applicationId={id}
+                progress={progress}
+                progressLoading={progressLoading}
+                readOnlyMode={readOnlyMode}
+                initialTab={(pathTab ?? tabParam as 'overview' | 'timeline' | 'documents' | 'interview' | 'exam' | 'fees') ?? undefined}
+            />
         </div>
     );
 }

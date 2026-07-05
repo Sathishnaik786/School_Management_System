@@ -7,6 +7,7 @@ import { NotFoundError } from '../../errors/NotFoundError';
 import { ConflictError } from '../../errors/ConflictError';
 import { BusinessRuleError } from '../../errors/BusinessRuleError';
 import { AuditService } from '../AuditService';
+import { supabase } from '../../../../config/supabase';
 
 export class DraftService extends BaseService {
     constructor(
@@ -25,12 +26,13 @@ export class DraftService extends BaseService {
             throw new NotFoundError(`Application with ID ${id} not found`);
         }
 
-        const [profile, parents, education, preferences, declaration] = await Promise.all([
+        const [profile, parents, education, preferences, declaration, enquiry] = await Promise.all([
             this.appRepo.findProfile(id),
             this.appRepo.findParents(id),
             this.appRepo.findPreviousEducation(id),
             this.appRepo.findPreferences(id),
-            this.appRepo.findDeclaration(id)
+            this.appRepo.findDeclaration(id),
+            this.loadEnquiryForApplication(application.leadId),
         ]);
 
         return {
@@ -39,8 +41,25 @@ export class DraftService extends BaseService {
             parents,
             education,
             preferences,
-            declaration
+            declaration,
+            enquiry,
         };
+    }
+
+    private async loadEnquiryForApplication(leadId: string | null): Promise<Record<string, unknown> | null> {
+        if (!leadId) return null;
+        const { data: lead } = await supabase
+            .from('admission_leads')
+            .select('enquiry_id')
+            .eq('id', leadId)
+            .maybeSingle();
+        if (!lead?.enquiry_id) return null;
+        const { data: enquiry } = await supabase
+            .from('admission_enquiries')
+            .select('*')
+            .eq('id', lead.enquiry_id)
+            .maybeSingle();
+        return enquiry ?? null;
     }
 
     /**

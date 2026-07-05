@@ -61,8 +61,9 @@ export function LeadQuickActions({
                     size="sm"
                     variant="ghost"
                     className="h-7 text-[10px] gap-1 text-primary"
-                    onClick={() => onConvert(lead.id)}
-                    disabled={isConverting}
+                    onClick={() => onConvert(lead.enquiry_id || lead.id)}
+                    disabled={isConverting || !lead.assigned_counselor_id}
+                    title={!lead.assigned_counselor_id ? "Assign a counselor before converting this inquiry." : undefined}
                 >
                     Convert <ArrowRight className="w-3 h-3" />
                 </Button>

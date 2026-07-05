@@ -28,8 +28,7 @@ import {
 } from '../utils/finance.workflow';
 
 function dispatchFinanceEvents(queryClient: ReturnType<typeof useQueryClient>, applicationId: string) {
-    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.PAYMENT_VERIFIED, { applicationId });
-    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_UPDATED, { applicationId });
+    AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.FEE_PAID, { applicationId });
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.APPLICATION_LIST_CHANGED);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.QUEUE_REFRESH);
     AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
@@ -56,9 +55,9 @@ export function useFinanceWorkspace(applicationId?: string, permissionCtx?: Perm
             void refetchTimeline();
         };
         const unsubs = [
-            ADMISSION_EVENTS.APPLICATION_UPDATED,
-            ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
+            ADMISSION_EVENTS.FEE_PAID,
             ADMISSION_EVENTS.PAYMENT_VERIFIED,
+            ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
             ADMISSION_EVENTS.OFFER_SENT,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.QUEUE_REFRESH,

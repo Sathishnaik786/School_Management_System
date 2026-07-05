@@ -4,7 +4,7 @@ import { AdmissionAdapter } from '../adapters/AdmissionAdapter';
 
 export class AdmissionDashboardService {
     public static async getKPIs(filters: DashboardFilter): Promise<DashboardCard[]> {
-        const response = await apiClient.get('/admissions/stats', {
+        const response = await apiClient.get('/v1/admission/application/stats', {
             params: filters
         });
         return AdmissionAdapter.mapStatsToKPIs(response.data);

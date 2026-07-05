@@ -10,6 +10,7 @@ import {
     mapInquiries,
     computeLeadMetrics,
     normalizeApiList,
+    mergeInquiriesAndLeads,
 } from '../utils/lead.mapper';
 import { mapFollowups, categorizeFollowups, getTodayFollowupLeadIds } from '../utils/followup.mapper';
 import { useLeadsQuery, useInquiriesQuery } from './useLeads';
@@ -113,12 +114,10 @@ export function useInquiryWorkspace(params?: Record<string, unknown>) {
         [inquiries, leads, followups, visitors, statsQuery.data],
     );
 
-    const allRecords: AdmissionInquiry[] = useMemo(() => {
-        const merged = new Map<string, AdmissionInquiry>();
-        inquiries.forEach(i => merged.set(i.id, i));
-        leads.forEach(l => merged.set(l.id, l));
-        return Array.from(merged.values());
-    }, [inquiries, leads]);
+    const allRecords: AdmissionInquiry[] = useMemo(
+        () => mergeInquiriesAndLeads(inquiries, leads),
+        [inquiries, leads],
+    );
 
     const refetch = () =>
         Promise.all([
@@ -137,12 +136,15 @@ export function useInquiryWorkspace(params?: Record<string, unknown>) {
             ADMISSION_EVENTS.INQUIRY_CREATED,
             ADMISSION_EVENTS.INQUIRY_UPDATED,
             ADMISSION_EVENTS.INQUIRY_CONVERTED,
+            ADMISSION_EVENTS.APPLICATION_CREATED,
+            ADMISSION_EVENTS.APPLICATION_UPDATED,
             ADMISSION_EVENTS.LEAD_ASSIGNED,
             ADMISSION_EVENTS.COUNSELOR_ASSIGNED,
             ADMISSION_EVENTS.FOLLOWUP_COMPLETED,
             ADMISSION_EVENTS.DASHBOARD_REFRESH,
             ADMISSION_EVENTS.QUEUE_REFRESH,
             ADMISSION_EVENTS.APPLICATION_LIST_CHANGED,
+            ADMISSION_EVENTS.TIMELINE_REFRESH,
         ].map(event => admissionEventBus.subscribe(event, refresh));
         return () => unsubs.forEach(u => u());
     }, [canManageLeads, canViewInquiries, canViewVisitors]);
