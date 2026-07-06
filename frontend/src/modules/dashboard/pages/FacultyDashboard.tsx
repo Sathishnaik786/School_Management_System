@@ -35,6 +35,11 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
+// Phase 3.3 Enterprise Workspace imports
+import { WorkQueue } from '../components/workqueue/WorkQueue';
+import { QuickActions } from '../components/actions/QuickActions';
+import { RoleDashboardInsights } from '../components/analytics/RoleDashboardInsights';
+import { HealthPanel } from '../components/health/HealthPanel';
 
 export const FacultyDashboard = () => {
     return (
@@ -161,6 +166,12 @@ const FacultyDashboardInner = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
+            <RoleDashboardInsights />
+            <WorkQueue />
+            <QuickActions />
+            <HealthPanel />
         </PageWrapper>
     );
 };

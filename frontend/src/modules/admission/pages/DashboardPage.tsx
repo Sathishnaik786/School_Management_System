@@ -32,6 +32,12 @@ function MetricCard({ title, value, sub, icon: Icon, color }: any) {
 
 import { DashboardProvider } from '../../dashboard/core/DashboardProvider';
 import { useDashboard } from '../../dashboard/hooks/useDashboard';
+// Phase 3.3 Enterprise Workspace imports
+import { WorkQueue } from '../../dashboard/components/workqueue/WorkQueue';
+import { QuickActions } from '../../dashboard/components/actions/QuickActions';
+import { AdmissionsCrossModulePanel } from '../../dashboard/components/widgets/CrossModulePanels';
+import { RoleDashboardInsights } from '../../dashboard/components/analytics/RoleDashboardInsights';
+import { HealthPanel } from '../../dashboard/components/health/HealthPanel';
 
 export function DashboardPage() {
     return (
@@ -525,6 +531,12 @@ function DashboardPageInner() {
                     ))}
                 </div>
             </div>
+            {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
+            <RoleDashboardInsights />
+            <AdmissionsCrossModulePanel />
+            <WorkQueue />
+            <QuickActions />
+            <HealthPanel />
         </div>
     );
 }

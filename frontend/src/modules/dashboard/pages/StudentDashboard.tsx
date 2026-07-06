@@ -29,6 +29,10 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
+// Phase 3.3 Enterprise Workspace imports
+import { WorkQueue } from '../components/workqueue/WorkQueue';
+import { RoleDashboardInsights } from '../components/analytics/RoleDashboardInsights';
+import { HealthPanel } from '../components/health/HealthPanel';
 
 export function StudentDashboard() {
     return (
@@ -323,6 +327,11 @@ function StudentDashboardInner() {
                     </div>
                 </div>
             </div>
+
+            {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
+            <RoleDashboardInsights />
+            <WorkQueue />
+            <HealthPanel />
         </PageWrapper>
     );
 }

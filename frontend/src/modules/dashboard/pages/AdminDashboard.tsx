@@ -63,6 +63,12 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 import { DashboardProvider } from '../core/DashboardProvider';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardMapper } from '../utils/dashboard.mapper';
+// Phase 3.3 Enterprise Workspace imports
+import { WorkQueue } from '../components/workqueue/WorkQueue';
+import { QuickActions } from '../components/actions/QuickActions';
+import { AdminCrossModulePanel } from '../components/widgets/CrossModulePanels';
+import { RoleDashboardInsights } from '../components/analytics/RoleDashboardInsights';
+import { HealthPanel } from '../components/health/HealthPanel';
 
 export const AdminDashboard = () => {
     return (
@@ -412,6 +418,22 @@ const AdminDashboardInner = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ─── Phase 3.3 Enterprise Workspace Panels ───────────────────── */}
+            {/* Sprint 3.3.7 — Operational Insights */}
+            <RoleDashboardInsights />
+
+            {/* Sprint 3.3.10 — Cross-Module Workspace */}
+            <AdminCrossModulePanel />
+
+            {/* Sprint 3.3.1 — Universal Work Queue */}
+            <WorkQueue />
+
+            {/* Sprint 3.3.2 — Quick Actions Engine */}
+            <QuickActions />
+
+            {/* Sprint 3.3.5 — Health Panel */}
+            <HealthPanel />
         </PageWrapper>
     );
 };

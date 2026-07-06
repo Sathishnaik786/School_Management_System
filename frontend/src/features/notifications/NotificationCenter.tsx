@@ -221,16 +221,47 @@ export function NotificationCenter() {
                                     <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
                                 </div>
                             ) : (
-                                <AnimatePresence>
-                                    {notifications.map(notification => (
-                                        <NotificationItem
-                                            key={notification.id}
-                                            notification={notification}
-                                            onMarkRead={(id) => markReadMutation.mutate(id)}
-                                            onRemove={(id) => removeMutation.mutate(id)}
-                                        />
-                                    ))}
-                                </AnimatePresence>
+                                <div className="space-y-4 pb-4">
+                                    {(() => {
+                                        const now = new Date();
+                                        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                                        const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+
+                                        const todayList = notifications.filter(n => new Date(n.createdAt).getTime() >= startOfToday);
+                                        const yesterdayList = notifications.filter(n => {
+                                            const t = new Date(n.createdAt).getTime();
+                                            return t >= startOfYesterday && t < startOfToday;
+                                        });
+                                        const earlierList = notifications.filter(n => new Date(n.createdAt).getTime() < startOfYesterday);
+
+                                        const renderSection = (title: string, list: any[]) => {
+                                            if (list.length === 0) return null;
+                                            return (
+                                                <div key={title} className="space-y-1">
+                                                    <div className="px-4 py-2 bg-gray-50/50 dark:bg-card/5 text-[9px] font-black text-muted-foreground uppercase tracking-widest border-y border-gray-100/50">
+                                                        {title}
+                                                    </div>
+                                                    <AnimatePresence>
+                                                        {list.map(notification => (
+                                                            <NotificationItem
+                                                                key={notification.id}
+                                                                notification={notification}
+                                                                onMarkRead={(id) => markReadMutation.mutate(id)}
+                                                                onRemove={(id) => removeMutation.mutate(id)}
+                                                            />
+                                                        ))}
+                                                    </AnimatePresence>
+                                                </div>
+                                            );
+                                        };
+
+                                        return [
+                                            renderSection('Today', todayList),
+                                            renderSection('Yesterday', yesterdayList),
+                                            renderSection('Earlier', earlierList)
+                                        ];
+                                    })()}
+                                </div>
                             )}
                         </div>
 
