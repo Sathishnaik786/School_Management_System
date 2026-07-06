@@ -3,38 +3,69 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { admissionApi } from '../admission.api';
 import { useAuth } from '../../../context/AuthContext';
 import { apiClient } from '../../../lib/api-client';
-import { ArrowLeft, Save, Send, User, Phone, Clock, AlertCircle, CheckCircle } from 'lucide-react';
-import { useMasterData } from '../context/MasterDataContext';
+import { ArrowLeft, Save, Send, User, Phone, Clock, AlertCircle, CheckCircle, Building, MapPin, ShieldAlert, Award } from 'lucide-react';
+import { MasterDataService } from '../services/MasterDataService';
 
 export const AdmissionForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated, loading: authLoading } = useAuth();
-    const { grades } = useMasterData();
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('draft');
     const [submitted, setSubmitted] = useState(false);
     const location = useLocation();
     const isPublicRoute = location.pathname.includes('/admissions/apply');
+    const treatAsGuest = !isAuthenticated || (isPublicRoute && !user?.roles?.includes('PARENT'));
+
+    // Dynamic Lists State
+    const [schoolsList, setSchoolsList] = useState<any[]>([]);
+    const [academicYearsList, setAcademicYearsList] = useState<any[]>([]);
+    const [gradesList, setGradesList] = useState<any[]>([]);
+    const [transportRoutesList, setTransportRoutesList] = useState<any[]>([]);
+    const [feeStructuresList, setFeeStructuresList] = useState<any[]>([]);
+
+    // Static Lookups from MasterDataService
+    const boards = MasterDataService.getBoards();
+    const quotas = MasterDataService.getQuotas();
+    const categories = MasterDataService.getCategories();
+    const bloodGroups = MasterDataService.getBloodGroups();
+    const religions = MasterDataService.getReligions();
+    const occupations = MasterDataService.getOccupations();
+    const relationships = MasterDataService.getRelationships();
+    const countries = MasterDataService.getCountries();
+    const states = MasterDataService.getStates();
+    const cities = MasterDataService.getCities();
+    const hostelRoomTypes = MasterDataService.getHostelRoomTypes();
+
     const [formData, setFormData] = useState<any>({
+        school_id: '',
+        academic_year_id: '',
+        grade_applied_for: '',
+        board: 'CBSE',
+        quota: 'Regular',
+        fee_structure_id: '',
+        
         student_name: '',
         date_of_birth: '',
         gender: 'Male',
-        grade_applied_for: '',
-        academic_year_id: '',
-        school_id: '',
         parent_name: '',
-        parent_email: '',
-        parent_phone: '',
-        mother_name: '',
-        mother_email: '',
-        mother_phone: '',
-        father_name: '',
-        father_email: '',
-        father_phone: '',
-        address: '',
+        relationship: 'Father',
+        occupation: 'Salaried',
+        phone: '',
+        email: '',
+        
+        religion: 'Hindu',
+        category: 'General',
+        blood_group: 'A+',
+        country: 'India',
+        state: 'Telangana',
+        city: 'Hyderabad',
         previous_school: '',
         last_grade_completed: '',
+        address: '',
+        
+        transport_route_id: '',
+        hostel_room_type: 'Single (Non-AC)',
         parent_password: ''
     });
 
@@ -42,77 +73,121 @@ export const AdmissionForm = () => {
         confirmPassword: ''
     });
 
-    useEffect(() => {
-        if (grades.length > 0 && !formData.grade_applied_for && !id) {
-            setFormData((prev: any) => ({ ...prev, grade_applied_for: grades[0].name }));
-        }
-    }, [grades, id]);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.name === 'confirmPassword') {
-            setRegData({ ...regData, confirmPassword: e.target.value });
-        } else {
-            setFormData({ ...formData, [e.target.name]: e.target.value });
-        }
-    };
-
+    // 1. Initial Load of Schools
     useEffect(() => {
-        // Don't initialize if auth is still loading
+        const fetchSchools = async () => {
+            try {
+                const res = await apiClient.get('/schools');
+                setSchoolsList(res.data || []);
+                if (res.data && res.data.length > 0 && !formData.school_id) {
+                    setFormData((prev: any) => ({ ...prev, school_id: res.data[0].id }));
+                }
+            } catch (err) {
+                console.error('Failed to load schools metadata:', err);
+            }
+        };
+        fetchSchools();
+    }, []);
+
+    // 2. Fetch Dependent Metadata when selected school_id changes
+    useEffect(() => {
+        if (!formData.school_id) return;
+        const fetchSchoolDependentData = async () => {
+            try {
+                // Fetch public academic years
+                const yearsRes = await apiClient.get('/public/academic-years', { params: { school_id: formData.school_id } });
+                setAcademicYearsList(yearsRes.data || []);
+                const activeYear = yearsRes.data?.find((y: any) => y.is_active);
+                if (activeYear && !formData.academic_year_id) {
+                    setFormData((prev: any) => ({ ...prev, academic_year_id: activeYear.id }));
+                } else if (yearsRes.data?.length > 0 && !formData.academic_year_id) {
+                    setFormData((prev: any) => ({ ...prev, academic_year_id: yearsRes.data[0].id }));
+                }
+
+                // Fetch public classes/grades
+                const gradesRes = await apiClient.get('/public/classes', { params: { school_id: formData.school_id } });
+                setGradesList(gradesRes.data || []);
+                if (gradesRes.data?.length > 0 && !formData.grade_applied_for) {
+                    setFormData((prev: any) => ({ ...prev, grade_applied_for: gradesRes.data[0].name }));
+                }
+
+                // Fetch public transport routes
+                const transportRes = await apiClient.get('/public/transport-routes', { params: { school_id: formData.school_id } });
+                setTransportRoutesList(transportRes.data || []);
+                if (transportRes.data?.length > 0 && !formData.transport_route_id) {
+                    setFormData((prev: any) => ({ ...prev, transport_route_id: transportRes.data[0].id }));
+                }
+
+                // Fetch public fee structures
+                const feesRes = await apiClient.get('/public/fee-structures', { params: { school_id: formData.school_id } });
+                setFeeStructuresList(feesRes.data || []);
+                if (feesRes.data?.length > 0 && !formData.fee_structure_id) {
+                    setFormData((prev: any) => ({ ...prev, fee_structure_id: feesRes.data[0].id }));
+                }
+            } catch (err) {
+                console.error('Failed to load school dependent public metadata:', err);
+            }
+        };
+        fetchSchoolDependentData();
+    }, [formData.school_id]);
+
+    // 3. Load Existing CRM Application details if editing (for authenticated staff/parents)
+    useEffect(() => {
         if (authLoading) return;
+        if (!id || !user) return;
 
-        const initializeForm = async () => {
+        const loadApplication = async () => {
             setLoading(true);
             try {
-                // 1. Fetch existing data if editing (requires auth)
-                if (id && user) {
-                    const { data } = await admissionApi.getCrmApplication(id);
-                    const mapped = data?.application ?? data;
-                    const enquiry = data?.enquiry ?? {};
-                    const parents = data?.parents ?? {};
-                    const profile = data?.profile ?? {};
-                    setStatus((mapped?.status ?? 'draft').toLowerCase());
-                    setFormData({
-                        student_name: enquiry.student_name ?? enquiry.studentName ?? '',
-                        date_of_birth: profile.date_of_birth ?? enquiry.date_of_birth ?? '',
-                        gender: profile.gender ?? enquiry.gender ?? 'Male',
-                        grade_applied_for: enquiry.grade_applied_for ?? enquiry.gradeAppliedFor ?? '',
-                        school_id: mapped.school_id ?? mapped.schoolId ?? user?.school_id ?? '',
-                        academic_year_id: mapped.academic_year_id ?? mapped.academicYearId ?? '',
-                        mother_name: parents.mother_name ?? '',
-                        mother_email: parents.mother_email ?? '',
-                        mother_phone: parents.mother_phone ?? '',
-                        father_name: parents.father_name ?? '',
-                        father_email: parents.father_email ?? '',
-                        father_phone: parents.father_phone ?? '',
-                        parent_password: '',
-                    });
-                } else if (user) {
-                    // Fetch context for logged in user
-                    const yearRes = await apiClient.get('/academic-years/current').catch(() => null);
-                    setFormData((prev: any) => ({
-                        ...prev,
-                        school_id: user?.school_id || '',
-                        academic_year_id: yearRes?.data?.id || ''
-                    }));
-                } else {
-                    // Public view fallbacks
-                    const schools = await apiClient.get('/schools').catch(() => null);
-                    if (schools?.data?.length > 0) {
-                        setFormData((prev: any) => ({ ...prev, school_id: schools?.data[0].id }));
-                    }
-                    const yearRes = await apiClient.get('/public/academic-year').catch(() => null);
-                    if (yearRes?.data?.id) {
-                        setFormData((prev: any) => ({ ...prev, academic_year_id: yearRes?.data?.id }));
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to initialize form', error);
+                const { data } = await admissionApi.getCrmApplication(id);
+                const mapped = data?.application ?? data;
+                const enquiry = data?.enquiry ?? {};
+                const profile = data?.profile ?? {};
+                const parents = data?.parents ?? {};
+                const education = data?.previous_education ?? {};
+                const remarksObj = enquiry.remarks ? JSON.parse(enquiry.remarks) : {};
+
+                setStatus((mapped?.status ?? 'draft').toLowerCase());
+                setFormData({
+                    school_id: mapped.school_id ?? user?.school_id ?? '',
+                    academic_year_id: mapped.academic_year_id ?? '',
+                    grade_applied_for: enquiry.grade_applied_for ?? '',
+                    board: remarksObj.board ?? 'CBSE',
+                    quota: remarksObj.quota ?? 'Regular',
+                    fee_structure_id: remarksObj.fee_structure_id ?? '',
+                    
+                    student_name: enquiry.student_name ?? '',
+                    date_of_birth: profile.date_of_birth ?? enquiry.date_of_birth ?? '',
+                    gender: profile.gender ?? enquiry.gender ?? 'Male',
+                    parent_name: enquiry.parent_name ?? (parents.father_name || parents.mother_name || ''),
+                    relationship: remarksObj.relationship ?? 'Father',
+                    occupation: remarksObj.occupation ?? 'Salaried',
+                    phone: enquiry.parent_phone ?? (parents.father_phone || parents.mother_phone || ''),
+                    email: enquiry.parent_email ?? (parents.father_email || parents.mother_email || ''),
+                    
+                    religion: remarksObj.religion ?? 'Hindu',
+                    category: remarksObj.category ?? 'General',
+                    blood_group: remarksObj.blood_group ?? 'A+',
+                    country: remarksObj.country ?? 'India',
+                    state: remarksObj.state ?? 'Telangana',
+                    city: remarksObj.city ?? 'Hyderabad',
+                    previous_school: education.school_name ?? enquiry.current_school ?? '',
+                    last_grade_completed: education.last_class ?? '',
+                    address: enquiry.address ?? '',
+                    
+                    transport_route_id: remarksObj.transport_route_id ?? '',
+                    hostel_room_type: remarksObj.hostel_room_type ?? 'Single (Non-AC)',
+                    parent_password: ''
+                });
+            } catch (err) {
+                console.error('Failed to load application details:', err);
             } finally {
                 setLoading(false);
             }
         };
-
-        initializeForm();
+        loadApplication();
     }, [id, user, authLoading]);
 
     const isReadOnly = !['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'].includes(status);
@@ -122,118 +197,91 @@ export const AdmissionForm = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.name === 'confirmPassword') {
+            setRegData({ confirmPassword: e.target.value });
+        } else {
+            setFormData({ ...formData, [e.target.name]: e.target.value });
+        }
+    };
+
     const handleSave = async (isSubmit = false) => {
         if (isReadOnly) return;
 
-        // AUTH GATE: If no user OR if on public route and user is not a parent (staff testing)
-        const treatAsGuest = !isAuthenticated || (isPublicRoute && !user?.roles?.includes('PARENT'));
-
-        console.log('[ADMISSION] Attempting save...', { isSubmit, treatAsGuest, isPublicRoute });
+        // Front-end Validation
+        const newErrors: Record<string, string> = {};
+        if (formData.student_name.trim().length < 2) newErrors.student_name = 'Required (min 2 chars)';
+        if (formData.parent_name.trim().length < 2) newErrors.parent_name = 'Required (min 2 chars)';
+        if (!/^\+?[0-9]{10,15}$/.test(formData.phone.trim())) newErrors.phone = 'Invalid phone number';
+        if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+        if (!formData.email.trim()) newErrors.email = 'Email is required';
 
         if (treatAsGuest) {
-            // 1. FRONTEND VALIDATION
-            // Require at least one parent contact (mother or father)
-            const hasMotherContact = formData.mother_name && formData.mother_email;
-            const hasFatherContact = formData.father_name && formData.father_email;
-
-            if (!formData.student_name || !formData.grade_applied_for) {
-                alert('Please fill in Student Name and Grade Applied For.');
-                return;
-            }
-
-            if (!hasMotherContact && !hasFatherContact) {
-                alert('Please provide at least one parent contact (Mother or Father with Name and Email).');
-                return;
-            }
-
             if (!formData.parent_password || formData.parent_password !== regData.confirmPassword) {
-                alert('Passwords must match for account registration.');
-                return;
+                newErrors.parent_password = 'Passwords must match for account registration';
             }
+        }
 
-            setLoading(true);
-            try {
-                // Populate parent_email and parent_name for backend compatibility
-                // Prefer mother's contact, fallback to father's
-                const parent_email = formData.mother_email || formData.father_email;
-                const parent_name = formData.mother_name || formData.father_name;
-                const parent_phone = formData.mother_phone || formData.father_phone;
-
-                const finalData = {
-                    ...formData,
-                    parent_email,
-                    parent_name,
-                    parent_phone,
-                    // Use fallback IDs if still empty
-                    school_id: formData.school_id || '457bbda3-f542-47dc-9d41-3d7729226f86',
-                    academic_year_id: formData.academic_year_id || '8db7f474-3252-475a-bc84-9092be0f8f12'
-                };
-
-                console.log('[ADMISSION] Calling publicApply...', finalData);
-                await admissionApi.publicApply(finalData);
-                console.log('[ADMISSION] publicApply Success!');
-                setSubmitted(true);
-            } catch (error: any) {
-                console.error('[ADMISSION] Public application failed:', error);
-                const errorMsg = error.response?.data?.error || error.message || 'Failed to submit application';
-                alert(errorMsg);
-            } finally {
-                setLoading(false);
-            }
+        if (Object.keys(newErrors).length) {
+            setErrors(newErrors);
+            alert('Please fix the errors before submitting the application.');
             return;
         }
 
-        // Authenticated user path — CRM pipeline
+        setErrors({});
         setLoading(true);
+
         try {
-            const isParent = user?.roles?.includes('PARENT');
-
-            if (!id && isParent) {
-                const parent_email = formData.mother_email || formData.father_email || user?.email;
-                const parent_name = formData.mother_name || formData.father_name;
-                const parent_phone = formData.mother_phone || formData.father_phone;
-                const finalData = {
+            if (treatAsGuest) {
+                // Public Guest Application Submission
+                const payload = {
                     ...formData,
-                    parent_email,
-                    parent_name,
-                    parent_phone,
-                    school_id: formData.school_id || user?.school_id || '',
-                    academic_year_id: formData.academic_year_id || null,
+                    parent_email: formData.email.trim(),
+                    parent_name: formData.parent_name.trim(),
+                    parent_phone: formData.phone.trim(),
                 };
-                if (!finalData.academic_year_id) {
-                    const yearRes = await apiClient.get('/academic-years/current').catch(() => null);
-                    finalData.academic_year_id = yearRes?.data?.id;
+                console.log('[ADMISSION] Calling publicApply...', payload);
+                await admissionApi.publicApply(payload);
+                setSubmitted(true);
+            } else {
+                // Logged-in parent/staff application
+                const isParent = user?.roles?.includes('PARENT');
+                if (!id && isParent) {
+                    const payload = {
+                        ...formData,
+                        parent_email: formData.email.trim(),
+                        parent_name: formData.parent_name.trim(),
+                        parent_phone: formData.phone.trim(),
+                    };
+                    await admissionApi.parentApply(payload);
+                    navigate('/app/admissions/my');
+                    return;
                 }
-                await admissionApi.parentApply(finalData);
+
+                let applicationId = id;
+                if (!applicationId) {
+                    const createRes = await admissionApi.createCrmApplication({
+                        lead_id: formData.lead_id,
+                        grade: formData.grade_applied_for,
+                        date_of_birth: formData.date_of_birth,
+                        gender: formData.gender,
+                        student_name: formData.student_name,
+                        academic_year_id: formData.academic_year_id,
+                    });
+                    applicationId = createRes.data?.id ?? createRes.data?.application?.id;
+                }
+
+                if (isSubmit && applicationId) {
+                    await admissionApi.submitCrmApplication(applicationId, {
+                        change_reason: 'Application submitted via portal',
+                    });
+                }
                 navigate('/app/admissions/my');
-                return;
             }
-
-            let applicationId = id;
-            if (!applicationId) {
-                const yearRes = await apiClient.get('/academic-years/current').catch(() => null);
-                const createRes = await admissionApi.createCrmApplication({
-                    lead_id: formData.lead_id,
-                    grade: formData.grade_applied_for,
-                    date_of_birth: formData.date_of_birth,
-                    gender: formData.gender,
-                    student_name: formData.student_name,
-                    academic_year_id: formData.academic_year_id || yearRes?.data?.id,
-                });
-                applicationId = createRes.data?.id ?? createRes.data?.application?.id;
-            }
-
-            if (isSubmit && applicationId) {
-                await admissionApi.submitCrmApplication(applicationId, {
-                    change_reason: 'Application submitted via portal',
-                });
-            }
-
-            navigate('/app/admissions/my');
-        } catch (error: any) {
-            console.error('[ADMISSION] Save failed:', error);
-            const errorMsg = error.response?.data?.error || error.message || 'Failed to save application';
-            alert(errorMsg);
+        } catch (err: any) {
+            console.error('[ADMISSION] Application submit error:', err);
+            const errMsg = err.response?.data?.error || err.message || 'Failed to submit application';
+            alert(errMsg);
         } finally {
             setLoading(false);
         }
@@ -251,9 +299,9 @@ export const AdmissionForm = () => {
                     </h2>
                     <div className="space-y-4 text-gray-600 mb-10">
                         <p className="text-lg font-semibold text-green-600">✅ Successfully Submitted</p>
-                        <p className="leading-relaxed">Our admissions team will review your application. If shortlisted, we'll contact you via Email/SMS.</p>
+                        <p className="leading-relaxed font-medium">Our admissions team will review your application. An active lead is automatically converted in the Inquiry Desk.</p>
                         <p className="font-medium text-blue-600 bg-blue-50 py-2 px-4 rounded-lg">
-                            Check your email regularly for updates
+                            Log in using your registered parent email to track progress
                         </p>
                     </div>
                     <button
@@ -262,17 +310,6 @@ export const AdmissionForm = () => {
                     >
                         Go to Login Portal
                     </button>
-                </div>
-            </div>
-        );
-    }
-
-    if (loading && !formData.student_name && id) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600 font-medium">Loading application...</p>
                 </div>
             </div>
         );
@@ -309,7 +346,8 @@ export const AdmissionForm = () => {
 
                 {/* Main Form Card */}
                 <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500 hover:shadow-3xl">
-                    {/* Header with Gradient */}
+                    
+                    {/* Header Banner */}
                     <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-10 text-white overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 blur-2xl"></div>
@@ -318,244 +356,484 @@ export const AdmissionForm = () => {
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                                     <User className="w-7 h-7" />
                                 </div>
-                                {id ? 'Edit' : 'New'} Admission Application
+                                {id ? 'Edit' : 'New'} Admissions Application
                             </h1>
-                            <p className="text-blue-100 text-lg font-medium">Please fill in all the details carefully and accurately.</p>
+                            <p className="text-blue-100 text-lg font-medium">Capture comprehensive student details mapped directly to the CRM Workspace.</p>
                         </div>
                     </div>
 
-                    {/* Form Content */}
+                    {/* Form Layout Container */}
                     <div className="p-8 sm:p-12 space-y-10">
-                        {/* Student Information */}
-                        <section className="transform transition-all duration-500 hover:translate-x-1">
-                            <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-blue-100">
+                        
+                        {/* Section 1: Institution & Academic Details */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 pb-3 border-b-2 border-blue-100">
                                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                    <Building className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">1. Institution & Academic Details</h2>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">School *</label>
+                                    <select
+                                        name="school_id"
+                                        value={formData.school_id}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly || !!id}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                        required
+                                    >
+                                        {schoolsList.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Academic Year *</label>
+                                    <select
+                                        name="academic_year_id"
+                                        value={formData.academic_year_id}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly || !!id}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                        required
+                                    >
+                                        {academicYearsList.map(y => (
+                                            <option key={y.id} value={y.id}>{y.year_label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Applying Grade *</label>
+                                    <select
+                                        name="grade_applied_for"
+                                        value={formData.grade_applied_for}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                        required
+                                    >
+                                        {gradesList.map(g => (
+                                            <option key={g.id} value={g.name}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Board *</label>
+                                    <select
+                                        name="board"
+                                        value={formData.board}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {boards.map(b => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Quota *</label>
+                                    <select
+                                        name="quota"
+                                        value={formData.quota}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {quotas.map(q => (
+                                            <option key={q} value={q}>{q}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Fee Category / Structure *</label>
+                                    <select
+                                        name="fee_structure_id"
+                                        value={formData.fee_structure_id}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {feeStructuresList.map(f => (
+                                            <option key={f.id} value={f.id}>{f.name} {f.amount ? `(₹${f.amount})` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 2: Candidate & Parent Information */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 pb-3 border-b-2 border-green-100">
+                                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
                                     <User className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Student Information</h2>
+                                <h2 className="text-xl font-bold text-gray-900">2. Candidate & Parent Information</h2>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        Full Name <span className="text-red-500">*</span>
-                                    </label>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Student Name *</label>
                                     <input
+                                        type="text"
                                         name="student_name"
                                         value={formData.student_name}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 disabled:cursor-not-allowed hover:border-gray-300"
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.student_name ? 'border-red-500' : 'border-gray-200'}`}
                                         placeholder="Enter student's full name"
+                                        required
                                     />
+                                    {errors.student_name && <p className="text-xs text-red-500">{errors.student_name}</p>}
                                 </div>
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Date of Birth <span className="text-red-500">*</span></label>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Date of Birth *</label>
                                     <input
                                         type="date"
                                         name="date_of_birth"
                                         value={formData.date_of_birth}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 hover:border-gray-300"
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.date_of_birth ? 'border-red-500' : 'border-gray-200'}`}
+                                        required
                                     />
+                                    {errors.date_of_birth && <p className="text-xs text-red-500">{errors.date_of_birth}</p>}
                                 </div>
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Gender <span className="text-red-500">*</span></label>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Gender *</label>
                                     <select
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 hover:border-gray-300 cursor-pointer"
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
                                     >
-                                        <option>Male</option>
-                                        <option>Female</option>
-                                        <option>Other</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Grade Applied For <span className="text-red-500">*</span></label>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent / Guardian Name *</label>
+                                    <input
+                                        type="text"
+                                        name="parent_name"
+                                        value={formData.parent_name}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_name ? 'border-red-500' : 'border-gray-200'}`}
+                                        placeholder="Enter parent's full name"
+                                        required
+                                    />
+                                    {errors.parent_name && <p className="text-xs text-red-500">{errors.parent_name}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Relationship *</label>
                                     <select
-                                        name="grade_applied_for"
-                                        value={formData.grade_applied_for}
+                                        name="relationship"
+                                        value={formData.relationship}
                                         onChange={handleChange}
                                         disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 hover:border-gray-300 cursor-pointer bg-white"
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
                                     >
-                                        {grades.length === 0 ? (
-                                            <option value="">Loading grades...</option>
-                                        ) : (
-                                            grades.map(g => (
-                                                <option key={g.id} value={g.name}>{g.name}</option>
-                                            ))
-                                        )}
+                                        {relationships.map(r => (
+                                            <option key={r} value={r}>{r}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Parent Occupation</label>
+                                    <select
+                                        name="occupation"
+                                        value={formData.occupation}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {occupations.map(o => (
+                                            <option key={o} value={o}>{o}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Phone Number *</label>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.phone ? 'border-red-500' : 'border-gray-200'}`}
+                                        placeholder="e.g. +919876543210"
+                                        required
+                                    />
+                                    {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Email Address *</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-200'}`}
+                                        placeholder="e.g. parent@example.com"
+                                        required
+                                    />
+                                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 3: Demographics & Contact */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 pb-3 border-b-2 border-purple-100">
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
+                                    <MapPin className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">3. Demographics & Contact</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Religion</label>
+                                    <select
+                                        name="religion"
+                                        value={formData.religion}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {religions.map(r => (
+                                            <option key={r} value={r}>{r}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Category</label>
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {categories.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Blood Group</label>
+                                    <select
+                                        name="blood_group"
+                                        value={formData.blood_group}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {bloodGroups.map(b => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Country</label>
+                                    <select
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {countries.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">State</label>
+                                    <select
+                                        name="state"
+                                        value={formData.state}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {states.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">City</label>
+                                    <select
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        {cities.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Current / Previous School</label>
+                                    <input
+                                        type="text"
+                                        name="previous_school"
+                                        value={formData.previous_school}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="Last school attended"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Last Grade Completed</label>
+                                    <input
+                                        type="text"
+                                        name="last_grade_completed"
+                                        value={formData.last_grade_completed}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="e.g. Class 5"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-3">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Full Contact Address</label>
+                                    <textarea
+                                        name="address"
+                                        value={formData.address}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        rows={3}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                                        placeholder="Enter permanent residential address details"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 4: Logistics Preferences */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 pb-3 border-b-2 border-amber-100">
+                                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200">
+                                    <Award className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">4. Logistics Preferences</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Transport Route Preference</label>
+                                    <select
+                                        name="transport_route_id"
+                                        value={formData.transport_route_id}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="">None (Self Transport)</option>
+                                        {transportRoutesList.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Hostel Room Type Preference</label>
+                                    <select
+                                        name="hostel_room_type"
+                                        value={formData.hostel_room_type}
+                                        onChange={handleChange}
+                                        disabled={isReadOnly}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="None">None (Day Scholar)</option>
+                                        {hostelRoomTypes.map(h => (
+                                            <option key={h} value={h}>{h}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
                         </section>
 
-                        {/* Mother/Guardian Information */}
-                        <section className="transform transition-all duration-500 hover:translate-x-1">
-                            <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-pink-100">
-                                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200">
-                                    <Phone className="w-5 h-5 text-white" />
-                                </div>
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Mother / Guardian Information</h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Mother's Name</label>
-                                    <input
-                                        name="mother_name"
-                                        value={formData.mother_name}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-pink-500 focus:ring-4 focus:ring-pink-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="Enter mother's full name"
-                                    />
-                                </div>
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Mother's Email</label>
-                                    <input
-                                        type="email"
-                                        name="mother_email"
-                                        value={formData.mother_email}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-pink-500 focus:ring-4 focus:ring-pink-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="mother@example.com"
-                                    />
-                                </div>
-                                <div className="space-y-2 group md:col-span-2">
-                                    <label className="text-sm font-semibold text-gray-700">Mother's Phone</label>
-                                    <input
-                                        name="mother_phone"
-                                        value={formData.mother_phone}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-pink-500 focus:ring-4 focus:ring-pink-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="+91 98765 43210"
-                                    />
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Father/Guardian Information */}
-                        <section className="transform transition-all duration-500 hover:translate-x-1">
-                            <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-indigo-100">
-                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                                    <Phone className="w-5 h-5 text-white" />
-                                </div>
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Father / Guardian Information</h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Father's Name</label>
-                                    <input
-                                        name="father_name"
-                                        value={formData.father_name}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="Enter father's full name"
-                                    />
-                                </div>
-                                <div className="space-y-2 group">
-                                    <label className="text-sm font-semibold text-gray-700">Father's Email</label>
-                                    <input
-                                        type="email"
-                                        name="father_email"
-                                        value={formData.father_email}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="father@example.com"
-                                    />
-                                </div>
-                                <div className="space-y-2 group md:col-span-2">
-                                    <label className="text-sm font-semibold text-gray-700">Father's Phone</label>
-                                    <input
-                                        name="father_phone"
-                                        value={formData.father_phone}
-                                        onChange={handleChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none transition-all duration-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:bg-gray-50 hover:border-gray-300"
-                                        placeholder="+91 98765 43210"
-                                    />
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Account Registration */}
-                        {!id && (
-                            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-2xl border-2 border-blue-100 shadow-inner transform transition-all duration-500 hover:shadow-lg">
-                                <div className="flex items-center gap-3 mb-6">
+                        {/* Section 5: Account Password (Only for guest applicants) */}
+                        {treatAsGuest && !id && (
+                            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-2xl border-2 border-blue-100 shadow-inner space-y-6">
+                                <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
                                         <Clock className="w-5 h-5 text-white" />
                                     </div>
-                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Account Registration</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">5. Account Registration</h2>
                                 </div>
 
-                                {(isAuthenticated && user && (!isPublicRoute || user.roles?.includes('PARENT'))) ? (
-                                    <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl text-green-800 shadow-sm">
-                                        <div className="flex items-start gap-3">
-                                            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="font-bold mb-1">Account Linked</p>
-                                                <p className="text-sm">
-                                                    You are logged in as <strong>{user.full_name || user.email}</strong>.
-                                                    Your application will be linked to your existing account.
-                                                </p>
-                                            </div>
-                                        </div>
+                                <div className="p-4 bg-blue-100/50 border border-blue-200 rounded-xl text-sm text-blue-800 font-medium flex items-center gap-2">
+                                    <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+                                    <span>Create a parent portal account password. You will use this password alongside your primary email to track the application workflow.</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-900 uppercase block">Choose Password *</label>
+                                        <input
+                                            type="password"
+                                            name="parent_password"
+                                            value={formData.parent_password}
+                                            onChange={handleRegChange}
+                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500' : 'border-blue-200'}`}
+                                            placeholder="Enter secure password"
+                                            required
+                                        />
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="mb-6 p-4 bg-blue-100 border border-blue-200 rounded-xl">
-                                            <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
-                                                <AlertCircle className="w-4 h-4" />
-                                                {isPublicRoute && user && !user.roles?.includes('PARENT')
-                                                    ? "Guest Mode: Create a password to register a new account."
-                                                    : "Create a password to access your account after approval."}
-                                            </p>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2 group">
-                                                <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                                    Choose Password <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    name="parent_password"
-                                                    value={formData.parent_password || ''}
-                                                    onChange={handleRegChange}
-                                                    className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 hover:border-blue-300"
-                                                    placeholder="Enter secure password"
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="space-y-2 group">
-                                                <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                                    Confirm Password <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    name="confirmPassword"
-                                                    value={regData.confirmPassword}
-                                                    onChange={handleRegChange}
-                                                    className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 hover:border-blue-300"
-                                                    placeholder="Repeat password"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-900 uppercase block">Confirm Password *</label>
+                                        <input
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={regData.confirmPassword}
+                                            onChange={handleRegChange}
+                                            className={`w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500 ${errors.parent_password ? 'border-red-500' : 'border-blue-200'}`}
+                                            placeholder="Confirm secure password"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                {errors.parent_password && <p className="text-xs text-red-500">{errors.parent_password}</p>}
                             </section>
                         )}
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Footer */}
                     {!isReadOnly && (
                         <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-8 flex flex-col sm:flex-row justify-end gap-4 border-t-2 border-gray-100">
                             {isAuthenticated && !isPublicRoute && (
@@ -581,7 +859,7 @@ export const AdmissionForm = () => {
                                 ) : (
                                     <>
                                         <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                        {(!isAuthenticated || (isPublicRoute && !user?.roles?.includes('PARENT'))) ? 'Apply for Admission' : 'Submit Application'}
+                                        {treatAsGuest ? 'Apply for Admission' : 'Submit Application'}
                                     </>
                                 )}
                             </button>

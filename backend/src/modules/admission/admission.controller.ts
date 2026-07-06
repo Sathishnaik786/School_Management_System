@@ -23,6 +23,21 @@ const createAdmissionSchema = z.object({
     previous_school: z.string().optional().nullable(),
     last_grade_completed: z.string().optional().nullable(),
     parent_password: z.string().optional().nullable(),
+    
+    // CRM Unified Walk-in Inquiry Fields
+    board: z.string().optional().nullable(),
+    quota: z.string().optional().nullable(),
+    fee_structure_id: z.string().uuid().optional().nullable().or(z.literal('')),
+    transport_route_id: z.string().uuid().optional().nullable().or(z.literal('')),
+    hostel_room_type: z.string().optional().nullable(),
+    religion: z.string().optional().nullable(),
+    category: z.string().optional().nullable(),
+    blood_group: z.string().optional().nullable(),
+    country: z.string().optional().nullable(),
+    state: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    relationship: z.string().optional().nullable(),
+    occupation: z.string().optional().nullable(),
 });
 
 export class AdmissionController {

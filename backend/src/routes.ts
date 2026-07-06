@@ -80,6 +80,78 @@ router.get('/public/academic-year', async (req: Request, res: Response) => {
     }
 });
 
+// Public lookup for academic years of a school
+router.get('/public/academic-years', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+        if (!school_id) return res.status(400).json({ error: 'school_id is required' });
+        const { data, error } = await supabase
+            .from('academic_years')
+            .select('id, year_label, is_active')
+            .eq('school_id', school_id)
+            .order('year_label', { ascending: false });
+
+        if (error) throw error;
+        res.json(data || []);
+    } catch (error: any) {
+        res.status(200).json([]);
+    }
+});
+
+// Public lookup for classes/grades of a school
+router.get('/public/classes', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+        if (!school_id) return res.status(400).json({ error: 'school_id is required' });
+        const { data, error } = await supabase
+            .from('classes')
+            .select('id, name')
+            .eq('school_id', school_id)
+            .order('name');
+
+        if (error) throw error;
+        res.json(data || []);
+    } catch (error: any) {
+        res.status(200).json([]);
+    }
+});
+
+// Public lookup for transport routes of a school
+router.get('/public/transport-routes', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+        if (!school_id) return res.status(400).json({ error: 'school_id is required' });
+        const { data, error } = await supabase
+            .from('transport_routes')
+            .select('id, name')
+            .eq('school_id', school_id)
+            .order('name');
+
+        if (error) throw error;
+        res.json(data || []);
+    } catch (error: any) {
+        res.status(200).json([]);
+    }
+});
+
+// Public lookup for fee structures of a school
+router.get('/public/fee-structures', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+        if (!school_id) return res.status(400).json({ error: 'school_id is required' });
+        const { data, error } = await supabase
+            .from('fee_structures')
+            .select('id, name, amount')
+            .eq('school_id', school_id)
+            .order('name');
+
+        if (error) throw error;
+        res.json(data || []);
+    } catch (error: any) {
+        res.status(200).json([]);
+    }
+});
+
 // ======================================
 // PROTECTED (Global Guard)
 // ======================================

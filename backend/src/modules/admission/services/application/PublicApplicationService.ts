@@ -84,6 +84,22 @@ export class PublicApplicationService extends BaseService {
             throw new Error('Student name, grade, and date of birth are required.');
         }
 
+        const extraFields = {
+            board: data.board || 'CBSE',
+            country: data.country || 'India',
+            state: data.state || 'Telangana',
+            city: data.city || 'Hyderabad',
+            relationship: data.relationship || 'Father',
+            occupation: data.occupation || 'Salaried',
+            religion: data.religion || 'Hindu',
+            category: data.category || 'General',
+            blood_group: data.blood_group || 'A+',
+            transport_route_id: data.transport_route_id || null,
+            hostel_room_type: data.hostel_room_type || 'Single (Non-AC)',
+            fee_structure_id: data.fee_structure_id || null,
+            quota: data.quota || 'Regular'
+        };
+
         const enquiry = await this.enquiryService.createEnquiry(
             schoolId,
             academicYearId,
@@ -99,6 +115,7 @@ export class PublicApplicationService extends BaseService {
                 current_school: data.previous_school,
                 address: data.address,
                 ignore_duplicate: data.ignore_duplicate,
+                remarks: JSON.stringify(extraFields),
             },
             correlationId
         );
@@ -134,6 +151,10 @@ export class PublicApplicationService extends BaseService {
                     student_name: data.student_name,
                     date_of_birth: data.date_of_birth,
                     gender: data.gender || 'Other',
+                    blood_group: data.blood_group || 'A+',
+                    religion: data.religion || 'Hindu',
+                    category: data.category || 'General',
+                    nationality: data.country || 'India',
                 },
                 correlationId
             );
@@ -141,21 +162,22 @@ export class PublicApplicationService extends BaseService {
         }
 
         await this.appRepo.saveParents(applicationId, {
-            father_name: data.father_name,
-            father_email: data.father_email,
-            father_phone: data.father_phone,
-            mother_name: data.mother_name,
-            mother_email: data.mother_email,
-            mother_phone: data.mother_phone,
-            guardian_name: data.guardian_name,
-            guardian_email: data.guardian_email,
-            guardian_phone: data.guardian_phone,
+            father_name: data.father_name || (data.relationship === 'Father' ? parentName : null),
+            father_email: data.father_email || (data.relationship === 'Father' ? parentEmail : null),
+            father_phone: data.father_phone || (data.relationship === 'Father' ? parentPhone : null),
+            mother_name: data.mother_name || (data.relationship === 'Mother' ? parentName : null),
+            mother_email: data.mother_email || (data.relationship === 'Mother' ? parentEmail : null),
+            mother_phone: data.mother_phone || (data.relationship === 'Mother' ? parentPhone : null),
+            guardian_name: data.guardian_name || (data.relationship === 'Guardian' ? parentName : null),
+            guardian_email: data.guardian_email || (data.relationship === 'Guardian' ? parentEmail : null),
+            guardian_phone: data.guardian_phone || (data.relationship === 'Guardian' ? parentPhone : null),
         });
 
         if (data.previous_school || data.last_grade_completed) {
             await this.appRepo.savePreviousEducation(applicationId, {
-                previous_school: data.previous_school,
-                last_grade_completed: data.last_grade_completed,
+                school_name: data.previous_school || 'Unknown',
+                board: data.board || null,
+                last_class: data.last_grade_completed || null,
             });
         }
 
@@ -164,14 +186,27 @@ export class PublicApplicationService extends BaseService {
             await this.applicationService.submitApplication(
                 applicationId,
                 {
-                    profile: { date_of_birth: data.date_of_birth, gender: data.gender },
+                    profile: {
+                        date_of_birth: data.date_of_birth,
+                        gender: data.gender,
+                        blood_group: data.blood_group || 'A+',
+                        religion: data.religion || 'Hindu',
+                        category: data.category || 'General',
+                        nationality: data.country || 'India',
+                    },
                     parents: {
-                        father_name: data.father_name,
-                        father_email: data.father_email,
-                        father_phone: data.father_phone,
-                        mother_name: data.mother_name,
-                        mother_email: data.mother_email,
-                        mother_phone: data.mother_phone,
+                        father_name: data.father_name || (data.relationship === 'Father' ? parentName : null),
+                        father_email: data.father_email || (data.relationship === 'Father' ? parentEmail : null),
+                        father_phone: data.father_phone || (data.relationship === 'Father' ? parentPhone : null),
+                        mother_name: data.mother_name || (data.relationship === 'Mother' ? parentName : null),
+                        mother_email: data.mother_email || (data.relationship === 'Mother' ? parentEmail : null),
+                        mother_phone: data.mother_phone || (data.relationship === 'Mother' ? parentPhone : null),
+                    },
+                    preferences: {
+                        need_transport: !!data.transport_route_id,
+                        route_preference: data.transport_route_id || null,
+                        need_hostel: !!data.hostel_room_type && data.hostel_room_type !== 'None',
+                        room_preference: data.hostel_room_type || null,
                     },
                     declaration: {
                         agreed_to_terms: true,
