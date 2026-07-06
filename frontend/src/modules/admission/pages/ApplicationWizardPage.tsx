@@ -5,6 +5,7 @@ import { admissionApi } from '../admission.api';
 import { Button } from '../../../components/ui/button';
 import { ChevronRight, ChevronLeft, Save, FileText, Clock, RotateCcw, HelpCircle, History } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useMasterData } from '../context/MasterDataContext';
 
 const STEPS = [
     { title: 'Student Info', desc: 'Personal details' },
@@ -21,6 +22,7 @@ export function ApplicationWizardPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(0);
+    const { grades, quotas, bloodGroups, transportRoutes, hostelRoomTypes } = useMasterData();
 
     const [formData, setFormData] = useState<any>({
         student_name: '',
@@ -219,13 +221,11 @@ export function ApplicationWizardPage() {
                                             id="wizard-admission-type"
                                             value={formData.admission_type}
                                             onChange={e => setFormData({ ...formData, admission_type: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-white"
                                         >
-                                            <option value="Regular">Regular Admission</option>
-                                            <option value="RTE">RTE Admission</option>
-                                            <option value="Management">Management Quota</option>
-                                            <option value="Sibling">Sibling Admission</option>
-                                            <option value="Scholarship">Scholarship Admission</option>
+                                            {quotas.map(q => (
+                                                <option key={q} value={q}>{q} Admission</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>
@@ -234,11 +234,11 @@ export function ApplicationWizardPage() {
                                             id="wizard-grade"
                                             value={formData.grade_applied_for}
                                             onChange={e => setFormData({ ...formData, grade_applied_for: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-white"
                                         >
-                                            <option value="Grade 1">Grade 1</option>
-                                            <option value="Grade 5">Grade 5</option>
-                                            <option value="Grade 10">Grade 10</option>
+                                            {grades.map(g => (
+                                                <option key={g.id} value={g.name}>{g.name}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -313,16 +313,11 @@ export function ApplicationWizardPage() {
                                             id="wizard-blood-group"
                                             value={formData.blood_group}
                                             onChange={e => setFormData({ ...formData, blood_group: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none bg-white"
                                         >
-                                            <option value="A+">A+</option>
-                                            <option value="A-">A-</option>
-                                            <option value="B+">B+</option>
-                                            <option value="B-">B-</option>
-                                            <option value="O+">O+</option>
-                                            <option value="O-">O-</option>
-                                            <option value="AB+">AB+</option>
-                                            <option value="AB-">AB-</option>
+                                            {bloodGroups.map(bg => (
+                                                <option key={bg} value={bg}>{bg}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>
@@ -361,13 +356,12 @@ export function ApplicationWizardPage() {
                                                 id="wizard-bus-route"
                                                 value={formData.bus_route}
                                                 onChange={e => setFormData({ ...formData, bus_route: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none bg-white"
                                             >
                                                 <option value="">Select Route Option</option>
-                                                <option value="Route 1 (North Sector)">Route 1 (North Sector)</option>
-                                                <option value="Route 2 (Downtown - Central)">Route 2 (Downtown - Central)</option>
-                                                <option value="Route 3 (South Suburban)">Route 3 (South Suburban)</option>
-                                                <option value="Route 4 (East Valley)">Route 4 (East Valley)</option>
+                                                {transportRoutes.map(r => (
+                                                    <option key={r.id} value={r.name}>{r.name}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     )}
@@ -397,13 +391,12 @@ export function ApplicationWizardPage() {
                                                 id="wizard-room-type"
                                                 value={formData.room_type}
                                                 onChange={e => setFormData({ ...formData, room_type: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none bg-white"
                                             >
                                                 <option value="">Select Room Type</option>
-                                                <option value="Single (AC)">Single Room (Air Conditioned)</option>
-                                                <option value="Single (Non-AC)">Single Room (Non-AC)</option>
-                                                <option value="Shared (AC)">Shared Room (Air Conditioned)</option>
-                                                <option value="Shared (Non-AC)">Shared Room (Non-AC)</option>
+                                                {hostelRoomTypes.map(h => (
+                                                    <option key={h} value={h}>{h}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     )}

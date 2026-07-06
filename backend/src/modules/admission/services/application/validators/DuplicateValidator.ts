@@ -14,14 +14,16 @@ export class DuplicateValidator {
         // 1. Check if this lead already has an application
         const existingByLead = await this.appRepo.findCurrentByLeadId(leadId);
         if (existingByLead && existingByLead.id !== excludeApplicationId) {
-            throw new ConflictError(`An active application already exists for Lead ID ${leadId}`);
+            throw new ConflictError(
+                'This student already has an active admission application for the selected academic year.'
+            );
         }
 
         // 2. Check if another student with the same name and DOB has a registered application for this academic year
         const existingByName = await this.appRepo.findCurrentByDetails(studentName, dateOfBirth, academicYearId);
         if (existingByName && existingByName.id !== excludeApplicationId) {
             throw new ConflictError(
-                `An application for student "${studentName}" with DOB ${dateOfBirth.toISOString().split('T')[0]} has already been submitted for this academic year.`
+                'This student already has an active admission application for the selected academic year.'
             );
         }
     }

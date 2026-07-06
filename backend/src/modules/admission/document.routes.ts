@@ -17,6 +17,13 @@ documentRouter.post('/upload',
     documentController.upload
 );
 
+documentRouter.post('/upload/bulk',
+    upload.array('files', 20),
+    checkPermission('admission.document.upload'),
+    checkIdempotency,
+    documentController.bulkUpload
+);
+
 documentRouter.get('/:id',
     checkPermission('admission.document.view'),
     documentController.getById
@@ -33,6 +40,11 @@ documentRouter.post('/:id/verify',
     documentController.verify
 );
 
+documentRouter.post('/verify/bulk',
+    checkPermission('admission.document.verify'),
+    documentController.bulkVerify
+);
+
 documentRouter.post('/:id/reject',
     checkPermission('admission.document.verify'),
     documentController.reject
@@ -47,6 +59,16 @@ documentRouter.post('/:id/request-correction',
 documentRouter.get('/:id/download-url',
     checkPermission('admission.document.download'),
     documentController.getSignedUrl
+);
+
+documentRouter.get('/:id/versions',
+    checkPermission('admission.document.view'),
+    documentController.getVersions
+);
+
+documentRouter.post('/:id/restore',
+    checkPermission('admission.document.upload'),
+    documentController.restoreVersion
 );
 
 documentRouter.get('/checklist/:grade',

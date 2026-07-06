@@ -19,8 +19,8 @@ export class EnrollmentStateMachine {
                 'OFFER_ACCEPTED': ['PAYMENT_PENDING'],
                 'PAYMENT_PENDING': ['PAYMENT_COMPLETED'],
                 'PAYMENT_COMPLETED': ['ADMISSION_CONFIRMED'],
-                'ADMISSION_CONFIRMED': ['STUDENT_CREATED'],
-                'STUDENT_CREATED': ['ENROLLED']
+                'ADMISSION_CONFIRMED': ['STUDENT_CREATED', 'ENROLLED'],
+                'STUDENT_CREATED': ['ENROLLED'],
             };
 
             const allowed = fallbackRules[fromStatus]?.includes(toStatus);

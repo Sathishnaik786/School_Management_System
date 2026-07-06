@@ -4,13 +4,18 @@ import { ApplicationRepository } from '../../repositories/application/Applicatio
 import { Payment, PaymentMode } from '../../domain/enrollment/Payment';
 import { Receipt } from '../../domain/enrollment/Receipt';
 import { AuditService } from '../AuditService';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from '../application/ApplicationWorkflowOrchestrator';
 
 export class PaymentService {
     constructor(
         private readonly paymentRepo: PaymentRepository,
         private readonly feeRepo: FeeRepository,
         private readonly appRepo: ApplicationRepository,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {}
 
     public async collectPayment(
@@ -97,5 +102,18 @@ export class PaymentService {
             performedBy,
             `Fee Payment transaction of ${payment.amount} INR completed. Receipt issued: ${payment.receiptNumber}`
         );
+
+        if (this.workflowOrchestrator) {
+            const application = await this.appRepo.findById(payment.applicationId);
+            const ctx: WorkflowEventContext = {
+                userId: performedBy,
+                role: 'FINANCE_OFFICER',
+                correlationId,
+                notes: `Payment completed: ${payment.receiptNumber}`,
+                schoolId: application?.schoolId,
+                academicYearId: application?.academicYearId,
+            };
+            await this.workflowOrchestrator.publish('FEE_PAID', payment.applicationId, ctx);
+        }
     }
 }

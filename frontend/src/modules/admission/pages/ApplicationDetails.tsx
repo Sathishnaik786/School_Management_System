@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { admissionApi } from '../admission.api';
-import { Admission } from '../admission.types';
+import { useApplication, useWorkflow, type WorkflowActionType } from '../hooks/useAdmission';
+import { AdmissionPermissions } from '../core/AdmissionPermissions';
 import { useAuth } from '../../../context/AuthContext';
 import {
     ArrowLeft, CheckCircle, XCircle, Clock,
@@ -29,26 +29,18 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
     const id = propId || paramId;
     const navigate = useNavigate();
     const { hasRole, hasPermission, user } = useAuth();
-    const [app, setApp] = useState<Admission | null>(null);
-    const [loading, setLoading] = useState(true);
+    const permCtx = { roles: user?.roles ?? [], hasPermission, hasRole };
+    const { application: app, isLoading: loading, refetch: fetchDetails } = useApplication(id);
+    const { executeAction } = useWorkflow(id);
     const [remark, setRemark] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
 
-    const isStaff = hasRole('ADMIN') || hasRole('ADMISSION_OFFICER') || hasRole('HOI');
+    const isStaff = AdmissionPermissions.isStaff(permCtx);
 
-    useEffect(() => {
-        if (id) fetchDetails();
-    }, [id]);
-
-    const fetchDetails = async () => {
-        try {
-            const { data } = await admissionApi.getById(id!);
-            setApp(data);
-        } catch (error) {
-            console.error('Failed to fetch details', error);
-        } finally {
-            setLoading(false);
-        }
+    const handleActionComplete = async () => {
+        await fetchDetails();
+        setRemark('');
+        if (onActionSuccess) onActionSuccess();
     };
 
     const handleAction = async (action: 'review' | 'recommend' | 'approve' | 'reject' | 'verify') => {
@@ -56,15 +48,9 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             alert('Please provide a remark');
             return;
         }
-
         setActionLoading(true);
         try {
-            if (action === 'review') await admissionApi.review(id!, remark);
-            if (action === 'verify') await admissionApi.verifyDocs(id!, remark);
-            if (action === 'recommend') await admissionApi.recommend(id!, remark);
-            if (action === 'approve') await admissionApi.approve(id!, remark);
-            if (action === 'reject') await admissionApi.reject(id!, remark);
-
+            await executeAction(action as WorkflowActionType, { remark });
             await handleActionComplete();
         } catch (error) {
             console.error(`${action} failed`, error);
@@ -78,10 +64,9 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             alert('Please provide a reason in the remarks field.');
             return;
         }
-
         setActionLoading(true);
         try {
-            await admissionApi.decideLogin(id!, status, remark);
+            await executeAction('decide_login', { remark, status });
             await handleActionComplete();
         } catch (error) {
             console.error('Login decision failed', error);
@@ -93,7 +78,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
     const handleInitiatePayment = async (amount: number) => {
         setActionLoading(true);
         try {
-            await admissionApi.initiatePayment(id!, amount);
+            await executeAction('initiate_payment', { amount });
             await fetchDetails();
         } catch (error) {
             console.error('Initiate payment failed', error);
@@ -102,10 +87,10 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
         }
     };
 
-    const handleSubmitPayment = async (data: { mode: string, reference: string, proof_url?: string }) => {
+    const handleSubmitPayment = async (data: { mode: string; reference: string; proof_url?: string }) => {
         setActionLoading(true);
         try {
-            await admissionApi.submitPayment(id!, data);
+            await executeAction('submit_payment', data);
             await fetchDetails();
         } catch (error) {
             console.error('Submit payment failed', error);
@@ -117,7 +102,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
     const handleVerifyFee = async (status: 'verified' | 'correction', remarks: string) => {
         setActionLoading(true);
         try {
-            await admissionApi.verifyFee(id!, status, remarks);
+            await executeAction('verify_fee', { remark: remarks, status });
             await handleActionComplete();
         } catch (error) {
             console.error('Verify fee failed', error);
@@ -128,10 +113,9 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
 
     const handleEnrol = async () => {
         if (!confirm('Are you sure you want to enrol this applicant as a student? This will create their student profile.')) return;
-
         setActionLoading(true);
         try {
-            await admissionApi.enrol(id!);
+            await executeAction('enrol');
             if (onActionSuccess) onActionSuccess();
             await fetchDetails();
             alert('Applicant successfully enrolled as student!');
@@ -140,12 +124,6 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
         } finally {
             setActionLoading(false);
         }
-    };
-
-    const handleActionComplete = async () => {
-        await fetchDetails();
-        setRemark('');
-        if (onActionSuccess) onActionSuccess();
     };
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading application details...</div>;

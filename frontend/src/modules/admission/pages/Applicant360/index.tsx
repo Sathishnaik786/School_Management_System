@@ -1,53 +1,118 @@
 import React from 'react';
+import { useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
+import { RefreshCw, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../../../context/AuthContext';
+import { AdmissionPermissions } from '../../core/AdmissionPermissions';
+import { useApplicant360 } from '../../hooks/useApplicant360';
+import { useApplicationProgress } from '../../hooks/useApplicationProgress';
 import Applicant360Profile from '../../components/profile360/Applicant360Profile';
+import { Button } from '../../../../components/ui/button';
 
 export function Applicant360Page() {
-    // Demonstration mock data for Applicant 360 view
-    const mockApplicant = {
-        id: '123',
-        code: 'APP00124',
-        name: 'Rohan Sharma',
-        email: 'rohan.parent@gmail.com',
-        phone: '+91 98765 43210',
-        grade: 'Grade 5',
-        status: 'DOCUMENT_CHECK',
-        submittedAt: 'June 28, 2026',
-        counselor: 'Nancy Gates',
-        candidateScore: 89,
-        slaRemainingHours: 12,
-        slaTotalHours: 24,
-        documentChecklist: [
-            { name: 'Birth Certificate', verified: true },
-            { name: 'Previous Grade Marksheets', verified: true },
-            { name: 'Address Proof Certificate', verified: false }
-        ],
-        crmLeadTemp: 'HOT' as const,
-        crmLeadScore: 92,
-        examStatus: 'PASSED' as const,
-        examScore: 88,
-        interviewStatus: 'RECOMMENDED' as const,
-        feeStatus: 'PENDING' as const,
-        auditLogs: [
-            { action: 'Application Form Submitted', created_at: '2026-06-28T10:00:00Z', operator_name: 'Parent Self-service', remarks: 'Submitted via parent portal' },
-            { action: 'Birth Certificate Verified', created_at: '2026-06-29T11:30:00Z', operator_name: 'Nancy Gates', remarks: 'Matching name and birth details' },
-            { action: 'Previous Marksheets Verified', created_at: '2026-06-29T11:45:00Z', operator_name: 'Nancy Gates', remarks: 'Grade 4 reports confirmed' }
-        ]
+    const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const tabParam = searchParams.get('tab');
+    const pathTab = location.pathname.includes('/documents/')
+        ? 'documents'
+        : location.pathname.includes('/timeline/')
+          ? 'timeline'
+          : null;
+    const { user, hasPermission, hasRole } = useAuth();
+    const { view, isLoading, error, refetch, notFound } = useApplicant360(id);
+    const { progress, isLoading: progressLoading } = useApplicationProgress(id);
+
+    const permCtx = {
+        roles: user?.roles ?? [],
+        hasPermission,
+        hasRole,
     };
+
+    const canView =
+        AdmissionPermissions.canViewApplication(permCtx);
+    const readOnlyMode = AdmissionPermissions.isParent(permCtx) && !AdmissionPermissions.isStaff(permCtx);
+
+    if (!canView) {
+        return (
+            <div className="py-16 text-center space-y-3">
+                <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+                <p className="text-sm font-bold text-gray-700">You do not have permission to view this application.</p>
+            </div>
+        );
+    }
+
+    if (!id) {
+        return (
+            <div className="py-16 text-center space-y-3">
+                <p className="text-sm text-gray-500">No application ID provided.</p>
+                <Button asChild variant="outline" size="sm">
+                    <Link to="/app/admissions"><ArrowLeft className="w-4 h-4 mr-1" /> Back to applications</Link>
+                </Button>
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="space-y-6 animate-pulse">
+                <div className="h-8 bg-gray-100 rounded-xl w-64" />
+                <div className="h-32 bg-gray-100 rounded-2xl" />
+                <div className="h-96 bg-gray-100 rounded-2xl" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="py-16 text-center space-y-4">
+                <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+                <p className="text-sm font-bold text-gray-700">Failed to load applicant profile.</p>
+                <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-1">
+                    <RefreshCw className="w-4 h-4" /> Retry
+                </Button>
+            </div>
+        );
+    }
+
+    if (notFound || !view) {
+        return (
+            <div className="py-16 text-center space-y-4">
+                <p className="text-sm text-gray-500">Application not found.</p>
+                <Button asChild variant="outline" size="sm">
+                    <Link to="/app/admissions"><ArrowLeft className="w-4 h-4 mr-1" /> Back to applications</Link>
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                        Applicant 360° Profile
+                        {readOnlyMode ? 'My Application' : 'Applicant 360° Profile'}
                     </h2>
                     <p className="text-xs text-gray-400 font-semibold uppercase">
-                        Comprehensive lead detail, timeline audits, and evaluation metrics
+                        {readOnlyMode
+                            ? 'View status, timeline, documents, interview, exam, and fees'
+                            : 'Live data — application, timeline, documents, evaluation, fees'}
                     </p>
                 </div>
+                {!readOnlyMode && (
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1">
+                        <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                    </Button>
+                )}
             </div>
 
-            <Applicant360Profile applicant={mockApplicant} />
+            <Applicant360Profile
+                applicant={view}
+                applicationId={id}
+                progress={progress}
+                progressLoading={progressLoading}
+                readOnlyMode={readOnlyMode}
+                initialTab={(pathTab ?? tabParam as 'overview' | 'timeline' | 'documents' | 'interview' | 'exam' | 'fees') ?? undefined}
+            />
         </div>
     );
 }

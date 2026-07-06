@@ -13,9 +13,12 @@ export class InterviewStateMachine {
         if (!isAllowed) {
             // Fallback for safety/testing
             const fallbackRules: Record<string, string[]> = {
-                'SCHEDULED': ['COMPLETED'],
-                'COMPLETED': ['EVALUATED']
+                'SCHEDULED': ['COMPLETED', 'EVALUATED'],
+                'COMPLETED': ['EVALUATED'],
             };
+
+            const normalizedRole = role.toUpperCase();
+            const examCellRoles = new Set(['EXAM_CELL', 'EXAM_CELL_ADMIN', 'ADMIN']);
 
             const allowed = fallbackRules[fromStatus]?.includes(toStatus);
             if (!allowed) {
@@ -23,6 +26,18 @@ export class InterviewStateMachine {
                     `Invalid interview workflow transition from [${fromStatus}] to [${toStatus}] for role [${role}].`
                 );
             }
+
+            if (
+                !examCellRoles.has(normalizedRole) &&
+                normalizedRole !== 'PANEL_MEMBER' &&
+                toStatus === 'EVALUATED'
+            ) {
+                throw new BusinessRuleError(
+                    `Invalid interview workflow transition from [${fromStatus}] to [${toStatus}] for role [${role}].`
+                );
+            }
+            return;
         }
     }
 }
+

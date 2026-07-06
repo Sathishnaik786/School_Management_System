@@ -16,62 +16,96 @@ export const admissionApi = {
         if (error) throw error;
         return data as AdmissionFeeSnapshot[];
     },
-    create: (data: Partial<Admission>) =>
-        apiClient.post<Admission>('/admissions', data),
-
     publicApply: (data: any) =>
-        apiClient.post<any>('/admissions/public-apply', data),
+        apiClient.post<any>('/v1/admission/public-apply', data),
 
-    update: (id: string, data: Partial<Admission>) =>
-        apiClient.put<Admission>(`/admissions/${id}`, data),
+    parentApply: (data: any) =>
+        apiClient.post<any>('/v1/admission/apply', data),
 
-    submit: (id: string) =>
-        apiClient.post(`/admissions/${id}/submit`),
+    listMyApplications: () =>
+        apiClient.get<{ data: Admission[]; total: number }>('/v1/admission/my'),
+
+    listCrmApplications: (params?: { status?: string, school_id?: string, page?: number, limit?: number, search?: string }) =>
+        apiClient.get<any>('/v1/admission/application', { params }),
+
+    getCrmStats: (school_id?: string) =>
+        apiClient.get<any>('/v1/admission/application/stats', { params: { school_id } }),
+
+    // Legacy aliases — routed to CRM pipeline (Stage 3.3)
+    create: (data: Partial<Admission>) =>
+        apiClient.post<any>('/v1/admission/apply', data),
+
+    update: (id: string, data: Partial<Admission>, expectedUpdatedAt?: string) =>
+        apiClient.patch(`/v1/admission/application/${id}/profile`, data, {
+            headers: expectedUpdatedAt ? { 'x-expected-updated-at': expectedUpdatedAt } : {},
+        }),
+
+    submit: (id: string, payload?: any) =>
+        apiClient.post(`/v1/admission/application/${id}/submit`, payload ?? {}),
 
     list: (params?: { status?: string, school_id?: string, page?: number, limit?: number, search?: string }) =>
-        apiClient.get<any>('/admissions', { params }),
+        apiClient.get<any>('/v1/admission/application', { params }),
 
     getStats: (school_id?: string) =>
-        apiClient.get<any>('/admissions/stats', { params: { school_id } }),
+        apiClient.get<any>('/v1/admission/application/stats', { params: { school_id } }),
 
     getById: (id: string) =>
-        apiClient.get<Admission>(`/admissions/${id}`),
+        apiClient.get<Admission>(`/v1/admission/application/${id}`),
 
     review: (id: string, remark: string) =>
-        apiClient.post(`/admissions/${id}/review`, { remark }),
+        apiClient.post(`/v1/admission/application/${id}/review`, { remark }),
 
     verifyDocs: (id: string, remark: string) =>
-        apiClient.post(`/admissions/${id}/verify-docs`, { remark }),
+        apiClient.post(`/v1/admission/application/${id}/verify-docs`, { remark }),
 
     initiatePayment: (id: string, amount: number) =>
-        apiClient.post(`/admissions/${id}/initiate-payment`, { amount }),
+        apiClient.post('/v1/admission/enrollment/fees/assign', { application_id: id, structure_id: amount }),
 
     recommend: (id: string, remark: string) =>
-        apiClient.post(`/admissions/${id}/recommend`, { remark }),
+        apiClient.post(`/v1/admission/application/${id}/approve`, { remark }),
 
     approve: (id: string, remark: string) =>
-        apiClient.post(`/admissions/${id}/approve`, { remark }),
+        apiClient.post(`/v1/admission/application/${id}/approve`, { remark }),
 
     reject: (id: string, reason: string) =>
-        apiClient.post(`/admissions/${id}/reject`, { reason }),
+        apiClient.post(`/v1/admission/application/${id}/reject`, { reason }),
 
     enrol: (id: string) =>
-        apiClient.post(`/admissions/${id}/enrol`),
+        apiClient.post('/v1/admission/enrollment/enroll', { application_id: id }),
 
     submitPayment: (id: string, data: { mode: string, reference: string, proof_url?: string }) =>
-        apiClient.post(`/admissions/${id}/pay`, data),
+        apiClient.post('/v1/admission/enrollment/payments', {
+            application_id: id,
+            payment_mode: data.mode,
+            reference_number: data.reference,
+            proof_url: data.proof_url,
+        }),
 
     verifyFee: (id: string, status: 'verified' | 'correction', remarks: string) =>
-        apiClient.post(`/admissions/${id}/verify-fee`, { status, remarks }),
+        apiClient.post('/v1/admission/enrollment/payments/verify', {
+            application_id: id,
+            status,
+            remarks,
+        }),
 
     decideLogin: (id: string, status: 'APPROVED' | 'REJECTED' | 'BLOCKED', reason: string) =>
         apiClient.post(`/admissions/${id}/decide-login`, { status, reason }),
 
-    uploadDoc: (id: string, type: string, url: string) =>
-        apiClient.post(`/admissions/${id}/documents`, { type, url }),
+    uploadDoc: (id: string, type: string, file: File) => {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('application_id', id);
+        form.append('document_type_code', type);
+        return apiClient.post('/v1/admission/application/documents/upload', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
 
     billing: (id: string, fee_structure_ids: string[]) =>
-        apiClient.post(`/admissions/${id}/billing`, { fee_structure_ids }),
+        apiClient.post('/v1/admission/enrollment/fees/assign', {
+            application_id: id,
+            structure_id: fee_structure_ids[0],
+        }),
 
     getFeeStructures: () =>
         apiClient.get<any[]>('/fees/structures'),
@@ -106,8 +140,8 @@ export const admissionApi = {
     updateLead: (id: string, data: any) =>
         apiClient.put(`/v1/admission/crm/leads/${id}`, data),
 
-    assignLead: (id: string, counselorId: string) =>
-        apiClient.put(`/v1/admission/crm/leads/${id}/assign`, { counselorId }),
+    assignLead: (id: string, counselorId?: string, strategy?: string) =>
+        apiClient.put(`/v1/admission/crm/leads/${id}/assign`, { counselorId, strategy }),
 
     getFollowups: (params?: any) =>
         apiClient.get('/v1/admission/crm/followups', { params }),
@@ -126,6 +160,37 @@ export const admissionApi = {
 
     updateVisitor: (id: string, data: any) =>
         apiClient.put(`/v1/admission/crm/visitors/${id}`, data),
+
+    // ==========================================
+    // CRM APPLICATION (New /v1/admission/application path)
+    // ==========================================
+    createCrmApplication: (data: { lead_id: string; grade: string; date_of_birth: string; gender?: string; blood_group?: string; [key: string]: any }) =>
+        apiClient.post('/v1/admission/application', data),
+
+    getCrmApplication: (id: string) =>
+        apiClient.get(`/v1/admission/application/${id}`),
+
+    patchCrmApplicationProfile: (id: string, data: any, expectedUpdatedAt: string) =>
+        apiClient.patch(`/v1/admission/application/${id}/profile`, data, {
+            headers: { 'x-expected-updated-at': expectedUpdatedAt }
+        }),
+
+    patchCrmApplicationParents: (id: string, data: any, expectedUpdatedAt: string) =>
+        apiClient.patch(`/v1/admission/application/${id}/parents`, data, {
+            headers: { 'x-expected-updated-at': expectedUpdatedAt }
+        }),
+
+    submitCrmApplication: (id: string, payload: any) =>
+        apiClient.post(`/v1/admission/application/${id}/submit`, payload),
+
+    reviewCrmApplication: (id: string, remark: string) =>
+        apiClient.post(`/v1/admission/application/${id}/review`, { remark }),
+
+    approveCrmApplication: (id: string, remark: string) =>
+        apiClient.post(`/v1/admission/application/${id}/approve`, { remark }),
+
+    getCrmApplicationTimeline: (id: string) =>
+        apiClient.get(`/v1/admission/application/${id}/timeline`),
 
     // ==========================================
     // EVALUATION / EXAMS / INTERVIEWS
@@ -204,4 +269,38 @@ export const admissionApi = {
 
     getEnrollmentStatus: (applicationId: string) =>
         apiClient.get(`/v1/admission/enrollment/status/${applicationId}`),
+
+    // ==========================================
+    // DOCUMENTS (Sprint 4 / Stage 3)
+    // ==========================================
+    listCrmDocuments: (applicationId: string) =>
+        apiClient.get(`/v1/admission/application/documents/application/${applicationId}`),
+
+    uploadCrmDocument: (applicationId: string, documentTypeCode: string, file: File) => {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('application_id', applicationId);
+        form.append('document_type_code', documentTypeCode);
+        return apiClient.post('/v1/admission/application/documents/upload', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+
+    deleteCrmDocument: (documentId: string) =>
+        apiClient.delete(`/v1/admission/application/documents/${documentId}`),
+
+    getCrmDocumentDownloadUrl: (documentId: string) =>
+        apiClient.get(`/v1/admission/application/documents/${documentId}/download-url`),
+
+    verifyCrmDocument: (documentId: string, remarks?: string) =>
+        apiClient.post(`/v1/admission/application/documents/${documentId}/verify`, { remarks }),
+
+    rejectCrmDocument: (documentId: string, rejectionReason: string) =>
+        apiClient.post(`/v1/admission/application/documents/${documentId}/reject`, { rejection_reason: rejectionReason }),
+
+    requestCrmDocumentCorrection: (documentId: string, remarks: string) =>
+        apiClient.post(`/v1/admission/application/documents/${documentId}/request-correction`, { remarks }),
+
+    getApplicationProgress: (applicationId: string) =>
+        apiClient.get(`/v1/admission/application/${applicationId}/progress`),
 };

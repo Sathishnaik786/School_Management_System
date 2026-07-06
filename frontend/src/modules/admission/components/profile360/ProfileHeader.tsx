@@ -1,17 +1,9 @@
 import React from 'react';
 import { User, Phone, Mail, Award, Calendar } from 'lucide-react';
+import type { Applicant360View } from '../../utils/applicant360.mapper';
 
 interface ProfileHeaderProps {
-    applicant: {
-        name: string;
-        code: string;
-        email: string;
-        phone: string;
-        grade: string;
-        status: string;
-        candidateScore?: number;
-        submittedAt: string;
-    };
+    applicant: Pick<Applicant360View, 'name' | 'code' | 'email' | 'phone' | 'grade' | 'status' | 'candidateScore' | 'submittedAt'>;
 }
 
 export function ProfileHeader({ applicant }: ProfileHeaderProps) {
@@ -51,7 +43,7 @@ export function ProfileHeader({ applicant }: ProfileHeaderProps) {
                 <div className="flex items-center gap-3">
                     <div className="text-right">
                         <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Applied Grade</span>
-                        <span className="text-sm font-black text-gray-800 dark:text-gray-200">Grade {applicant.grade}</span>
+                        <span className="text-sm font-black text-gray-800 dark:text-gray-200">{applicant.grade}</span>
                     </div>
                     <div className="h-8 w-px bg-gray-100 dark:bg-border" />
                     <div className="text-right">

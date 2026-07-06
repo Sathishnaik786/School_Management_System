@@ -3,13 +3,18 @@ import { ApplicationRepository } from '../../repositories/application/Applicatio
 import { InterviewScore } from '../../domain/evaluation/InterviewScore';
 import { AuditService } from '../AuditService';
 import { InterviewStateMachine } from './state-machine/InterviewStateMachine';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from '../application/ApplicationWorkflowOrchestrator';
 
 export class InterviewEvaluationService {
     constructor(
         private readonly interviewRepo: InterviewRepository,
         private readonly appRepo: ApplicationRepository,
         private readonly stateMachine: InterviewStateMachine,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {}
 
     public async recordScores(
@@ -24,9 +29,17 @@ export class InterviewEvaluationService {
             throw new Error(`Interview with ID ${interviewId} not found`);
         }
 
-        // Validate transitions constraint rules
+        // Validate transitions constraint rules (SCHEDULED → COMPLETED → EVALUATED)
         const oldStatus = interview.status;
-        await this.stateMachine.validateTransition(oldStatus, 'EVALUATED', role);
+        const normalizedRole = role.toUpperCase() === 'EXAM_CELL_ADMIN' ? 'EXAM_CELL' : role;
+
+        if (oldStatus === 'SCHEDULED') {
+            await this.stateMachine.validateTransition(oldStatus, 'COMPLETED', normalizedRole);
+            interview.transition('COMPLETED', 'Interview conducted.');
+            await this.interviewRepo.save(interview);
+        }
+
+        await this.stateMachine.validateTransition(interview.status, 'EVALUATED', normalizedRole);
 
         // Fetch criteria list
         const activeCriteria = await this.interviewRepo.findCriteria();
@@ -72,5 +85,18 @@ export class InterviewEvaluationService {
             userId: reviewerId,
             correlationId
         });
+
+        if (this.workflowOrchestrator) {
+            const application = await this.appRepo.findById(interview.applicationId);
+            const ctx: WorkflowEventContext = {
+                userId: reviewerId,
+                role,
+                correlationId,
+                notes: 'Interview evaluation completed',
+                schoolId: application?.schoolId,
+                academicYearId: application?.academicYearId,
+            };
+            await this.workflowOrchestrator.publish('INTERVIEW_COMPLETED', interview.applicationId, ctx);
+        }
     }
 }

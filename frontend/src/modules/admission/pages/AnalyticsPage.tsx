@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Filter, Calendar, Award } from 'lucide-react';
+import { useMasterData } from '../context/MasterDataContext';
 
 export function AnalyticsPage() {
     const [admissionType, setAdmissionType] = useState('all');
     const [grade, setGrade] = useState('all');
+    const { grades, quotas } = useMasterData();
 
     const funnelData = [
         { name: 'Inquiry', count: 120 },
@@ -58,26 +60,24 @@ export function AnalyticsPage() {
                         id="admission-type-filter"
                         value={admissionType}
                         onChange={e => setAdmissionType(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none"
+                        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none bg-white"
                     >
                         <option value="all">All Admission Types</option>
-                        <option value="Regular">Regular</option>
-                        <option value="RTE">RTE</option>
-                        <option value="Management">Management</option>
-                        <option value="Sibling">Sibling</option>
-                        <option value="Scholarship">Scholarship</option>
+                        {quotas.map(q => (
+                            <option key={q} value={q}>{q}</option>
+                        ))}
                     </select>
 
                     <select
                         id="grade-filter"
                         value={grade}
                         onChange={e => setGrade(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none"
+                        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none bg-white"
                     >
                         <option value="all">All Grades</option>
-                        <option value="Grade 1">Grade 1</option>
-                        <option value="Grade 5">Grade 5</option>
-                        <option value="Grade 10">Grade 10</option>
+                        {grades.map(g => (
+                            <option key={g.id} value={g.name}>{g.name}</option>
+                        ))}
                     </select>
                 </div>
             </div>

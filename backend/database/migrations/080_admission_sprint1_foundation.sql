@@ -164,7 +164,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r, public.permissions p
-WHERE r.name = 'RECEPTIONIST' AND p.code IN ('admission.enquiry.create', 'admission.visitors.manage')
+WHERE r.name = 'RECEPTIONIST' AND p.code IN ('admission.enquiry.create', 'admission.enquiry.view', 'admission.visitors.manage')
 ON CONFLICT DO NOTHING;
 
 -- Map permissions safely to ADMIN

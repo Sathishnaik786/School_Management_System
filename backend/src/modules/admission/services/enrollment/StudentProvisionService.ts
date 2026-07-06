@@ -1,142 +1,100 @@
 import { StudentProvisionRepository } from '../../repositories/enrollment/StudentProvisionRepository';
-import { StudentProvision } from '../../domain/enrollment/StudentProvision';
-import { StudentMasterProvisioner } from './provisioning/StudentMasterProvisioner';
-import { AcademicProvisioner } from './provisioning/AcademicProvisioner';
-import { ParentProvisioner } from './provisioning/ParentProvisioner';
-import { UserProvisioner } from './provisioning/UserProvisioner';
-import { TransportProvisioner } from './provisioning/TransportProvisioner';
-import { HostelProvisioner } from './provisioning/HostelProvisioner';
-import { LibraryProvisioner } from './provisioning/LibraryProvisioner';
-import { IDCardProvisioner } from './provisioning/IDCardProvisioner';
+import { AtomicProvisionRepository } from '../../repositories/enrollment/AtomicProvisionRepository';
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
+import { AuditService } from '../AuditService';
+
+export interface ProvisionStepReport {
+    stepName: string;
+    status: 'COMPLETED' | 'FAILED' | 'SKIPPED';
+    message?: string;
+}
+
+export interface StudentProvisionReport {
+    applicationId: string;
+    admissionNumber: string;
+    studentId: string | null;
+    success: boolean;
+    steps: ProvisionStepReport[];
+    error?: string;
+}
 
 export class StudentProvisionService {
     constructor(
         private readonly provisionRepo: StudentProvisionRepository,
+        private readonly atomicRepo: AtomicProvisionRepository,
         private readonly appRepo: ApplicationRepository,
-        private readonly studentProvisioner: StudentMasterProvisioner,
-        private readonly academicProvisioner: AcademicProvisioner,
-        private readonly parentProvisioner: ParentProvisioner,
-        private readonly userProvisioner: UserProvisioner,
-        private readonly transportProvisioner: TransportProvisioner,
-        private readonly hostelProvisioner: HostelProvisioner,
-        private readonly libraryProvisioner: LibraryProvisioner,
-        private readonly idCardProvisioner: IDCardProvisioner
+        private readonly auditService: AuditService
     ) {}
 
     /**
-     * Provisions the candidate into student master databases.
+     * Provisions the candidate into ERP student master in one atomic database transaction.
      */
     public async provisionStudent(
         applicationId: string,
-        admissionNumber: string
+        admissionNumber: string,
+        performedBy: string | null = null,
+        correlationId?: string
     ): Promise<string> {
-        // Fetch candidate details
-        const profile = await this.appRepo.findProfile(applicationId);
+        const report = await this.provisionStudentWithReport(
+            applicationId,
+            admissionNumber,
+            performedBy,
+            correlationId
+        );
+        if (!report.success || !report.studentId) {
+            throw new Error(report.error ?? 'ERP student provisioning failed');
+        }
+        return report.studentId;
+    }
+
+    public async provisionStudentWithReport(
+        applicationId: string,
+        admissionNumber: string,
+        performedBy: string | null = null,
+        correlationId?: string
+    ): Promise<StudentProvisionReport> {
         const app = await this.appRepo.findById(applicationId);
         if (!app) {
-            throw new Error(`Application with ID ${applicationId} not found`);
-        }
-
-        const steps = ['Student', 'Academic', 'Parent', 'User', 'Transport', 'Hostel', 'Library', 'IDCard'];
-        const jobs = await this.provisionRepo.findJobsByApplicationId(applicationId);
-
-        // 1. Initialise jobs tracking
-        for (const step of steps) {
-            let job = jobs.find(j => j.stepName === step);
-            if (!job) {
-                job = new StudentProvision(
-                    crypto.randomUUID(),
-                    applicationId,
-                    step,
-                    'PENDING',
-                    null,
-                    new Date(),
-                    new Date()
-                );
-                await this.provisionRepo.saveJob(job);
-            }
-        }
-
-        let studentId = '';
-        try {
-            // Step 1: Student core record creation
-            const studentJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Student', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(studentJob);
-
-            const studentProfileObj = {
-                student_name: profile ? 'Enrolled Student' : 'Student Name',
-                date_of_birth: profile ? profile.dateOfBirth.toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10),
-                gender: profile ? profile.gender : 'Other',
-                school_id: app.schoolId,
-                academic_year_id: app.academicYearId
+            return {
+                applicationId,
+                admissionNumber,
+                studentId: null,
+                success: false,
+                steps: [],
+                error: `Application with ID ${applicationId} not found`,
             };
-            studentId = await this.studentProvisioner.provision(applicationId, admissionNumber, studentProfileObj);
-            studentJob.complete();
-            await this.provisionRepo.saveJob(studentJob);
+        }
 
-            // Step 2: Academic enrollment
-            const acadJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Academic', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(acadJob);
-            const grade = await this.appRepo.getGradeForApplication(applicationId);
-            await this.academicProvisioner.provision(studentId, grade, app.academicYearId);
-            acadJob.complete();
-            await this.provisionRepo.saveJob(acadJob);
+        const report = await this.atomicRepo.provisionAtomic(
+            applicationId,
+            admissionNumber,
+            performedBy
+        );
 
-            // Step 3: Parent Mapping
-            const parentJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Parent', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(parentJob);
-            await this.parentProvisioner.provision(studentId, applicationId);
-            parentJob.complete();
-            await this.provisionRepo.saveJob(parentJob);
+        await this.auditService.logAudit({
+            action: report.success ? 'ERP_STUDENT_PROVISIONED' : 'ERP_STUDENT_PROVISION_FAILED',
+            entityName: 'admission_applications',
+            entityId: applicationId,
+            afterState: {
+                studentId: report.studentId,
+                admissionNumber,
+                steps: report.steps,
+                success: report.success,
+            },
+            userId: performedBy,
+            correlationId,
+        });
 
-            // Step 4: User Account
-            const userJob = new StudentProvision(crypto.randomUUID(), applicationId, 'User', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(userJob);
-            await this.userProvisioner.provision(admissionNumber, 'parent@school.com');
-            userJob.complete();
-            await this.provisionRepo.saveJob(userJob);
-
-            // Step 5: Transport Allocation
-            const transJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Transport', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(transJob);
-            await this.transportProvisioner.provision(studentId, applicationId);
-            transJob.complete();
-            await this.provisionRepo.saveJob(transJob);
-
-            // Step 6: Hostel Allocation
-            const hostelJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Hostel', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(hostelJob);
-            await this.hostelProvisioner.provision(studentId);
-            hostelJob.complete();
-            await this.provisionRepo.saveJob(hostelJob);
-
-            // Step 7: Library account
-            const libJob = new StudentProvision(crypto.randomUUID(), applicationId, 'Library', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(libJob);
-            await this.libraryProvisioner.provision(studentId, admissionNumber);
-            libJob.complete();
-            await this.provisionRepo.saveJob(libJob);
-
-            // Step 8: ID Card
-            const idCardJob = new StudentProvision(crypto.randomUUID(), applicationId, 'IDCard', 'PROCESSING', null, new Date(), new Date());
-            await this.provisionRepo.saveJob(idCardJob);
-            await this.idCardProvisioner.provision(studentId, admissionNumber);
-            idCardJob.complete();
-            await this.provisionRepo.saveJob(idCardJob);
-
-        } catch (err: any) {
-            // Fail jobs tracking
+        if (!report.success) {
             const failedJobs = await this.provisionRepo.findJobsByApplicationId(applicationId);
             for (const job of failedJobs) {
                 if (job.status !== 'COMPLETED') {
-                    job.fail(err.message || 'ERP provisioning step failed');
+                    job.fail(report.error ?? 'Atomic provisioning failed');
                     await this.provisionRepo.saveJob(job);
                 }
             }
-            throw err;
         }
 
-        return studentId;
+        return report;
     }
 }

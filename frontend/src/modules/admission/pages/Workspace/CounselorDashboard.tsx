@@ -1,29 +1,50 @@
-import React, { useState } from 'react';
-import { Phone, Users, Calendar, PhoneCall, Sparkles } from 'lucide-react';
-import KPICards from '../../components/widgets/KPICards';
-import TaskList from '../../components/productivity/TaskList';
-import Search from '../../components/productivity/Search';
+import React, { useMemo } from 'react';
+import { PhoneCall } from 'lucide-react';
+import { useAuth } from '../../../../context/AuthContext';
+import { useLeadDashboard } from '../../hooks/useLeads';
+import { useLeadSearch } from '../../hooks/useLeadSearch';
+import { useFollowups, useCompleteFollowup } from '../../hooks/useFollowups';
+import { LeadMetricsPanel } from '../../components/inquiry/LeadMetrics';
+import { LeadCard } from '../../components/inquiry/LeadCard';
+import { LeadPriorityBadge } from '../../components/inquiry/LeadPriorityBadge';
+import { LeadStatusChip } from '../../components/inquiry/LeadStatusChip';
+import { isAssigned } from '../../utils/lead.mapper';
+import type { Lead } from '../../types/admission.types';
+
+const FOLLOWUP_TABS = [
+    { id: 'today' as const, label: "Today's Follow-ups" },
+    { id: 'tomorrow' as const, label: 'Tomorrow' },
+    { id: 'upcoming' as const, label: 'Upcoming' },
+    { id: 'missed' as const, label: 'Missed' },
+    { id: 'completed' as const, label: 'Completed' },
+];
 
 export function CounselorDashboard() {
-    const counselorKPIs = [
-        { title: 'My Total Leads', value: 48, description: 'Assigned to me', icon: Users, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
-        { title: 'Pending Callbacks', value: 6, description: 'Follow-ups scheduled', icon: Phone, color: 'text-amber-600 bg-amber-50 border-amber-100' },
-        { title: 'Conversions', value: 12, description: 'SIS Enrolled successfully', icon: Sparkles, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
-    ];
+    const { user } = useAuth();
+    const counselorId = user?.id ?? '';
+    const { leads, metrics, refetch } = useLeadDashboard();
+    const { query, setQuery, results } = useLeadSearch(leads);
+    const { buckets } = useFollowups();
+    const completeFollowup = useCompleteFollowup();
+    const [followupTab, setFollowupTab] = React.useState<typeof FOLLOWUP_TABS[number]['id']>('today');
 
-    const [tasks, setTasks] = useState([
-        { id: '1', text: 'Call back Rohan Sharma parent regarding fees', done: false, type: 'callback' as const, dueDate: 'Today' },
-        { id: '2', text: 'Verify Grade 10 marksheets copy', done: false, type: 'document' as const, dueDate: 'Tomorrow' },
-        { id: '3', text: 'Reschedule written entrance for Amit', done: true, type: 'general' as const }
-    ]);
+    const myLeads = useMemo(() => {
+        const pool = query ? results : leads;
+        return pool.filter(
+            l =>
+                isAssigned(l) &&
+                (l.assigned_counselor_id === counselorId ||
+                    l.assigned_counselor === user?.full_name ||
+                    !l.assigned_counselor_id),
+        );
+    }, [leads, results, query, counselorId, user?.full_name]);
 
-    const handleToggleTask = (id: string) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-    };
+    const unassignedLeads = useMemo(
+        () => leads.filter(l => !isAssigned(l)),
+        [leads],
+    );
 
-    const handleDeleteTask = (id: string) => {
-        setTasks(prev => prev.filter(t => t.id !== id));
-    };
+    const followupItems = buckets[followupTab];
 
     return (
         <div className="space-y-6">
@@ -31,58 +52,119 @@ export function CounselorDashboard() {
                 Admissions Counselor Workspace
             </h2>
 
-            <KPICards cards={counselorKPIs} />
+            <LeadMetricsPanel metrics={metrics} variant="counselor" />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Search and Leads list */}
                     <div className="bg-white dark:bg-card border border-gray-150 dark:border-border/60 p-6 rounded-2xl shadow-sm space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200">
-                                My Assigned Candidates
-                            </h3>
-                        </div>
-
-                        <Search onSearch={(q, f) => console.log('searching', q, f)} />
-
-                        <div className="divide-y divide-gray-100 text-xs">
-                            {[
-                                { name: 'Karan Malhotra', code: 'APP00124', grade: 'Grade 11', score: 88, temp: 'HOT', status: 'DOCUMENT_CHECK' },
-                                { name: 'Preeti Deshmukh', code: 'APP00142', grade: 'Grade 5', score: 92, temp: 'WARM', status: 'INTERVIEW' },
-                                { name: 'Sagar Sen', code: 'APP00155', grade: 'Grade 2', score: 76, temp: 'COLD', status: 'NEW' }
-                            ].map((lead, idx) => (
-                                <div key={idx} className="py-3 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-bold text-gray-900 dark:text-gray-100">{lead.name}</p>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{lead.code} • {lead.grade}</p>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200">
+                            My Assigned Leads ({myLeads.length})
+                        </h3>
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            placeholder="Search leads…"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500"
+                        />
+                        <div className="space-y-3 max-h-[420px] overflow-y-auto">
+                            {myLeads.length === 0 ? (
+                                <p className="text-xs text-gray-400 py-4 text-center">No assigned leads.</p>
+                            ) : (
+                                myLeads.slice(0, 10).map(lead => {
+                                    const scored = lead as Lead;
+                                    return (
+                                    <div
+                                        key={lead.id}
+                                        className="py-3 border-b border-gray-100 last:border-0 flex items-center justify-between gap-3"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{lead.student_name}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
+                                                {lead.inquiry_number ?? lead.id.slice(0, 8)} · {lead.grade_applied_for ?? '—'}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <LeadPriorityBadge tier={scored.priority} score={scored.score} />
+                                            <LeadStatusChip status={lead.status} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                                            lead.temp === 'HOT' ? 'bg-orange-50 text-orange-600' : lead.temp === 'WARM' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
-                                        }`}>
-                                            {lead.temp}
-                                        </span>
-                                        <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                                            {lead.status.replace('_', ' ')}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
+
+                    {unassignedLeads.length > 0 && (
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-black uppercase text-gray-500">Unassigned Queue ({unassignedLeads.length})</h3>
+                            {unassignedLeads.slice(0, 3).map(lead => (
+                                <LeadCard
+                                    key={lead.id}
+                                    lead={lead as Lead}
+                                    showAssign
+                                    counselorId={counselorId}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* Reminders column */}
                 <div className="space-y-6">
                     <div className="bg-white dark:bg-card border border-gray-150 dark:border-border/60 p-5 rounded-2xl shadow-sm space-y-4">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 flex items-center gap-1">
-                            <PhoneCall className="w-4 h-4 text-indigo-500" /> Pending Reminders
+                            <PhoneCall className="w-4 h-4 text-indigo-500" /> Follow-up Workspace
                         </h3>
-                        <TaskList 
-                            tasks={tasks}
-                            onToggle={handleToggleTask}
-                            onDelete={handleDeleteTask}
-                        />
+                        <div className="flex flex-wrap gap-1">
+                            {FOLLOWUP_TABS.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setFollowupTab(tab.id)}
+                                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg ${
+                                        followupTab === tab.id
+                                            ? 'bg-indigo-100 text-indigo-700'
+                                            : 'text-gray-400 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {tab.label} ({buckets[tab.id].length})
+                                </button>
+                            ))}
+                        </div>
+                        <div className="divide-y divide-gray-100 text-xs max-h-[360px] overflow-y-auto">
+                            {followupItems.length === 0 ? (
+                                <p className="text-gray-400 py-4 text-center text-[10px]">No follow-ups in this bucket.</p>
+                            ) : (
+                                followupItems.map(f => (
+                                    <div key={f.id} className="py-3 space-y-1">
+                                        <div className="flex justify-between gap-2">
+                                            <span className="font-bold text-gray-800">
+                                                {f.scheduled_at ?? f.due_date
+                                                    ? new Date(String(f.scheduled_at ?? f.due_date)).toLocaleString()
+                                                    : '—'}
+                                            </span>
+                                            <span className="text-[9px] uppercase font-black text-gray-400">{f.status}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-600">{f.remarks ?? 'No remarks'}</p>
+                                        <p className="text-[9px] text-gray-400">
+                                            Staff: {f.assigned_to ?? f.assigned_staff ?? '—'}
+                                        </p>
+                                        {f.status !== 'completed' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    completeFollowup.mutate(f.id);
+                                                    refetch();
+                                                }}
+                                                className="text-[9px] font-black uppercase text-indigo-600 hover:underline"
+                                            >
+                                                Mark Complete
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

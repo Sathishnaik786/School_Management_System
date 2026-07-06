@@ -10,8 +10,10 @@ import { EnrollmentService } from '../../services/enrollment/EnrollmentService';
 import { EnrollmentTimelineService } from '../../services/enrollment/EnrollmentTimelineService';
 import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { ConfirmationRepository } from '../../repositories/enrollment/ConfirmationRepository';
+import { ApplicationService } from '../../services/application/ApplicationService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from '../crm/ControllerErrorHandler';
+import { getEffectiveRoles } from '../../../../rbac/rbac.middleware';
 
 export class EnrollmentController {
     constructor(
@@ -25,8 +27,19 @@ export class EnrollmentController {
         private readonly enrollmentService: EnrollmentService,
         private readonly timelineService: EnrollmentTimelineService,
         private readonly confirmRepo: ConfirmationRepository,
-        private readonly flagService: FeatureFlagService
+        private readonly flagService: FeatureFlagService,
+        private readonly appService: ApplicationService
     ) {}
+
+    private async enforceApplicationAccess(req: Request, applicationId: string): Promise<void> {
+        const user = req.context?.user;
+        if (!user) throw new PermissionError('Unauthorized');
+        const roles = getEffectiveRoles(user.roles);
+        if (roles.includes('ADMIN') || roles.includes('ADMISSION_OFFICER') || roles.includes('COUNSELOR')) return;
+        if (roles.includes('PARENT')) {
+            await this.appService.assertParentCanAccess(applicationId, user.id, user.email);
+        }
+    }
 
     private async verifyFlag(req: Request, key: string) {
         const schoolId = req.context?.user?.school_id || null;
@@ -59,6 +72,7 @@ export class EnrollmentController {
         try {
             await this.verifyFlag(req, 'fee_collection');
             const { applicationId } = req.params;
+            await this.enforceApplicationAccess(req, applicationId);
             const data = await this.feeCalcService.calculateFees(applicationId);
             res.json(data);
         } catch (err) {
@@ -184,6 +198,7 @@ export class EnrollmentController {
         try {
             await this.verifyFlag(req, 'student_enrollment');
             const { applicationId } = req.params;
+            await this.enforceApplicationAccess(req, applicationId);
             const data = await this.confirmRepo.findByApplicationId(applicationId);
             res.json(data);
         } catch (err) {

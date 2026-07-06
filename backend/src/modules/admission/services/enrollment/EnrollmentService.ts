@@ -7,6 +7,10 @@ import { Enrollment } from '../../domain/enrollment/Enrollment';
 import { AuditService } from '../AuditService';
 import { EnrollmentStateMachine } from './state-machine/EnrollmentStateMachine';
 import { supabase } from '../../../../config/supabase';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from '../application/ApplicationWorkflowOrchestrator';
 
 export class EnrollmentService {
     constructor(
@@ -16,7 +20,8 @@ export class EnrollmentService {
         private readonly validationCoordinator: EnrollmentValidationCoordinator,
         private readonly provisionService: StudentProvisionService,
         private readonly stateMachine: EnrollmentStateMachine,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {}
 
     public async enrollStudent(
@@ -34,7 +39,9 @@ export class EnrollmentService {
         // Step 2: Provision candidate details across ERP databases
         const studentId = await this.provisionService.provisionStudent(
             applicationId,
-            confirmation.admissionNumber
+            confirmation.admissionNumber,
+            performedBy,
+            correlationId
         );
 
         // Step 3: Run full pipeline validation checks (including job successes)
@@ -91,6 +98,19 @@ export class EnrollmentService {
             userId: performedBy,
             correlationId
         });
+
+        if (this.workflowOrchestrator) {
+            const application = await this.appRepo.findById(applicationId);
+            const ctx: WorkflowEventContext = {
+                userId: performedBy,
+                role,
+                correlationId,
+                notes: `ERP student provisioned: ${studentId}`,
+                schoolId: application?.schoolId,
+                academicYearId: application?.academicYearId,
+            };
+            await this.workflowOrchestrator.publish('ERP_STUDENT_CREATED', applicationId, ctx);
+        }
 
         return enrollment;
     }

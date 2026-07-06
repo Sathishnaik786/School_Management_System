@@ -3,15 +3,12 @@ import { AdmissionLead } from '../../../domain/AdmissionLead';
 import { AssignmentStrategy } from './AssignmentStrategy';
 
 export class RoundRobinAssignmentStrategy implements AssignmentStrategy {
-    /**
-     * Resolves a counselor ID sequentially/randomly from available counselors.
-     */
     public async assign(lead: AdmissionLead): Promise<string> {
-        // Find users matching role = 'counselor' or with counselor permissions
+        // Find users matching role = 'COUNSELOR'
         const { data, error } = await supabase
-            .from('users')
-            .select('id')
-            .eq('role', 'counselor')
+            .from('user_roles')
+            .select('user_id, roles!inner(name)')
+            .eq('roles.name', 'COUNSELOR')
             .limit(10);
 
         if (error) throw error;
@@ -20,6 +17,7 @@ export class RoundRobinAssignmentStrategy implements AssignmentStrategy {
             const { data: adminUser, error: adminErr } = await supabase
                 .from('users')
                 .select('id')
+                .eq('status', 'active')
                 .limit(1)
                 .single();
             if (adminErr || !adminUser) {
@@ -30,6 +28,6 @@ export class RoundRobinAssignmentStrategy implements AssignmentStrategy {
 
         // Pick one at random as a placeholder algorithm
         const randomIndex = Math.floor(Math.random() * data.length);
-        return data[randomIndex].id;
+        return data[randomIndex].user_id;
     }
 }

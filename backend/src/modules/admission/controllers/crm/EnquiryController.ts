@@ -113,8 +113,14 @@ export class EnquiryController {
             await this.checkFlags(req);
             const { id } = req.params;
             const correlationId = req.headers['x-correlation-id'] as string;
-            const leadId = await this.enquiryService.convertToLead(id, correlationId);
-            res.json({ success: true, lead_id: leadId, message: 'Enquiry converted to lead successfully' });
+            const userId = req.context?.user?.id || null;
+            const { leadId, applicationId } = await this.enquiryService.convertToApplication(id, correlationId, userId);
+            res.json({
+                success: true,
+                lead_id: leadId,
+                application_id: applicationId,
+                message: 'Enquiry converted to application successfully',
+            });
         } catch (err) {
             handleControllerError(res, err);
         }

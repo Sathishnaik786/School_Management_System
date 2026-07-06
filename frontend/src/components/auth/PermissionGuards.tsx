@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { FEATURE_FLAGS_CONFIG } from '../../config/featureFlags';
+import { AccessDenied } from './AccessDenied';
 
 interface GuardProps {
     children: React.ReactNode;
@@ -11,7 +12,11 @@ interface PermissionGuardProps extends GuardProps {
     permission: string;
 }
 
-export const PermissionGuard = ({ permission, children, fallback = null }: PermissionGuardProps) => {
+export const PermissionGuard = ({
+    permission,
+    children,
+    fallback = <AccessDenied />,
+}: PermissionGuardProps) => {
     const { hasPermission } = useAuth();
     if (!hasPermission || !hasPermission(permission)) {
         return <>{fallback}</>;
@@ -23,7 +28,11 @@ interface RoleGuardProps extends GuardProps {
     allowedRoles: string[];
 }
 
-export const RoleGuard = ({ allowedRoles, children, fallback = null }: RoleGuardProps) => {
+export const RoleGuard = ({
+    allowedRoles,
+    children,
+    fallback = <AccessDenied />,
+}: RoleGuardProps) => {
     const { hasRole } = useAuth();
     const matches = allowedRoles.some(role => hasRole(role));
     if (!matches) {

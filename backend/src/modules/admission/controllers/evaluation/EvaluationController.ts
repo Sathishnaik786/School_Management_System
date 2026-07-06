@@ -9,8 +9,10 @@ import { OfferService } from '../../services/evaluation/OfferService';
 import { EvaluationService } from '../../services/evaluation/EvaluationService';
 import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
+import { ApplicationService } from '../../services/application/ApplicationService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from '../crm/ControllerErrorHandler';
+import { getEffectiveRoles } from '../../../../rbac/rbac.middleware';
 import { AdmissionService } from '../../admission.service';
 
 export class EvaluationController {
@@ -24,8 +26,19 @@ export class EvaluationController {
         private readonly offerService: OfferService,
         private readonly evalService: EvaluationService,
         private readonly appRepo: ApplicationRepository,
+        private readonly appService: ApplicationService,
         private readonly flagService: FeatureFlagService
     ) {}
+
+    private async enforceApplicationAccess(req: Request, applicationId: string): Promise<void> {
+        const user = req.context?.user;
+        if (!user) throw new PermissionError('Unauthorized');
+        const roles = getEffectiveRoles(user.roles);
+        if (roles.includes('ADMIN') || roles.includes('ADMISSION_OFFICER') || roles.includes('COUNSELOR')) return;
+        if (roles.includes('PARENT')) {
+            await this.appService.assertParentCanAccess(applicationId, user.id, user.email);
+        }
+    }
 
     private async verifyFlag(req: Request, key: string) {
         const schoolId = req.context?.user?.school_id || null;
@@ -138,7 +151,8 @@ export class EvaluationController {
     public getExamResults = async (req: Request, res: Response) => {
         try {
             await this.verifyFlag(req, 'entrance_exam');
-            const { id } = req.params; // applicationId
+            const { id } = req.params;
+            await this.enforceApplicationAccess(req, id);
             const data = await this.evalService.getSummary(id);
             res.json(data.exam?.results || []);
         } catch (err) {
@@ -221,6 +235,7 @@ export class EvaluationController {
         try {
             await this.verifyFlag(req, 'merit_engine');
             const { applicationId } = req.params;
+            await this.enforceApplicationAccess(req, applicationId);
             const data = await this.evalService.getSummary(applicationId);
             res.json(data.merit || null);
         } catch (err) {
@@ -301,6 +316,7 @@ export class EvaluationController {
     public getTimeline = async (req: Request, res: Response) => {
         try {
             const { applicationId } = req.params;
+            await this.enforceApplicationAccess(req, applicationId);
             const data = await this.appRepo.findTimeline(applicationId);
             res.json(data);
         } catch (err) {

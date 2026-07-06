@@ -82,6 +82,28 @@ async function seed() {
             return null;
         };
 
+        console.log('--- Phase 3.5: Ensuring Role Permission Maps ---');
+        const rolePermissionMap = {
+            RECEPTIONIST: ['admission.enquiry.create', 'admission.enquiry.view', 'admission.visitors.manage'],
+            COUNSELOR: ['admission.enquiry.view', 'admission.leads.manage', 'admission.application.view', 'admission.document.upload', 'admission.document.view', 'admission.document.download'],
+        };
+        const { data: allPerms } = await supabase.from('permissions').select('id, code');
+        const permByCode = {};
+        allPerms?.forEach(p => { permByCode[p.code] = p.id; });
+
+        for (const [roleName, permCodes] of Object.entries(rolePermissionMap)) {
+            const roleId = getRoleId(roleName);
+            if (!roleId) continue;
+            for (const code of permCodes) {
+                const permId = permByCode[code];
+                if (!permId) continue;
+                await supabase.from('role_permissions').upsert(
+                    { role_id: roleId, permission_id: permId },
+                    { onConflict: 'role_id,permission_id' },
+                );
+            }
+        }
+
         console.log('--- Phase 4: Seeding Users via Admin Auth SDK ---');
         // Fetch Auth list ONCE before loop
         const { data: { users: authUsers }, error: listError } = await supabase.auth.admin.listUsers();

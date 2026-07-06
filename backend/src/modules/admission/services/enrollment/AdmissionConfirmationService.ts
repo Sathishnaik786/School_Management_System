@@ -24,7 +24,7 @@ export class AdmissionConfirmationService {
         correlationId?: string
     ): Promise<AdmissionConfirmation> {
         // Step 1: Execute validations sequence checks
-        await this.validationCoordinator.validatePreEnrollment(applicationId);
+        await this.validationCoordinator.validatePreConfirmation(applicationId);
 
         const app = await this.appRepo.findById(applicationId);
         if (!app) {

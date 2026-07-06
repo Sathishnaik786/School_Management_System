@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Loading } from '../ui/Loading';
 import { PendingApprovalPage } from '../../pages/PendingApproval';
+import { AccessDenied } from './AccessDenied';
 import { ShieldAlert } from 'lucide-react';
 
 export const ProtectedRoute = () => {
@@ -54,10 +55,40 @@ interface PermissionGuardProps {
     fallback?: React.ReactNode;
 }
 
-export const PermissionGuard = ({ permission, children, fallback = null }: PermissionGuardProps) => {
+export const PermissionGuard = ({
+    permission,
+    children,
+    fallback = <AccessDenied />,
+}: PermissionGuardProps) => {
     const { hasPermission, user } = useAuth();
 
     if (!user || !hasPermission || !hasPermission(permission)) {
+        return <>{fallback}</>;
+    }
+
+    return <>{children}</>;
+};
+
+interface AnyPermissionGuardProps {
+    permissions: string[];
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
+/** Passes when the user holds at least one of the listed permissions. */
+export const AnyPermissionGuard = ({
+    permissions,
+    children,
+    fallback = <AccessDenied />,
+}: AnyPermissionGuardProps) => {
+    const { hasPermission, user } = useAuth();
+
+    if (!user || !hasPermission) {
+        return <>{fallback}</>;
+    }
+
+    const allowed = permissions.some(p => hasPermission(p));
+    if (!allowed) {
         return <>{fallback}</>;
     }
 

@@ -282,7 +282,7 @@ const PaymentForm = ({ app, onSubmit, loading }: { app: Admission, onSubmit: any
                                     Secure {selectedLabel} Gateway
                                 </h4>
                                 <Badge className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border-0 text-[9px] font-black uppercase tracking-widest px-2 py-1">
-                                    Mock Verification
+                                    Gateway Verification
                                 </Badge>
                             </div>
 

@@ -23,7 +23,7 @@ export function handleControllerError(res: Response, err: any) {
         return res.status(409).json({ error: err.message, details: err.details });
     }
     if (err instanceof BusinessRuleError) {
-        return res.status(422).json({ error: err.message });
+        return res.status(409).json({ error: err.message });
     }
     if (err instanceof AdmissionError) {
         return res.status(500).json({ error: err.message });

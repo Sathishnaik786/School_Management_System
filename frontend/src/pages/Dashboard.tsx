@@ -48,13 +48,21 @@ export default function Dashboard() {
     // I will render Faculty/Parent/Driver inline here as before, to maintain "existing" behavior without new routes if not requested.
 
     const isFaculty = user?.roles.some(r => r.toUpperCase() === 'FACULTY');
-    const isParent = user?.roles.some(r => ['PARENT', 'STUDENT'].includes(r.toUpperCase()));
+    const isStudent = user?.roles.some(r => r.toUpperCase() === 'STUDENT');
+    const isParent = user?.roles.some(r => r.toUpperCase() === 'PARENT');
     const isTransportAdmin = user?.roles.some(r => r.toUpperCase() === 'TRANSPORT_ADMIN');
     const isDriver = user?.roles.some(r => r.toUpperCase() === 'BUS_DRIVER');
 
+    if (isStudent) {
+        return <Navigate to="/app/student/dashboard" replace />;
+    }
+
+    if (isParent && !isFaculty && !isTransportAdmin && !isDriver) {
+        return <Navigate to="/app/admissions/my" replace />;
+    }
+
     return (
         <div className="space-y-6">
-            {/* Admin & Exam Admin are redirected above */}
             {isFaculty && <FacultyDashboard />}
             {isParent && <ParentDashboard />}
             {isTransportAdmin && <TransportAdminDashboard />}

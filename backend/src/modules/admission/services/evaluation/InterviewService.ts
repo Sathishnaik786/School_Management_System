@@ -3,13 +3,18 @@ import { ApplicationRepository } from '../../repositories/application/Applicatio
 import { Interview } from '../../domain/evaluation/Interview';
 import { InterviewValidator } from './validators/InterviewValidator';
 import { AuditService } from '../AuditService';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from '../application/ApplicationWorkflowOrchestrator';
 
 export class InterviewService {
     constructor(
         private readonly interviewRepo: InterviewRepository,
         private readonly appRepo: ApplicationRepository,
         private readonly interviewValidator: InterviewValidator,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {}
 
     public async scheduleInterview(
@@ -61,6 +66,19 @@ export class InterviewService {
             userId: createdBy,
             correlationId
         });
+
+        if (this.workflowOrchestrator) {
+            const application = await this.appRepo.findById(applicationId);
+            const ctx: WorkflowEventContext = {
+                userId: createdBy,
+                role: 'EXAM_CELL',
+                correlationId,
+                notes: `Interview scheduled in ${roomName}`,
+                schoolId: application?.schoolId,
+                academicYearId: application?.academicYearId,
+            };
+            await this.workflowOrchestrator.publish('INTERVIEW_CREATED', applicationId, ctx);
+        }
 
         return interview;
     }

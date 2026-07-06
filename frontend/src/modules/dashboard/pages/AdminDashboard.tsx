@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { PageWrapper } from '../../../components/layout/PageWrapper';
 import { useSettingsStore } from '../../../store/settings.store';
@@ -80,6 +81,7 @@ export const AdminDashboard = () => {
 
 const AdminDashboardInner = () => {
     const { user, hasRole } = useAuth();
+    const { activeSchool, activeAcademicYear } = useMasterData();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -242,7 +244,7 @@ const AdminDashboardInner = () => {
     return (
         <PageWrapper
             title={`${getGreeting()}, Sathish`}
-            description={`Academic Year 2026–27 | Active Campus: RR Village | Dashboard overview`}
+            description={`Academic Year ${activeAcademicYear?.year_label || 'No Academic Year'} | Active Campus: ${activeSchool?.name || 'No Campus'} | Dashboard overview`}
             icon={Sparkles}
             actions={
                 <div className="flex gap-2">

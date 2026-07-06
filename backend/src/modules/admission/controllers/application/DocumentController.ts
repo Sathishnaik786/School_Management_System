@@ -4,9 +4,12 @@ import { DocumentUploadService } from '../../services/application/DocumentUpload
 import { DocumentDownloadService } from '../../services/application/DocumentDownloadService';
 import { DocumentVerificationService } from '../../services/application/DocumentVerificationService';
 import { DocumentChecklistService } from '../../services/application/DocumentChecklistService';
+import { DocumentVersionService } from '../../services/application/DocumentVersionService';
+import { ApplicationService } from '../../services/application/ApplicationService';
 import { FeatureFlagService } from '../../services/FeatureFlagService';
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from '../crm/ControllerErrorHandler';
+import { getEffectiveRoles } from '../../../../rbac/rbac.middleware';
 
 export class DocumentController {
     constructor(
@@ -15,7 +18,9 @@ export class DocumentController {
         private readonly downloadService: DocumentDownloadService,
         private readonly verificationService: DocumentVerificationService,
         private readonly checklistService: DocumentChecklistService,
-        private readonly flagService: FeatureFlagService
+        private readonly versionService: DocumentVersionService,
+        private readonly flagService: FeatureFlagService,
+        private readonly appService: ApplicationService
     ) {}
 
     private async checkFlags(req: Request) {
@@ -26,6 +31,30 @@ export class DocumentController {
         if (!isCrmActive || !isDocActive) {
             throw new PermissionError('Feature Disabled: application_documents');
         }
+    }
+
+    private async enforceApplicationAccess(req: Request, applicationId: string): Promise<void> {
+        const user = req.context?.user;
+        if (!user) {
+            throw new PermissionError('Unauthorized');
+        }
+        const roles = getEffectiveRoles(user.roles);
+        if (roles.includes('ADMIN') || roles.includes('ADMISSION_OFFICER') || roles.includes('COUNSELOR')) {
+            return;
+        }
+        if (roles.includes('PARENT')) {
+            await this.appService.assertParentCanAccess(applicationId, user.id, user.email);
+            return;
+        }
+        if (!user.permissions?.includes('admission.application.view') && !user.permissions?.includes('admission.review')) {
+            throw new PermissionError('Forbidden: Insufficient Permissions');
+        }
+    }
+
+    private async enforceDocumentAccess(req: Request, documentId: string): Promise<string> {
+        const doc = await this.docService.getDocumentById(documentId);
+        await this.enforceApplicationAccess(req, doc.applicationId);
+        return doc.applicationId;
     }
 
     public upload = async (req: Request, res: Response) => {
@@ -45,6 +74,8 @@ export class DocumentController {
             if (!file) {
                 return res.status(400).json({ error: 'No file attachment found' });
             }
+
+            await this.enforceApplicationAccess(req, application_id);
 
             const uploadedBy = req.context?.user?.id || null;
             const correlationId = req.headers['x-correlation-id'] as string;
@@ -77,6 +108,7 @@ export class DocumentController {
         try {
             await this.checkFlags(req);
             const { id } = req.params;
+            await this.enforceDocumentAccess(req, id);
             const data = await this.docService.getDocumentById(id);
             res.json(data);
         } catch (err) {
@@ -88,6 +120,7 @@ export class DocumentController {
         try {
             await this.checkFlags(req);
             const { id } = req.params;
+            await this.enforceDocumentAccess(req, id);
             await this.docService.deleteDocument(id);
             res.json({ success: true, message: 'Document deleted successfully' });
         } catch (err) {
@@ -178,6 +211,8 @@ export class DocumentController {
             const requestedBy = req.context?.user?.id || null;
             const correlationId = req.headers['x-correlation-id'] as string;
 
+            await this.enforceDocumentAccess(req, id);
+
             const signedUrl = await this.downloadService.getSignedDownloadUrl(id, requestedBy, 3600, correlationId);
             res.json({ success: true, download_url: signedUrl });
         } catch (err) {
@@ -212,8 +247,86 @@ export class DocumentController {
         try {
             await this.checkFlags(req);
             const { applicationId } = req.params;
+            await this.enforceApplicationAccess(req, applicationId);
             const data = await this.docService.getDocumentsByApplicationId(applicationId);
             res.json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public getVersions = async (req: Request, res: Response) => {
+        try {
+            await this.checkFlags(req);
+            const { id } = req.params;
+            await this.enforceDocumentAccess(req, id);
+            const data = await this.versionService.getVersions(id);
+            res.json(data);
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public restoreVersion = async (req: Request, res: Response) => {
+        try {
+            await this.checkFlags(req);
+            const { id } = req.params;
+            await this.enforceDocumentAccess(req, id);
+            const { version } = req.body;
+            const restoredBy = req.context?.user?.id || null;
+            const data = await this.versionService.restoreVersion(id, Number(version), restoredBy);
+            res.json({ success: true, version: data });
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public bulkVerify = async (req: Request, res: Response) => {
+        try {
+            await this.checkFlags(req);
+            const { document_ids, remarks } = req.body;
+            const reviewerId = req.context?.user?.id || null;
+            const role = req.context?.user?.roles?.[0] || 'admission_officer';
+            const correlationId = req.headers['x-correlation-id'] as string;
+            const data = await this.verificationService.bulkVerify(
+                document_ids ?? [],
+                reviewerId,
+                role,
+                remarks ?? null,
+                correlationId
+            );
+            res.json({ success: true, documents: data });
+        } catch (err) {
+            handleControllerError(res, err);
+        }
+    };
+
+    public bulkUpload = async (req: Request, res: Response) => {
+        try {
+            await this.checkFlags(req);
+            const applicationId = req.body.application_id;
+            const files = req.files as Express.Multer.File[];
+            const codes = (req.body.document_type_codes as string)?.split(',') ?? [];
+            if (!applicationId || !files?.length) {
+                return res.status(400).json({ error: 'application_id and files required' });
+            }
+            await this.enforceApplicationAccess(req, applicationId);
+            const uploadedBy = req.context?.user?.id || null;
+            const correlationId = req.headers['x-correlation-id'] as string;
+            const uploads = files.map((file, idx) => ({
+                docTypeCode: codes[idx] ?? codes[0] ?? 'birth_certificate',
+                fileBuffer: file.buffer,
+                originalFilename: file.originalname,
+                mimeType: file.mimetype,
+            }));
+            const data = await this.uploadService.bulkUpload(
+                applicationId,
+                uploads,
+                uploadedBy,
+                { uploadedFrom: 'API_BULK' },
+                correlationId
+            );
+            res.status(201).json(data);
         } catch (err) {
             handleControllerError(res, err);
         }

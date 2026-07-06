@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/theme/useTheme';
+import { useMasterData } from '../modules/admission/context/MasterDataContext';
+
 import { useSettingsStore } from '../store/settings.store';
 import {
     LayoutDashboard,
@@ -41,6 +43,7 @@ import {
     SlidersHorizontal,
     MessageSquare,
     CheckSquare,
+    Sparkles,
     Palette,
     Moon,
     Sun,
@@ -55,11 +58,13 @@ import { useNotificationStore } from '../store/notification.store';
 import { Breadcrumb } from '../components/navigation/Breadcrumb';
 import { useNavigationStore } from '../store/navigation.store';
 import { ROUTE_LABEL_MAP } from '../lib/breadcrumb';
+import { useWorkspaceOptional } from '../modules/common/workspace/WorkspaceContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
 
 export const DashboardLayout = () => {
     const { user, signOut, hasPermission, hasRole, systemMode } = useAuth();
+    const { schools, academicYears, activeSchoolId, activeAcademicYearId, changeSchool, changeAcademicYear } = useMasterData();
     const location = useLocation();
     const navigate = useNavigate();
     
@@ -82,6 +87,7 @@ export const DashboardLayout = () => {
 
     // Command palette, notification store, navigation visits
     const { isOpen: isPaletteOpen, open: openPalette, close: closePalette } = useCommandPalette();
+    const workspace = useWorkspaceOptional();
     const { unreadCount, togglePanel: toggleNotifications } = useNotificationStore();
     const { trackVisit, recentlyVisited } = useNavigationStore();
 
@@ -248,9 +254,19 @@ export const DashboardLayout = () => {
         // PARENT
         ...(isParent ? [
             {
+                label: 'Admission',
+                items: [
+                    { label: 'My Admission', icon: ClipboardList, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Documents', icon: FileText, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Timeline', icon: Clock, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Admission Fees', icon: Coins, path: '/app/admissions/my', permission: 'admission.view_own' },
+                    { label: 'Offer Letter', icon: GraduationCap, path: '/app/admissions/my', permission: 'admission.view_own' },
+                ]
+            },
+            {
                 label: 'Core',
                 items: [
-                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
+                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/admissions/my' },
                 ]
             },
             {
@@ -723,24 +739,34 @@ export const DashboardLayout = () => {
                                 {/* Campus / Institution Selector */}
                                 <div className="hidden sm:block">
                                     <select
-                                        defaultValue="primary"
+                                        value={activeSchoolId}
+                                        onChange={e => changeSchool(e.target.value)}
                                         className="bg-gray-50 dark:bg-muted/10 border border-border text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
                                     >
-                                        <option value="primary">🏛️ RR Village Campus</option>
-                                        <option value="international">🏫 International Campus</option>
-                                        <option value="prep">🏫 Prep School Campus</option>
+                                        {schools.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                🏛️ {s.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
                                 {/* Academic Year Switcher */}
                                 <div className="hidden md:block">
                                     <select
-                                        defaultValue="2026-27"
+                                        value={activeAcademicYearId}
+                                        onChange={e => changeAcademicYear(e.target.value)}
                                         className="bg-gray-50 dark:bg-muted/10 border border-border text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
                                     >
-                                        <option value="2025-26">AY 2025 – 26</option>
-                                        <option value="2026-27">AY 2026 – 27</option>
-                                        <option value="2027-28">AY 2027 – 28</option>
+                                        {academicYears.length === 0 ? (
+                                            <option value="">No Academic Year</option>
+                                        ) : (
+                                            academicYears.map(y => (
+                                                <option key={y.id} value={y.id}>
+                                                    AY {y.year_label}
+                                                </option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                             </div>
@@ -749,7 +775,7 @@ export const DashboardLayout = () => {
                             <div className="flex items-center gap-2 sm:gap-4">
                                 {/* Global search trigger (⌘K) */}
                                 <button
-                                    onClick={openPalette}
+                                    onClick={() => workspace?.setSearchOpen(true) ?? openPalette()}
                                     className="bg-gray-50 dark:bg-muted/10 rounded-2xl px-4 py-2 hidden md:flex items-center gap-3 w-48 lg:w-56 ring-1 ring-border/40 hover:ring-primary/30 hover:bg-white dark:hover:bg-background transition-all group shrink-0"
                                 >
                                     <Search className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
@@ -760,10 +786,18 @@ export const DashboardLayout = () => {
                                 </button>
                                 
                                 <button
-                                    onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                    onClick={() => workspace?.setSearchOpen(true)}
                                     className="md:hidden p-2 text-muted-foreground hover:bg-muted/50 border border-border/40 rounded-xl"
                                 >
                                     <Search className="w-4.5 h-4.5" />
+                                </button>
+
+                                <button
+                                    onClick={() => workspace?.setProductivityOpen(true)}
+                                    className="hidden md:flex p-2 text-muted-foreground hover:bg-muted/50 border border-border/40 rounded-xl hover:text-primary transition-colors"
+                                    title="Productivity Hub"
+                                >
+                                    <Sparkles className="w-4.5 h-4.5" />
                                 </button>
 
                                 {/* Theme Mode Switcher Popover */}

@@ -8,6 +8,7 @@ import {
     followupController, 
     visitorController 
 } from './index';
+import { supabase } from '../../config/supabase';
 
 export const crmRouter = Router();
 
@@ -104,4 +105,78 @@ crmRouter.get('/visitors',
 crmRouter.put('/visitors/:id',
     checkPermission(PERMISSIONS.ADMISSION_VISITORS_MANAGE),
     visitorController.update
+);
+
+// ==========================================
+// LOOKUPS FOR ADMISSION MODULE (Bypassing RLS/RBAC constraints for Admissions Desk)
+// ==========================================
+crmRouter.get('/counselors',
+    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    async (req, res) => {
+        try {
+            const schoolId = req.context!.user.school_id;
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .eq('school_id', schoolId)
+                .eq('status', 'active');
+            
+            if (error) throw error;
+            res.json(data || []);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+);
+
+crmRouter.get('/offer-templates',
+    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    async (req, res) => {
+        try {
+            const { data, error } = await supabase
+                .from('admission_offer_templates')
+                .select('id, name');
+            
+            if (error) throw error;
+            res.json(data || []);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+);
+
+crmRouter.get('/transport-routes',
+    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    async (req, res) => {
+        try {
+            const schoolId = req.context!.user.school_id;
+            const { data, error } = await supabase
+                .from('transport_routes')
+                .select('id, name')
+                .eq('school_id', schoolId);
+            
+            if (error) throw error;
+            res.json(data || []);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+);
+
+crmRouter.get('/fee-structures',
+    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    async (req, res) => {
+        try {
+            const schoolId = req.context!.user.school_id;
+            const { data, error } = await supabase
+                .from('fee_structures')
+                .select('id, name, amount')
+                .eq('school_id', schoolId);
+            
+            if (error) throw error;
+            res.json(data || []);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 );

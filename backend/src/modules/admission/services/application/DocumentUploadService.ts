@@ -9,6 +9,10 @@ import { Document } from '../../domain/Document';
 import { DocumentVersion } from '../../domain/DocumentVersion';
 import { AuditService } from '../AuditService';
 import { supabase } from '../../../../config/supabase';
+import {
+    ApplicationWorkflowOrchestrator,
+    type WorkflowEventContext,
+} from './ApplicationWorkflowOrchestrator';
 
 export class DocumentUploadService extends BaseService {
     private readonly BUCKET_NAME = 'admission-documents';
@@ -20,7 +24,8 @@ export class DocumentUploadService extends BaseService {
         private readonly valService: DocumentValidationService,
         private readonly storageProvider: IDocumentStorageProvider,
         private readonly checksumService: ChecksumService,
-        private readonly auditService: AuditService
+        private readonly auditService: AuditService,
+        private readonly workflowOrchestrator?: ApplicationWorkflowOrchestrator
     ) {
         super();
     }
@@ -171,11 +176,54 @@ export class DocumentUploadService extends BaseService {
                 correlationId
             });
 
+            if (this.workflowOrchestrator) {
+                const ctx: WorkflowEventContext = {
+                    userId: uploadedBy,
+                    role: metadata?.uploadedFrom ?? 'ADMISSION_OFFICER',
+                    correlationId,
+                    notes: `Document uploaded: ${docType.name}`,
+                    ipAddress: metadata?.ipAddress,
+                    browser: metadata?.browser,
+                    schoolId: application.schoolId,
+                    academicYearId: application.academicYearId,
+                };
+                await this.workflowOrchestrator.publish('DOCUMENT_UPLOADED', applicationId, ctx);
+            }
+
             return doc;
         } catch (dbErr) {
             // Storage rollback: remove uploaded file from cloud storage if DB insert fails
             await this.storageProvider.delete(this.BUCKET_NAME, storagePath);
             throw dbErr;
         }
+    }
+
+    public async bulkUpload(
+        applicationId: string,
+        uploads: Array<{
+            docTypeCode: string;
+            fileBuffer: Buffer;
+            originalFilename: string;
+            mimeType: string;
+        }>,
+        uploadedBy: string | null,
+        metadata?: { device?: string; browser?: string; ipAddress?: string; uploadedFrom?: string },
+        correlationId?: string
+    ): Promise<Document[]> {
+        const results: Document[] = [];
+        for (const item of uploads) {
+            const doc = await this.uploadDocument(
+                applicationId,
+                item.docTypeCode,
+                item.fileBuffer,
+                item.originalFilename,
+                item.mimeType,
+                uploadedBy,
+                metadata,
+                correlationId
+            );
+            results.push(doc);
+        }
+        return results;
     }
 }

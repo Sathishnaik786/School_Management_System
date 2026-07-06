@@ -10,7 +10,9 @@ const ROLE_ALIASES: Record<string, string[]> = {
     'ACCOUNTANT': ['FINANCE_OFFICER', 'ACCOUNTANT'],
     'FINANCE_OFFICER': ['FINANCE_OFFICER', 'ACCOUNTANT'],
     'DRIVER': ['BUS_DRIVER', 'DRIVER'],
-    'BUS_DRIVER': ['BUS_DRIVER', 'DRIVER']
+    'BUS_DRIVER': ['BUS_DRIVER', 'DRIVER'],
+    'EXAM_CELL': ['EXAM_CELL', 'EXAM_CELL_ADMIN'],
+    'EXAM_CELL_ADMIN': ['EXAM_CELL', 'EXAM_CELL_ADMIN'],
 };
 
 export const getEffectiveRoles = (roles: string[]): string[] => {
@@ -25,6 +27,24 @@ export const getEffectiveRoles = (roles: string[]): string[] => {
     return Array.from(effective);
 };
 
+/** Read-only Applicant360 enrichment GETs — allowed when user can view the application. */
+const APPLICANT360_READ_GET_PERMISSIONS = new Set<string>([
+    'admission.exam.evaluate',
+    'admission.confirm.enroll',
+    'admission.fees.manage',
+    'admission.merit.generate',
+    'admission.document.view',
+    'admission.document.checklist',
+]);
+
+function canViewAdmissionApplication(permissions: string[], roles: string[]): boolean {
+    if (roles.includes('COUNSELOR')) return true;
+    if (permissions.includes('admission.application.view')) return true;
+    if (permissions.includes('admission.view_own')) return true;
+    if (permissions.includes('admission.review') || permissions.includes('admission.view_all')) return true;
+    return false;
+}
+
 /**
  * Middleware to enforce RBAC permissions using cached context.
  */
@@ -38,9 +58,6 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         const permissions = req.context.user.permissions;
         const roles = getEffectiveRoles(req.context.user.roles);
         console.log(`[RBAC] User: ${req.context.user.email}, Required: ${requiredPermission}, Has: ${permissions.length} perms`);
-        if (!permissions.includes(requiredPermission) && !roles.includes('ADMIN')) {
-            console.log(`[RBAC] Permission Missing! User perms: ${JSON.stringify(permissions)}`);
-        }
 
         // 2. Admin Bypass
         if (roles.includes('ADMIN')) {
@@ -70,13 +87,62 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         if (roles.includes('PARENT') && 
             (requiredPermission === 'admission.view_own' || 
              requiredPermission === 'admission.create' || 
-             requiredPermission === 'admission.update')) {
+             requiredPermission === 'admission.update' ||
+             requiredPermission === 'admission.application.view' ||
+             requiredPermission === 'admission.application.update' ||
+             requiredPermission === 'admission.application.submit' ||
+             requiredPermission === 'admission.document.upload' ||
+             requiredPermission === 'admission.document.download' ||
+             requiredPermission === 'admission.document.view' ||
+             requiredPermission === 'admission.document.delete' ||
+             requiredPermission === 'admission.document.checklist' ||
+             requiredPermission === 'admission.fees.view' ||
+             requiredPermission === 'admission.enrollment.view')) {
             return next();
         }
 
         // 2f. View Own / View All hierarchy fallback
         if (requiredPermission === 'admission.view_own' && 
             (permissions.includes('admission.view_all') || permissions.includes('admission.review'))) {
+            return next();
+        }
+
+        // 2g. Admission Desk Bypass for viewing classes
+        if (requiredPermission === 'CLASS_VIEW' && 
+            (permissions.includes('admission.enquiry.view') || roles.includes('RECEPTIONIST') || roles.includes('COUNSELOR'))) {
+            return next();
+        }
+
+        // 2h. Receptionist Bypass for counselor assignment
+        if (requiredPermission === 'admission.leads.manage' && 
+            req.originalUrl.endsWith('/assign') && 
+            (permissions.includes('admission.visitors.manage') || roles.includes('RECEPTIONIST'))) {
+            return next();
+        }
+
+        // 2i. Receptionist Bypass for enquiry conversion (creates lead + application)
+        if (requiredPermission === 'admission.leads.manage' && 
+            req.originalUrl.endsWith('/convert') && 
+            (permissions.includes('admission.enquiry.create') || roles.includes('RECEPTIONIST'))) {
+            return next();
+        }
+
+        // 2j. Counselor bypass for viewing CRM applications and uploading documents
+        if (
+            (requiredPermission === 'admission.application.view' ||
+                requiredPermission === 'admission.document.view' ||
+                requiredPermission === 'admission.document.upload') &&
+            roles.includes('COUNSELOR')
+        ) {
+            return next();
+        }
+
+        // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
+        if (
+            req.method === 'GET' &&
+            APPLICANT360_READ_GET_PERMISSIONS.has(requiredPermission) &&
+            canViewAdmissionApplication(permissions, roles)
+        ) {
             return next();
         }
 

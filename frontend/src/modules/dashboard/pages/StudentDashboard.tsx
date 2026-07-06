@@ -49,9 +49,12 @@ function StudentDashboardInner() {
     useEffect(() => {
         const fetchAdmissions = async () => {
             try {
-                const res = await apiClient.get('/admissions');
+                const res = await apiClient.get('/v1/admission/my');
                 const list = res.data?.data || res.data || [];
-                const active = list.filter((a: any) => a.status !== 'enrolled' && a.status !== 'rejected');
+                const active = list.filter((a: any) => {
+                    const status = (a.status ?? '').toLowerCase();
+                    return status !== 'enrolled' && status !== 'rejected';
+                });
                 setAdmissions(active);
             } catch (err) {
                 console.error("Failed to load admissions", err);

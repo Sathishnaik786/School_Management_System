@@ -8,12 +8,16 @@ export interface KanbanCardData {
     name: string;
     grade: string;
     status: string;
+    legacyStatus?: string;
     counselor?: string;
     score?: number;
-    slaProgress: number; // 0 to 100
+    slaProgress: number;
     slaStatus: 'normal' | 'warning' | 'breached';
+    slaRemainingHours?: number;
     documentStatus: 'complete' | 'pending' | 'missing';
     updatedAt: string;
+    paymentAmount?: number;
+    isTransitioning?: boolean;
 }
 
 interface CardProps {
@@ -44,13 +48,18 @@ export function Card({ card, onClick, onDragStart }: CardProps) {
     return (
         <motion.div
             layoutId={card.id}
-            draggable
+            draggable={!card.isTransitioning}
             onDragStart={handleDragStart as any}
             onClick={() => onClick && onClick(card.id)}
-            className="p-4 bg-white dark:bg-card border border-gray-150 dark:border-border/60 rounded-2xl shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing hover:border-indigo-200 transition-all select-none space-y-3"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+            className="relative p-4 bg-white dark:bg-card border border-gray-150 dark:border-border/60 rounded-2xl shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing hover:border-indigo-200 transition-all select-none space-y-3"
+            whileHover={{ scale: card.isTransitioning ? 1 : 1.01 }}
+            whileTap={{ scale: card.isTransitioning ? 1 : 0.99 }}
         >
+            {card.isTransitioning && (
+                <div className="absolute inset-0 bg-white/60 dark:bg-black/40 rounded-2xl flex items-center justify-center z-10">
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+            )}
             <div className="flex items-start justify-between">
                 <div>
                     <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">

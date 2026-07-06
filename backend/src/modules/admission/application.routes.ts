@@ -6,6 +6,22 @@ import { applicationController } from './index';
 
 export const applicationRouter = Router();
 
+// Parent portal — must be registered before /:id
+applicationRouter.get('/my',
+    checkPermission(PERMISSIONS.ADMISSION_VIEW_SELF),
+    applicationController.listMine
+);
+
+applicationRouter.get('/stats',
+    checkPermission(PERMISSIONS.ADMISSION_VIEW_ALL),
+    applicationController.getStats
+);
+
+applicationRouter.get('/',
+    checkPermission(PERMISSIONS.ADMISSION_VIEW_ALL),
+    applicationController.list
+);
+
 // 1. Core Create & View
 applicationRouter.post('/',
     checkPermission(PERMISSIONS.APPLICATION_CREATE),
@@ -51,6 +67,11 @@ applicationRouter.post('/:id/submit',
     applicationController.submit
 );
 
+applicationRouter.get('/:id/progress',
+    checkPermission(PERMISSIONS.APPLICATION_VIEW),
+    applicationController.getProgress
+);
+
 applicationRouter.get('/:id/timeline',
     checkPermission(PERMISSIONS.APPLICATION_VIEW),
     applicationController.getTimeline
@@ -60,6 +81,26 @@ applicationRouter.get('/:id/timeline',
 applicationRouter.post('/:id/transition',
     checkPermission(PERMISSIONS.APPLICATION_UPDATE),
     applicationController.transition
+);
+
+applicationRouter.post('/:id/review',
+    checkPermission(PERMISSIONS.ADMISSION_REVIEW),
+    applicationController.review
+);
+
+applicationRouter.post('/:id/approve',
+    checkPermission(PERMISSIONS.ADMISSION_APPROVE),
+    applicationController.approve
+);
+
+applicationRouter.post('/:id/reject',
+    checkPermission(PERMISSIONS.ADMISSION_REJECT),
+    applicationController.reject
+);
+
+applicationRouter.post('/:id/verify-docs',
+    checkPermission(PERMISSIONS.ADMISSION_REVIEW),
+    applicationController.verifyDocuments
 );
 
 applicationRouter.delete('/:id',

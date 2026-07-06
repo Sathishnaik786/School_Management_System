@@ -11,6 +11,7 @@ import { documentRouter } from './modules/admission/document.routes';
 import { evaluationRouter } from './modules/admission/evaluation.routes';
 import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
+import { applicationController, publicApplicationController } from './modules/admission/index';
 import { studentRouter } from './modules/student/student.routes';
 import { attendanceRouter as studentAttendanceRouter } from './modules/student/attendance.routes';
 import { academicRouter } from './modules/academic/academic.routes';
@@ -44,15 +45,16 @@ router.get('/system/info', (req: Request, res: Response) => {
 });
 
 
-// Exposed Admission Route for registration & Guest Drafts
-router.post('/admissions/public-apply', AdmissionController.publicApply);
+// Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
+router.post('/v1/admission/public-apply', publicApplicationController.apply);
+router.post('/admissions/public-apply', publicApplicationController.apply);
 router.post('/admissions', authenticateOptional, AdmissionController.create);
 
 // Public lookup for schools
 // Public lookup for schools
 router.get('/schools', async (req: Request, res: Response) => {
     try {
-        const { data, error } = await supabase.from('schools').select('id, name').limit(10);
+        const { data, error } = await supabase.from('schools').select('id, name, code').limit(10);
         if (error) throw error;
         res.json(data || []);
     } catch (error: any) {
@@ -83,6 +85,17 @@ router.get('/public/academic-year', async (req: Request, res: Response) => {
 // ======================================
 router.use(authenticate);
 router.use(checkLoginApproval);
+
+// Parent CRM applications (alias for /v1/admission/application/my)
+router.get('/v1/admission/my',
+    checkPermission(PERMISSIONS.ADMISSION_VIEW_SELF),
+    applicationController.listMine
+);
+
+router.post('/v1/admission/apply',
+    checkPermission(PERMISSIONS.ADMISSION_CREATE),
+    applicationController.parentApply
+);
 
 // 1. GET /me
 // 1. GET /me
