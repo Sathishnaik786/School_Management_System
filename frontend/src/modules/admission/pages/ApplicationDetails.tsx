@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useApplication, useWorkflow, type WorkflowActionType } from '../hooks/useAdmission';
 import { AdmissionPermissions } from '../core/AdmissionPermissions';
 import { useAuth } from '../../../context/AuthContext';
+import { mapStatusToEnterpriseLabel } from '../utils/statusMapper';
 import {
     ArrowLeft, CheckCircle, XCircle, Clock,
     User, Phone, Mail, MapPin, School,
@@ -162,7 +163,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <span className={`px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100`}>
-                                    {app.status.replace('_', ' ')}
+                                    {mapStatusToEnterpriseLabel(app.status)}
                                 </span>
                                 {app.applicant && (
                                     <span className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${app.applicant.login_status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-100' :

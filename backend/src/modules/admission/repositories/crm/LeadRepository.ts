@@ -85,11 +85,16 @@ export class LeadRepository extends BaseRepository<AdmissionLead> implements ILe
         const payload = this.toPersistence(lead);
         payload.updated_at = new Date().toISOString(); // Set new update time
 
+        const dateMs = expectedUpdatedAt.getTime();
+        const minDate = new Date(dateMs - 10).toISOString();
+        const maxDate = new Date(dateMs + 10).toISOString();
+
         const { data, error } = await supabase
             .from(this.tableName)
             .update(payload)
             .eq('id', lead.id)
-            .eq('updated_at', expectedUpdatedAt.toISOString())
+            .gte('updated_at', minDate)
+            .lte('updated_at', maxDate)
             .select()
             .maybeSingle();
 

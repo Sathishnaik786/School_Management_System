@@ -60,7 +60,9 @@ export function useLeadTimeline(lead?: Lead | null) {
     useEffect(() => {
         if (!lead) return;
         const refresh = () => {
-            void timelineQuery.refetch();
+            if (applicationId) {
+                void timelineQuery.refetch();
+            }
             if (canManageLeads) void followupsQuery.refetch();
             void enquiryQuery.refetch();
         };

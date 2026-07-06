@@ -12,11 +12,12 @@ export function Applicant360Page() {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const location = useLocation();
-    const tabParam = searchParams.get('tab');
+    const rawTab = searchParams.get('tab');
+    const tabParam = rawTab ? rawTab.charAt(0).toUpperCase() + rawTab.slice(1).toLowerCase() : null;
     const pathTab = location.pathname.includes('/documents/')
-        ? 'documents'
+        ? 'Documents'
         : location.pathname.includes('/timeline/')
-          ? 'timeline'
+          ? 'Timeline'
           : null;
     const { user, hasPermission, hasRole } = useAuth();
     const { view, isLoading, error, refetch, notFound } = useApplicant360(id);
@@ -111,7 +112,7 @@ export function Applicant360Page() {
                 progress={progress}
                 progressLoading={progressLoading}
                 readOnlyMode={readOnlyMode}
-                initialTab={(pathTab ?? tabParam as 'overview' | 'timeline' | 'documents' | 'interview' | 'exam' | 'fees') ?? undefined}
+                initialTab={(pathTab ?? tabParam) as any}
             />
         </div>
     );

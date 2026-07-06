@@ -57,8 +57,8 @@ const STATUS_RANK: Record<string, number> = {
     DRAFT: 0,
     IN_PROGRESS: 1,
     CORRECTION_REQUIRED: 1,
-    UNDER_REVIEW: 2,
-    SUBMITTED: 3,
+    SUBMITTED: 2,
+    UNDER_REVIEW: 3,
     DOCS_PENDING: 4,
     DOCUMENT_VERIFIED: 5,
     INTERVIEW: 6,
@@ -102,8 +102,17 @@ export class ApplicationWorkflowOrchestrator extends BaseService {
             return null;
         }
 
-        const targetStatus = EVENT_TARGET_STATUS[event];
-        const currentStatus = application.status;
+        let targetStatus = EVENT_TARGET_STATUS[event];
+        if (event === 'APPLICATION_REVIEWED') {
+            // APPLICATION_REVIEWED from early-stage statuses should advance to UNDER_REVIEW
+            // not the default FEE_VERIFIED target which would skip intermediate steps
+            const currentLower = application.status.toLowerCase().trim();
+            const earlyStages = ['draft', 'submitted', 'in_progress', 'correction_required'];
+            if (earlyStages.includes(currentLower)) {
+                targetStatus = 'UNDER_REVIEW';
+            }
+        }
+        const currentStatus = application.status.toUpperCase().trim();
         const currentRank = STATUS_RANK[currentStatus] ?? 0;
         const targetRank = STATUS_RANK[targetStatus] ?? 0;
 
@@ -116,7 +125,7 @@ export class ApplicationWorkflowOrchestrator extends BaseService {
             return application;
         }
 
-        const canAdvance = await this.validateEventPreconditions(event, applicationId, application);
+        const canAdvance = await this.validateEventPreconditions(event, applicationId, application, context);
         if (!canAdvance) {
             return application;
         }
@@ -167,11 +176,18 @@ export class ApplicationWorkflowOrchestrator extends BaseService {
     private async validateEventPreconditions(
         event: WorkflowEvent,
         applicationId: string,
-        application: AdmissionApplication
+        application: AdmissionApplication,
+        context?: WorkflowEventContext
     ): Promise<boolean> {
         switch (event) {
-            case 'DOCUMENT_VERIFIED':
+            case 'DOCUMENT_VERIFIED': {
+                // If manual verification is performed by an ADMISSION_OFFICER or ADMIN, bypass automated verification checks
+                const role = context?.role?.toUpperCase().trim();
+                if (role === 'ADMISSION_OFFICER' || role === 'ADMIN') {
+                    return true;
+                }
                 return this.areMandatoryDocumentsVerified(applicationId, application);
+            }
             case 'INTERVIEW_COMPLETED': {
                 const interview = await this.interviewRepo.findByApplicationId(applicationId).catch(() => null);
                 return interview?.status === 'EVALUATED';

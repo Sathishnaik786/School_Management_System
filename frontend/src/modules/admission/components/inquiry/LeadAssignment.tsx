@@ -63,15 +63,21 @@ export function LeadAssignment({ lead, counselorId, counselorName, onAssigned }:
             <select
                 value={selectedCounselorId}
                 onChange={e => setSelectedCounselorId(e.target.value)}
-                disabled={isAssigning}
+                disabled={isAssigning || counselors.length === 0}
                 className="bg-white dark:bg-card border border-gray-200 dark:border-gray-800 rounded-xl px-2 py-1 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
             >
-                <option value="">Select Counselor</option>
-                {counselors.map(c => (
-                    <option key={c.id} value={c.id}>
-                        {c.full_name}
-                    </option>
-                ))}
+                {counselors.length === 0 ? (
+                    <option value="">No active counselors available</option>
+                ) : (
+                    <>
+                        <option value="">Select Counselor</option>
+                        {counselors.map(c => (
+                            <option key={c.id} value={c.id}>
+                                {c.full_name}
+                            </option>
+                        ))}
+                    </>
+                )}
             </select>
 
             {selectedCounselorId && (

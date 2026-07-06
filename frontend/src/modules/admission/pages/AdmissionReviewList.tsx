@@ -5,6 +5,7 @@ import { Search, Filter, Eye, CheckCircle, Clock, AlertCircle, X, ExternalLink, 
 import { Link } from 'react-router-dom';
 import { ApplicationDetails } from './ApplicationDetails';
 import { useAuth } from '../../../context/AuthContext';
+import { mapStatusToEnterpriseLabel } from '../utils/statusMapper';
 
 const SLA_CONFIG: Record<string, number> = {
     submitted: 24,
@@ -603,7 +604,7 @@ export const AdmissionReviewList = () => {
                                         </td>
                                         <td className="px-6 py-5">
                                             <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${getStatusStyle(app.status)}`}>
-                                                {app.status.replace('_', ' ')}
+                                                {mapStatusToEnterpriseLabel(app.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5">

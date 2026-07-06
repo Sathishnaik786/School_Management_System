@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Admission, AdmissionDocument, AdmissionAuditLog } from '../admission.types';
-import { useApplication, useWorkflow, type WorkflowActionType } from '../hooks/useAdmission';
+import { useApplication, useWorkflow, useApplicationProgress, type WorkflowActionType } from '../hooks/useAdmission';
 import { useAuth } from '../../../context/AuthContext';
+import { mapStatusToEnterpriseLabel, mapStatusToColor, mapStatusToStep } from '../utils/statusMapper';
 import {
     CheckCircle2,
     Clock,
@@ -59,6 +60,8 @@ export const AdmissionReviewPage = () => {
     const { hasPermission, hasRole } = useAuth();
     const { application: app, isLoading: loading, refetch: fetchDetails } = useApplication(id);
     const { executeAction, isSubmitting: submitting } = useWorkflow(id);
+    const { progress: progressData } = useApplicationProgress(id);
+    const displayProgress = progressData?.progressPercent ?? 0;
     const [remarks, setRemarks] = useState('');
     const [showConfirm, setShowConfirm] = useState<{ type: string; action: () => void } | null>(null);
 
@@ -110,7 +113,7 @@ export const AdmissionReviewPage = () => {
 
     return (
         <div className="min-h-screen bg-[#f3f4f6]/50 dark:bg-[#020617] p-4 md:p-8 space-y-8">
-            <StickyHeader app={app} onBack={() => navigate(-1)} />
+            <StickyHeader app={app} onBack={() => navigate(-1)} progressPercent={displayProgress} />
 
             <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
                 <ApplicantSnapshot app={app} />
@@ -146,22 +149,10 @@ export const AdmissionReviewPage = () => {
 
 // --- SUB-COMPONENTS ---
 
-const StickyHeader = ({ app, onBack }: { app: Admission; onBack: () => void }) => {
-    const statusMap: Record<string, { label: string; color: string; step: number }> = {
-        'submitted': { label: 'Under Review', color: 'bg-yellow-500', step: 1 },
-        'under_review': { label: 'Document Verification', color: 'bg-blue-500', step: 2 },
-        'docs_verified': { label: 'Payment Pending', color: 'bg-orange-500', step: 3 },
-        'payment_pending': { label: 'Payment Pending', color: 'bg-orange-500', step: 3 },
-        'payment_submitted': { label: 'Payment Verification', color: 'bg-purple-500', step: 4 },
-        'payment_verified': { label: 'Recommendation', color: 'bg-indigo-500', step: 5 },
-        'recommended': { label: 'Final Approval', color: 'bg-green-500', step: 6 },
-        'approved': { label: 'Approval Confirmed', color: 'bg-emerald-500', step: 7 },
-        'enrolled': { label: 'Admission Complete', color: 'bg-emerald-600', step: 8 },
-        'rejected': { label: 'Rejected', color: 'bg-red-500', step: 0 },
-    };
-
-    const current = statusMap[app.status] || { label: app.status, color: 'bg-gray-500', step: 0 };
-    const progress = (current.step / 8) * 100;
+const StickyHeader = ({ app, onBack, progressPercent }: { app: Admission; onBack: () => void; progressPercent: number }) => {
+    const label = mapStatusToEnterpriseLabel(app.status);
+    const color = mapStatusToColor(app.status);
+    const step = mapStatusToStep(app.status);
 
     return (
         <header className={`sticky top-4 z-40 ${GLASS_BASE} p-4 md:p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6`}>
@@ -172,8 +163,8 @@ const StickyHeader = ({ app, onBack }: { app: Admission; onBack: () => void }) =
                 <div>
                     <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                         {app.student_name}
-                        <Badge className={`${current.color} text-white border-0 px-3 py-1 text-[10px] font-black uppercase tracking-widest`}>
-                            {current.label}
+                        <Badge className={`${color} text-white border-0 px-3 py-1 text-[10px] font-black uppercase tracking-widest`}>
+                            {label}
                         </Badge>
                     </h1>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">App ID: {app.id.toUpperCase()}</p>
@@ -183,19 +174,19 @@ const StickyHeader = ({ app, onBack }: { app: Admission; onBack: () => void }) =
             <div className="flex-1 max-w-md w-full px-4 text-center">
                 <div className="flex justify-between mb-2 px-1">
                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Progress</span>
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{Math.round(progress)}% Complete</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{Math.round(progressPercent)}% Complete</span>
                 </div>
                 <div className="h-2 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
+                        animate={{ width: `${progressPercent}%` }}
                         transition={{ duration: 1, ease: "circOut" }}
-                        className={`h-full ${current.color} shadow-[0_0_20px_rgba(59,130,246,0.3)]`}
+                        className={`h-full ${color} shadow-[0_0_20px_rgba(59,130,246,0.3)]`}
                     />
                 </div>
                 <div className="flex justify-between mt-2 overflow-x-auto scrollbar-hide py-1">
                     {[1, 2, 3, 4, 5, 6, 7].map((s) => (
-                        <div key={s} className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${current.step >= s ? current.color : 'bg-gray-200 dark:bg-gray-800'}`} />
+                        <div key={s} className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${step >= s ? color : 'bg-gray-200 dark:bg-gray-800'}`} />
                     ))}
                 </div>
             </div>
@@ -294,26 +285,56 @@ const StatusRenderer = ({ app, remarks, setRemarks, submitting, handleAction }: 
                 >
                     {(() => {
                         switch (app.status) {
-                            case 'submitted': return <UnderReviewPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
-                            case 'under_review': return <DocumentVerificationPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
+                            case 'draft':
+                            case 'submitted':
+                                return <UnderReviewPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
+                            case 'under_review':
+                            case 'docs_pending':
+                                return <DocumentVerificationPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
                             case 'docs_verified':
+                            case 'document_verified':
                             case 'payment_pending':
                             case 'payment_correction':
+                            case 'fee_pending':
                                 return <PaymentPendingPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
-                            case 'payment_submitted': return <PaymentVerifiedPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
-                            case 'payment_verified': return <RecommendationPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
-                            case 'recommended': return <ApprovalPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
-                            case 'approved': return <EnrolledPanel {...{ app, loading: submitting, handleAction }} />;
-                            case 'enrolled': return <EnrolledSuccessState app={app} />;
-                            case 'rejected': return (
-                                <div className={`${GLASS_BASE} p-12 text-center space-y-4`}>
-                                    <XCircleIcon className="w-16 h-16 text-red-500 mx-auto" />
-                                    <h2 className="text-2xl font-black uppercase text-gray-900">Application Rejected</h2>
-                                    <p className="text-gray-500 max-w-md mx-auto">{app.rejection_reason}</p>
-                                    <Button variant="outline" onClick={() => handleAction('review')} className="mt-4">Revoke Rejection</Button>
-                                </div>
-                            );
-                            default: return <div>Unknown Status: {app.status}</div>;
+                            case 'payment_submitted':
+                                return <PaymentVerifiedPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
+                            case 'payment_verified':
+                            case 'fee_verified':
+                                return <RecommendationPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
+                            case 'recommended':
+                            case 'review_pending':
+                            case 'merit_generated':
+                            case 'interview':
+                            case 'interview_completed':
+                            case 'exam':
+                            case 'exam_completed':
+                                return <ApprovalPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
+                            case 'approved':
+                            case 'offered':
+                            case 'enrollment_pending':
+                                return <EnrolledPanel {...{ app, loading: submitting, handleAction }} />;
+                            case 'enrolled':
+                                return <EnrolledSuccessState app={app} />;
+                            case 'rejected':
+                                return (
+                                    <div className={`${GLASS_BASE} p-12 text-center space-y-4`}>
+                                        <XCircleIcon className="w-16 h-16 text-red-500 mx-auto" />
+                                        <h2 className="text-2xl font-black uppercase text-gray-900">Application Rejected</h2>
+                                        <p className="text-gray-500 max-w-md mx-auto">{app.rejection_reason}</p>
+                                        <Button variant="outline" onClick={() => handleAction('review')} className="mt-4">Revoke Rejection</Button>
+                                    </div>
+                                );
+                            case 'cancelled':
+                                return (
+                                    <div className={`${GLASS_BASE} p-12 text-center space-y-4`}>
+                                        <AlertCircle className="w-16 h-16 text-amber-500 mx-auto" />
+                                        <h2 className="text-2xl font-black uppercase text-gray-900">Application Cancelled</h2>
+                                        <p className="text-gray-500 max-w-md mx-auto">This application has been cancelled by the applicant or officer.</p>
+                                    </div>
+                                );
+                            default:
+                                return <UnderReviewPanel {...{ app, remarks, setRemarks, submitting, handleAction }} />;
                         }
                     })()}
                 </motion.div>

@@ -12,17 +12,21 @@ export class ApplicationStateMachine {
         toStatus: string,
         role: string
     ): Promise<void> {
-        // Enforce state transitions rules dynamically from database
-        const isAllowed = await this.appRepo.getWorkflowRule(fromStatus, toStatus, role);
+        const uFrom = fromStatus.toUpperCase();
+        const uTo = toStatus.toUpperCase();
+
+        const isAllowed = 
+            await this.appRepo.getWorkflowRule(fromStatus.toLowerCase(), toStatus.toLowerCase(), role) ||
+            await this.appRepo.getWorkflowRule(uFrom, uTo, role);
         
         if (!isAllowed) {
             // Static fallback for safety/testing enforcing Phase 2 transition matrices
             const fallbackRules: Record<string, string[]> = {
-                'DRAFT': ['SUBMITTED', 'IN_PROGRESS', 'DOCS_PENDING'],
+                'DRAFT': ['SUBMITTED', 'IN_PROGRESS', 'DOCS_PENDING', 'UNDER_REVIEW'],
                 'IN_PROGRESS': ['UNDER_REVIEW', 'SUBMITTED', 'DOCS_PENDING'],
                 'SUBMITTED': ['UNDER_REVIEW', 'DOCS_PENDING'],
                 'UNDER_REVIEW': ['DOCS_PENDING', 'DOCUMENT_VERIFIED', 'CORRECTION_REQUIRED', 'OFFERED'],
-                'CORRECTION_REQUIRED': ['IN_PROGRESS', 'DOCS_PENDING'],
+                'CORRECTION_REQUIRED': ['IN_PROGRESS', 'DOCS_PENDING', 'UNDER_REVIEW'],
                 'DOCS_PENDING': ['UNDER_REVIEW', 'SUBMITTED', 'DOCUMENT_VERIFIED'],
                 'DOCUMENT_VERIFIED': ['INTERVIEW', 'EXAM'],
                 'INTERVIEW': ['EXAM', 'MERIT', 'FEE_PENDING'],
@@ -34,7 +38,7 @@ export class ApplicationStateMachine {
                 'ENROLLED': []
             };
 
-            const allowed = fallbackRules[fromStatus]?.includes(toStatus);
+            const allowed = fallbackRules[uFrom]?.includes(uTo);
             if (!allowed) {
                 throw new BusinessRuleError(
                     `Invalid workflow transition from [${fromStatus}] to [${toStatus}] for role [${role}].`
@@ -47,32 +51,32 @@ export class ApplicationStateMachine {
                 return;
             }
             if (normalizedRole !== 'ADMIN') {
-                if (['DRAFT', 'DOCS_PENDING'].includes(fromStatus) && toStatus === 'SUBMITTED') {
+                if (['DRAFT', 'DOCS_PENDING'].includes(uFrom) && uTo === 'SUBMITTED') {
                     if (normalizedRole !== 'PARENT' && normalizedRole !== 'COUNSELOR') {
                         throw new BusinessRuleError(`Forbidden: Only Parent or Counselor can submit applications.`);
                     }
                 }
-                if (toStatus === 'DOCUMENT_VERIFIED' || toStatus === 'DOCS_PENDING') {
+                if (uTo === 'DOCUMENT_VERIFIED' || uTo === 'DOCS_PENDING') {
                     if (normalizedRole !== 'ADMISSION_OFFICER') {
                         throw new BusinessRuleError(`Forbidden: Only Admission Officer can verify or request documents.`);
                     }
                 }
-                if (['EXAM', 'INTERVIEW', 'MERIT'].includes(toStatus)) {
+                if (['EXAM', 'INTERVIEW', 'MERIT'].includes(uTo)) {
                     if (normalizedRole !== 'EXAM_CELL' && normalizedRole !== 'EXAM_CELL_ADMIN') {
                         throw new BusinessRuleError(`Forbidden: Only Exam Cell can manage exam, interview or merit list states.`);
                     }
                 }
-                if (toStatus === 'OFFERED') {
+                if (uTo === 'OFFERED') {
                     if (normalizedRole !== 'PRINCIPAL' && normalizedRole !== 'HOI' && normalizedRole !== 'HEAD_OF_INSTITUTE') {
                         throw new BusinessRuleError(`Forbidden: Only Principal / HOI can approve offers.`);
                     }
                 }
-                if (toStatus === 'FEE_VERIFIED') {
+                if (uTo === 'FEE_VERIFIED') {
                     if (normalizedRole !== 'FINANCE_OFFICER' && normalizedRole !== 'ACCOUNTANT') {
                         throw new BusinessRuleError(`Forbidden: Only Finance Officer can verify payments.`);
                     }
                 }
-                if (toStatus === 'ENROLLED') {
+                if (uTo === 'ENROLLED') {
                     if (normalizedRole !== 'ADMISSION_OFFICER') {
                         throw new BusinessRuleError(`Forbidden: Only Admission Officer can confirm final enrollment.`);
                     }

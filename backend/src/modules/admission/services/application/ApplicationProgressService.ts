@@ -39,7 +39,9 @@ export interface ApplicationProgressReport {
 const PIPELINE_STATUS_WEIGHT: Record<string, number> = {
     DRAFT: 5,
     IN_PROGRESS: 15,
+    CORRECTION_REQUIRED: 15,
     SUBMITTED: 25,
+    UNDER_REVIEW: 30,
     DOCS_PENDING: 35,
     DOCUMENT_VERIFIED: 45,
     EXAM: 55,

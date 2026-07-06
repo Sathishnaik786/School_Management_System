@@ -45,6 +45,8 @@ export function useApplication(id?: string, options?: { enabled?: boolean; paren
         const unsubs = [
             ADMISSION_EVENTS.APPLICATION_CREATED,
             ADMISSION_EVENTS.APPLICATION_UPDATED,
+            ADMISSION_EVENTS.APPLICATION_REVIEWED,
+            ADMISSION_EVENTS.APPLICATION_APPROVED,
             ADMISSION_EVENTS.TIMELINE_REFRESH,
             ADMISSION_EVENTS.ENROLLMENT_COMPLETED,
             ADMISSION_EVENTS.PAYMENT_VERIFIED,

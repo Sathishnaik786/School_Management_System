@@ -107,9 +107,14 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
-        // 2g. Admission Desk Bypass for viewing classes
+        // 2g. Admission Desk Bypass for viewing classes (needed for enrollment section provisioning)
         if (requiredPermission === 'CLASS_VIEW' && 
-            (permissions.includes('admission.enquiry.view') || roles.includes('RECEPTIONIST') || roles.includes('COUNSELOR'))) {
+            (permissions.includes('admission.enquiry.view') ||
+             permissions.includes('admission.review') ||
+             permissions.includes('admission.view_all') ||
+             roles.includes('ADMISSION_OFFICER') ||
+             roles.includes('RECEPTIONIST') ||
+             roles.includes('COUNSELOR'))) {
             return next();
         }
 

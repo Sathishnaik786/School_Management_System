@@ -26,7 +26,7 @@ export class CounselorAssignmentService extends BaseService {
     public async assignCounselor(
         leadId: string,
         strategyType: 'manual' | 'round_robin',
-        strategyParams: { counselorId?: string; updatedAt?: string },
+        strategyParams: { counselorId?: string; updatedAt?: string; reassign?: boolean; ip?: string; browser?: string },
         correlationId?: string,
         userId?: string | null
     ): Promise<AdmissionLead> {
@@ -42,6 +42,24 @@ export class CounselorAssignmentService extends BaseService {
             lead = await this.leadRepo.findById(leadId);
             if (!lead) {
                 throw new Error(`Failed to retrieve lead after converting enquiry ${leadId}`);
+            }
+        }
+
+        // Enforce conversion guard (check if lead is converted to active application)
+        const { data: existingApp } = await (await import('../../../../config/supabase')).supabase
+            .from('admission_applications')
+            .select('id')
+            .eq('lead_id', lead.id)
+            .maybeSingle();
+
+        if (existingApp) {
+            throw new ConflictError('Converted applications cannot be reassigned.');
+        }
+
+        // Enforce assignment constraints
+        if (lead.counselorId !== null) {
+            if (!strategyParams.reassign) {
+                throw new ConflictError('Lead already assigned');
             }
         }
 
@@ -69,20 +87,34 @@ export class CounselorAssignmentService extends BaseService {
         const counselorId = await strategy.assign(lead);
 
         const logAssignmentAudit = async (savedLead: AdmissionLead, prevLead: AdmissionLead) => {
+            const enquiry = lead.enquiryId ? await this.enquiryRepo.findById(lead.enquiryId) : null;
+            const schoolId = enquiry?.schoolId || null;
+            const academicYearId = enquiry?.academicYearId || null;
+
             await this.auditService.logStatusChange({
                 entityName: 'admission_leads',
                 entityId: savedLead.id,
                 oldStatus: prevLead.status,
                 newStatus: savedLead.status,
                 changedBy: userId || null,
-                reason: `Counselor assigned via strategy: ${strategyType}`,
-                metadata: { counselor_id: counselorId, strategy: strategyType },
+                reason: strategyParams.reassign ? 'Counselor reassigned' : `Counselor assigned via strategy: ${strategyType}`,
+                metadata: {
+                    assigned_by: userId || null,
+                    assigned_to: counselorId,
+                    timestamp: new Date().toISOString(),
+                    school_id: schoolId,
+                    academic_year_id: academicYearId,
+                    correlation_id: correlationId || null,
+                    ip: strategyParams.ip || null,
+                    browser: strategyParams.browser || null
+                },
                 correlationId,
                 eventName: 'LeadCounselorAssigned',
             });
+
             await this.auditService.logAudit({
                 userId: userId || null,
-                action: 'ASSIGN_COUNSELOR',
+                action: strategyParams.reassign ? 'REASSIGN_COUNSELOR' : 'ASSIGN_COUNSELOR',
                 entityName: 'admission_leads',
                 entityId: savedLead.id,
                 beforeState: prevLead,

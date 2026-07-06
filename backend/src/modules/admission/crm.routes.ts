@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { checkPermission } from '../../rbac/rbac.middleware';
+import { checkPermission, getEffectiveRoles } from '../../rbac/rbac.middleware';
 import { PERMISSIONS } from '../../rbac/permissions';
 import { checkIdempotency } from '../../middleware/idempotency.middleware';
 import { 
@@ -111,19 +111,69 @@ crmRouter.put('/visitors/:id',
 // LOOKUPS FOR ADMISSION MODULE (Bypassing RLS/RBAC constraints for Admissions Desk)
 // ==========================================
 crmRouter.get('/counselors',
-    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    (req, res, next) => {
+        if (!req.context?.user) {
+            return res.status(401).json({ error: 'Unauthorized: No session context' });
+        }
+        const permissions = req.context.user.permissions || [];
+        const roles = getEffectiveRoles(req.context.user.roles || []);
+        if (
+            roles.includes('ADMIN') ||
+            roles.includes('ADMISSION_OFFICER') ||
+            permissions.includes('admission.enquiry.view') ||
+            permissions.includes('admission.enquiry.create') ||
+            permissions.includes('admission.visitors.manage')
+        ) {
+            return next();
+        }
+        return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    },
     async (req, res) => {
         try {
             const schoolId = req.context!.user.school_id;
-            const { data, error } = await supabase
+            
+            // 1. Resolve role IDs for COUNSELOR and ADMISSION_OFFICER
+            const { data: dbRoles, error: rolesError } = await supabase
+                .from('roles')
+                .select('id, name')
+                .in('name', ['COUNSELOR', 'ADMISSION_OFFICER']);
+            
+            if (rolesError) throw rolesError;
+            const roleIds = dbRoles?.map(r => r.id) || [];
+
+            if (roleIds.length === 0) {
+                res.json([]);
+                return;
+            }
+
+            // 2. Query user_roles matching these role IDs
+            const { data: userRoles, error: urError } = await supabase
+                .from('user_roles')
+                .select('user_id')
+                .in('role_id', roleIds);
+
+            if (urError) throw urError;
+            const userIds = userRoles?.map((ur: any) => ur.user_id) || [];
+
+            if (userIds.length === 0) {
+                res.json([]);
+                return;
+            }
+
+            // 3. Query active users in this school matching userIds
+            const { data: users, error: usersError } = await supabase
                 .from('users')
                 .select('id, full_name, email')
                 .eq('school_id', schoolId)
-                .eq('status', 'active');
-            
-            if (error) throw error;
-            res.json(data || []);
+                .eq('status', 'active')
+                .in('id', userIds)
+                .order('full_name');
+
+            if (usersError) throw usersError;
+
+            res.json(users || []);
         } catch (error: any) {
+            console.error('[Counselors Error]', error);
             res.status(500).json({ error: error.message });
         }
     }

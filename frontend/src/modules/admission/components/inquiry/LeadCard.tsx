@@ -182,7 +182,7 @@ export function LeadCard({
                             </div>
                         </div>
                     ) : (
-                        showAssign && canAssign && (
+                        showAssign && canAssign && !lead.application_id && (
                             <LeadAssignment lead={lead} counselorId={counselorId} onAssigned={() => setExpanded(true)} />
                         )
                     )}

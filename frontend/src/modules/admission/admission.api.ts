@@ -140,8 +140,8 @@ export const admissionApi = {
     updateLead: (id: string, data: any) =>
         apiClient.put(`/v1/admission/crm/leads/${id}`, data),
 
-    assignLead: (id: string, counselorId?: string, strategy?: string) =>
-        apiClient.put(`/v1/admission/crm/leads/${id}/assign`, { counselorId, strategy }),
+    assignLead: (id: string, counselorId?: string, strategy?: string, reassign?: boolean) =>
+        apiClient.put(`/v1/admission/crm/leads/${id}/assign`, { counselorId, strategy, reassign }),
 
     getFollowups: (params?: any) =>
         apiClient.get('/v1/admission/crm/followups', { params }),
@@ -303,4 +303,24 @@ export const admissionApi = {
 
     getApplicationProgress: (applicationId: string) =>
         apiClient.get(`/v1/admission/application/${applicationId}/progress`),
+
+    getAuditLogs: async (applicationId: string) => {
+        const { data, error } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .eq('entity_id', applicationId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    },
+
+    getStatusHistory: async (applicationId: string) => {
+        const { data, error } = await supabase
+            .from('status_history')
+            .select('*')
+            .eq('entity_id', applicationId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    },
 };

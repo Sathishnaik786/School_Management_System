@@ -68,16 +68,24 @@ export class LeadController {
         try {
             await this.checkFlags(req);
             const { id } = req.params;
-            const { strategy, counselor_id, counselorId, updated_at, updatedAt } = req.body;
+            const { strategy, counselor_id, counselorId, updated_at, updatedAt, reassign } = req.body;
             const resolvedCounselorId = counselor_id || counselorId;
             const resolvedUpdatedAt = updated_at || updatedAt;
             const correlationId = req.headers['x-correlation-id'] as string;
             const userId = req.context?.user?.id || null;
+            const ip = req.ip || req.socket.remoteAddress || undefined;
+            const browser = (req.headers['user-agent'] as string) || undefined;
 
             const data = await this.assignmentService.assignCounselor(
                 id,
                 strategy || 'manual',
-                { counselorId: resolvedCounselorId, updatedAt: resolvedUpdatedAt },
+                { 
+                    counselorId: resolvedCounselorId, 
+                    updatedAt: resolvedUpdatedAt,
+                    reassign: !!reassign,
+                    ip,
+                    browser
+                },
                 correlationId,
                 userId
             );

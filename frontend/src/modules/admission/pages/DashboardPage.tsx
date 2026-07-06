@@ -38,6 +38,7 @@ import { QuickActions } from '../../dashboard/components/actions/QuickActions';
 import { AdmissionsCrossModulePanel } from '../../dashboard/components/widgets/CrossModulePanels';
 import { RoleDashboardInsights } from '../../dashboard/components/analytics/RoleDashboardInsights';
 import { HealthPanel } from '../../dashboard/components/health/HealthPanel';
+import AdmissionOfficerDashboard from './Workspace/AdmissionOfficerDashboard';
 
 export function DashboardPage() {
     return (
@@ -216,46 +217,7 @@ function DashboardPageInner() {
     // 4. ADMISSION OFFICER WORKSPACE
     // ----------------------------------------------------
     if (isAdmissionOfficer) {
-        return (
-            <div className="space-y-6 pb-6">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900">Admission Officer Desk</h1>
-                    <p className="text-sm text-gray-500 mt-1">Review applicant profiles, document checklists, and execute SIS handoffs.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <MetricCard title="Pending Reviews" value={getKPIValue('admissions.kpi.pending', 18)} sub="Awaiting verification" icon={FileText} color="text-blue-600 bg-blue-50" />
-                    <MetricCard title="Docs Incomplete" value="4" sub="Required re-uploads" icon={ShieldAlert} color="text-rose-600 bg-rose-50" />
-                    <MetricCard title="Ready to Enroll" value={getKPIValue('admissions.kpi.verified', 7)} sub="Fee verified" icon={CheckCircle} color="text-emerald-600 bg-emerald-50" />
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <h2 className="text-sm font-black text-gray-900 mb-4">Pending Enrollment Pipeline</h2>
-                    <div className="space-y-3">
-                        {(engineTasks && engineTasks.length > 0 ? engineTasks.map((t: any) => ({
-                            name: t.title,
-                            ref: t.id,
-                            status: t.status
-                        })) : [
-                            { name: 'Rohan Sharma', ref: 'APP-9021', status: 'Payment Verified' },
-                            { name: 'Kavya Singh', ref: 'APP-9022', status: 'Payment Verified' }
-                        ]).map((app: any, i: number) => (
-                            <div key={i} className="p-4 rounded-xl border border-solid border-gray-100 flex items-center justify-between text-xs">
-                                <div>
-                                    <p className="font-bold text-gray-900">{app.name} ({app.ref})</p>
-                                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-bold uppercase tracking-wide">
-                                        {app.status}
-                                    </span>
-                                </div>
-                                <button className="px-4 py-2 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow-sm transition-colors">
-                                    Enroll Student
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
+        return <AdmissionOfficerDashboard />;
     }
 
     // ----------------------------------------------------
