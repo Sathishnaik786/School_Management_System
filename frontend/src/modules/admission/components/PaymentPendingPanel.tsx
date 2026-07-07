@@ -26,6 +26,7 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
     const [loading, setLoading] = useState(true);
     const [isConfirming, setIsConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchFees = async () => {
@@ -37,12 +38,18 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
                     (!f.applicable_classes || f.applicable_classes.toLowerCase().includes(app.grade_applied_for.toLowerCase()))
                 );
                 setFeeStructures(filtered);
+                setErrorStatus(null);
 
                 // Pre-select mandatory ones
                 const mandatoryIds = filtered.filter(f => f.is_mandatory).map(f => f.id);
                 setSelectedIds(mandatoryIds);
-            } catch (error) {
-                toast.error("Failed to load fee structures");
+
+                if (filtered.length === 0) {
+                    setErrorStatus(404);
+                }
+            } catch (error: any) {
+                const status = error.response?.status;
+                setErrorStatus(status || 500);
             } finally {
                 setLoading(false);
             }
@@ -109,7 +116,42 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
             {/* Fee List */}
             <ScrollArea className={`${isLocked ? 'h-auto' : 'h-[400px]'} pr-4`}>
                 <div className="grid gap-4">
-                    {feeStructures.map((fee) => (
+                    {errorStatus === 401 && (
+                        <div className="text-center py-12 text-red-500">
+                            <AlertCircle className="w-12 h-12 mx-auto mb-2 text-red-500 animate-bounce" />
+                            <p className="text-xs font-bold uppercase tracking-widest">Session expired. Please log in again.</p>
+                        </div>
+                    )}
+
+                    {errorStatus === 403 && (
+                        <div className="text-center py-12 text-amber-500">
+                            <AlertCircle className="w-12 h-12 mx-auto mb-2 text-amber-500" />
+                            <p className="text-xs font-bold uppercase tracking-widest">You do not have permission to view fee structures.</p>
+                        </div>
+                    )}
+
+                    {errorStatus === 404 && (
+                        <div className="text-center py-12 opacity-50">
+                            <ShieldCheck className="w-12 h-12 mx-auto mb-2" />
+                            <p className="text-xs font-bold uppercase tracking-widest">No fee structure configured for this class.</p>
+                        </div>
+                    )}
+
+                    {errorStatus === 422 && (
+                        <div className="text-center py-12 text-orange-500">
+                            <AlertCircle className="w-12 h-12 mx-auto mb-2 text-orange-500" />
+                            <p className="text-xs font-bold uppercase tracking-widest">Admissions must be approved before billing.</p>
+                        </div>
+                    )}
+
+                    {errorStatus && ![401, 403, 404, 422].includes(errorStatus) && (
+                        <div className="text-center py-12 text-red-500">
+                            <AlertCircle className="w-12 h-12 mx-auto mb-2 text-red-500" />
+                            <p className="text-xs font-bold uppercase tracking-widest">Unable to load fee structures.</p>
+                        </div>
+                    )}
+
+                    {!errorStatus && feeStructures.map((fee) => (
                         <FeeComponentCard
                             key={fee.id}
                             fee={fee}
@@ -118,12 +160,6 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
                             disabled={isLocked || processing}
                         />
                     ))}
-                    {feeStructures.length === 0 && (
-                        <div className="text-center py-12 opacity-50">
-                            <ShieldCheck className="w-12 h-12 mx-auto mb-2" />
-                            <p className="text-xs font-bold uppercase tracking-widest">No fee structures found for this class</p>
-                        </div>
-                    )}
                 </div>
             </ScrollArea>
 

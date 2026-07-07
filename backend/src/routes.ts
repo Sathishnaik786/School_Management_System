@@ -152,6 +152,110 @@ router.get('/public/fee-structures', async (req: Request, res: Response) => {
     }
 });
 
+// Public lookup for admission grades (mapping layer)
+router.get('/public/admission/grades', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+        if (!school_id) return res.status(400).json({ error: 'school_id is required' });
+        const { data, error } = await supabase
+            .from('classes')
+            .select('id, name')
+            .eq('school_id', school_id)
+            .order('name');
+
+        if (error) throw error;
+        // Return mapped list of grades/classes (just id and grade_name)
+        res.json(data?.map(c => ({ id: c.id, grade_name: c.name })) || []);
+    } catch (error: any) {
+        res.status(200).json([]);
+    }
+});
+
+// Consolidated public configuration for admissions (versioned metadata)
+router.get('/public/admission/config', async (req: Request, res: Response) => {
+    try {
+        const { school_id } = req.query;
+
+        // Fetch all schools for selector
+        const { data: schools, error: schoolsError } = await supabase
+            .from('schools')
+            .select('id, name, code');
+        if (schoolsError) throw schoolsError;
+
+        let activeSchool = null;
+        let activeYear = null;
+        let gradesList: any[] = [];
+
+        if (school_id) {
+            // Fetch selected school details
+            const { data: school, error: schoolError } = await supabase
+                .from('schools')
+                .select('id, name, code')
+                .eq('id', school_id)
+                .maybeSingle();
+            if (schoolError) throw schoolError;
+            activeSchool = school;
+
+            // Fetch active academic year
+            const { data: year, error: yearError } = await supabase
+                .from('academic_years')
+                .select('id, year_label, is_active')
+                .eq('school_id', school_id)
+                .eq('is_active', true)
+                .maybeSingle();
+            if (yearError) throw yearError;
+            activeYear = year;
+
+            // Fetch grades (classes mapped cleanly to grades)
+            const { data: classes, error: classesError } = await supabase
+                .from('classes')
+                .select('id, name')
+                .eq('school_id', school_id)
+                .order('name');
+            if (classesError) throw classesError;
+            gradesList = classes?.map(c => ({ id: c.id, grade_name: c.name })) || [];
+        }
+
+        // Dynamically compute the version based on max updated_at of the configurations
+        const { data: schoolMax } = await supabase.from('schools').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        const { data: yearMax } = await supabase.from('academic_years').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        const { data: classMax } = await supabase.from('classes').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+
+        const times = [
+            schoolMax?.updated_at ? new Date(schoolMax.updated_at).getTime() : 0,
+            yearMax?.updated_at ? new Date(yearMax.updated_at).getTime() : 0,
+            classMax?.updated_at ? new Date(classMax.updated_at).getTime() : 0
+        ];
+        const version = new Date(Math.max(...times, Date.now() - 3600000)).toISOString();
+
+        res.json({
+            version,
+            schools: schools || [],
+            school: activeSchool,
+            academicYear: activeYear,
+            grades: gradesList,
+            requiredDocuments: [
+                { type: 'birth_certificate', label: 'Birth Certificate', required: true },
+                { type: 'transfer_certificate', label: 'Transfer Certificate', required: false },
+                { type: 'previous_marksheet', label: 'Previous Academic Report Card', required: false },
+                { type: 'parent_id', label: 'Parent ID Proof (Aadhaar/Passport)', required: true },
+                { type: 'photo', label: 'Student Passport Photo', required: true }
+            ],
+            admissionCalendar: {
+                opens: '2026-10-01',
+                closes: '2026-12-15',
+                classStarts: '2026-08-15'
+            },
+            brochure: {
+                url: '/brochure.pdf',
+                title: 'Greenwood High Admission Brochure'
+            }
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ======================================
 // PROTECTED (Global Guard)
 // ======================================

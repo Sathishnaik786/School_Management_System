@@ -48,10 +48,18 @@ export const PERMISSIONS = {
     TRIP_MONITOR: 'TRIP_MONITOR',
 
     // FEES
-    FEES_VIEW: 'FEES_VIEW',
-    FEES_SETUP: 'FEES_SETUP',
-    FEES_ASSIGN: 'FEES_ASSIGN',
-    PAYMENT_RECORD: 'PAYMENT_RECORD',
+    FEES_VIEW: 'fees.view',
+    FEES_SETUP: 'fees.structure.manage',
+    FEES_ASSIGN: 'fees.demand.generate',
+    FEES_DEMAND_GENERATE: 'fees.demand.generate',
+    PAYMENT_RECORD: 'fees.payment.collect',
+    FEES_STRUCTURE_VIEW: 'fees.structure.view',
+    FEES_DEMAND_VIEW: 'fees.demand.view',
+    FEES_PAYMENT_VIEW: 'fees.payment.view',
+    FEES_RECEIPT_GENERATE: 'fees.receipt.generate',
+    FEES_WAIVER_APPROVE: 'fees.waiver.approve',
+    FEES_REFUND_PROCESS: 'fees.refund.process',
+    ADMISSION_FEES_INITIALIZE: 'admission.fees.initialize',
     DASHBOARD_VIEW_PARENT: 'DASHBOARD_VIEW_PARENT',
 
     // ATTENDANCE

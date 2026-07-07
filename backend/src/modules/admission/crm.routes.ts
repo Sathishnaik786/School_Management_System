@@ -214,7 +214,7 @@ crmRouter.get('/transport-routes',
 );
 
 crmRouter.get('/fee-structures',
-    checkPermission(PERMISSIONS.ADMISSION_ENQUIRY_VIEW),
+    checkPermission(PERMISSIONS.ADMISSION_FEES_INITIALIZE),
     async (req, res) => {
         try {
             const schoolId = req.context!.user.school_id;

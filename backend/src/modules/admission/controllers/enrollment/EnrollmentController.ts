@@ -14,6 +14,8 @@ import { ApplicationService } from '../../services/application/ApplicationServic
 import { PermissionError } from '../../errors/PermissionError';
 import { handleControllerError } from '../crm/ControllerErrorHandler';
 import { getEffectiveRoles } from '../../../../rbac/rbac.middleware';
+import { supabase } from '../../../../config/supabase';
+import { FinanceEngine } from '../../../fees/services/FinanceEngine';
 
 export class EnrollmentController {
     constructor(
@@ -56,12 +58,60 @@ export class EnrollmentController {
             const userId = req.context?.user?.id || null;
             const correlationId = req.headers['x-correlation-id'] as string;
 
+            // Fetch Application Status to validate state
+            const { data: application, error: appErr } = await supabase
+                .from('admission_applications')
+                .select('status')
+                .eq('id', application_id)
+                .single();
+
+            if (appErr || !application) {
+                return res.status(404).json({ error: 'Application not found' });
+            }
+
+            const allowedStatuses = ['APPROVED', 'OFFERED', 'OFFER_ACCEPTED', 'FEE_PENDING', 'PAYMENT_PENDING'];
+            if (!allowedStatuses.includes(application.status)) {
+                return res.status(422).json({ error: `Admissions must be approved before billing. Current status: ${application.status}` });
+            }
+
+            // 1. Legacy path: write to admission_fee_assignments (preserves Admission v1.0)
             const data = await this.feeAssignService.assignStructure(
                 application_id,
                 structure_id,
                 userId,
                 correlationId
             );
+
+            // 2. Finance Engine bridge: also create fee_demand + ledger debit in new tables
+            //    We do this as a best-effort side-effect — legacy path is never blocked by this.
+            try {
+                // Only create a demand if one doesn't already exist for this application
+                const { data: existing } = await supabase
+                    .from('fee_demands')
+                    .select('id')
+                    .eq('application_id', application_id)
+                    .limit(1);
+
+                if (!existing || existing.length === 0) {
+                    const dueDate = new Date();
+                    dueDate.setDate(dueDate.getDate() + 30); // default 30-day payment window
+
+                    await FinanceEngine.initializeDemand({
+                        application_id,
+                        fee_structure_id: structure_id,
+                        due_date: dueDate.toISOString().split('T')[0],
+                        performedBy: userId || 'system'
+                    });
+
+                    console.log(`[EnrollmentController] Finance Engine demand created for application ${application_id}`);
+                } else {
+                    console.log(`[EnrollmentController] Finance Engine demand already exists for application ${application_id}, skipping.`);
+                }
+            } catch (finErr) {
+                // Non-blocking: log but do not fail the admission assignment
+                console.error(`[EnrollmentController] Finance Engine bridge error (non-blocking):`, finErr);
+            }
+
             res.status(201).json(data);
         } catch (err) {
             handleControllerError(res, err);

@@ -8,7 +8,7 @@ export const enrollmentRouter = Router();
 
 // 1. Fee structure setup & waivers
 enrollmentRouter.post('/fees/assign',
-    checkPermission('admission.fees.manage'),
+    checkPermission(PERMISSIONS.ADMISSION_FEES_INITIALIZE),
     checkIdempotency,
     enrollmentController.assignFeeStructure
 );
@@ -19,26 +19,26 @@ enrollmentRouter.get('/fees/:applicationId',
 );
 
 enrollmentRouter.post('/waivers',
-    checkPermission('admission.payments.record'),
+    checkPermission(PERMISSIONS.FEES_WAIVER_APPROVE),
     checkIdempotency,
     enrollmentController.applyFeeWaiver
 );
 
 // 2. Payments collection & verification
 enrollmentRouter.post('/payments',
-    checkPermission('admission.payments.record'),
+    checkPermission(PERMISSIONS.PAYMENT_RECORD),
     checkIdempotency,
     enrollmentController.collectPayment
 );
 
 enrollmentRouter.post('/payments/verify',
-    checkPermission('admission.payments.record'),
+    checkPermission(PERMISSIONS.PAYMENT_RECORD),
     checkIdempotency,
     enrollmentController.verifyPayment
 );
 
 enrollmentRouter.get('/payments/:paymentId/receipt',
-    checkPermission('admission.payments.record'),
+    checkPermission(PERMISSIONS.FEES_RECEIPT_GENERATE),
     enrollmentController.getReceipt
 );
 

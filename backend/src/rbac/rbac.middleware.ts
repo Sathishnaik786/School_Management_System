@@ -31,7 +31,7 @@ export const getEffectiveRoles = (roles: string[]): string[] => {
 const APPLICANT360_READ_GET_PERMISSIONS = new Set<string>([
     'admission.exam.evaluate',
     'admission.confirm.enroll',
-    'admission.fees.manage',
+    'admission.fees.initialize',
     'admission.merit.generate',
     'admission.document.view',
     'admission.document.checklist',
@@ -39,6 +39,7 @@ const APPLICANT360_READ_GET_PERMISSIONS = new Set<string>([
 
 function canViewAdmissionApplication(permissions: string[], roles: string[]): boolean {
     if (roles.includes('COUNSELOR')) return true;
+    if (roles.includes('ACCOUNTANT')) return true;
     if (permissions.includes('admission.application.view')) return true;
     if (permissions.includes('admission.view_own')) return true;
     if (permissions.includes('admission.review') || permissions.includes('admission.view_all')) return true;
@@ -71,7 +72,13 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
 
         // 2c. Accountant Bypass for fee setup and payment collections
         if (roles.includes('ACCOUNTANT') && 
-            (requiredPermission === 'admission.fees.manage' || requiredPermission === 'admission.payments.record')) {
+            (requiredPermission === 'admission.fees.initialize' || 
+             requiredPermission === 'fees.demand.generate' || 
+             requiredPermission === 'fees.payment.collect' ||
+             requiredPermission === 'fees.receipt.generate' ||
+             requiredPermission === 'fees.structure.manage' ||
+             requiredPermission === 'fees.waiver.approve' ||
+             requiredPermission === 'fees.view')) {
             return next();
         }
 
@@ -138,6 +145,15 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
                 requiredPermission === 'admission.document.view' ||
                 requiredPermission === 'admission.document.upload') &&
             roles.includes('COUNSELOR')
+        ) {
+            return next();
+        }
+
+        // 2l. Accountant Bypass for listing and viewing applications (needed for payments collection dashboard)
+        if (
+            (requiredPermission === 'admission.view_all' ||
+             requiredPermission === 'admission.application.view') &&
+            roles.includes('ACCOUNTANT')
         ) {
             return next();
         }

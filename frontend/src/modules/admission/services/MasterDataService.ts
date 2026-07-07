@@ -1,4 +1,5 @@
 import { apiClient } from '../../../lib/api-client';
+import { ApiRequestConfig } from '../../../lib/interceptors/error.interceptor';
 
 export interface SchoolMaster {
     id: string;
@@ -45,39 +46,47 @@ export interface CounselorMaster {
 }
 
 export const MasterDataService = {
+    getPublicConfig: async (schoolId?: string): Promise<any> => {
+        const res = await apiClient.get<any>('/public/admission/config', {
+            params: { school_id: schoolId },
+            silent: true
+        } as ApiRequestConfig);
+        return res.data;
+    },
+
     getSchools: async (): Promise<SchoolMaster[]> => {
-        const res = await apiClient.get<SchoolMaster[]>('/schools');
+        const res = await apiClient.get<SchoolMaster[]>('/schools', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 
     getCurrentSchool: async (schoolId?: string): Promise<SchoolMaster | null> => {
-        const res = await apiClient.get<SchoolMaster>('/schools/current');
+        const res = await apiClient.get<SchoolMaster>('/schools/current', { silent: true } as ApiRequestConfig);
         return res.data || null;
     },
 
     getAcademicYears: async (schoolId?: string): Promise<AcademicYearMaster[]> => {
-        const res = await apiClient.get<AcademicYearMaster[]>('/academic-years');
+        const res = await apiClient.get<AcademicYearMaster[]>('/academic-years', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 
     getCurrentAcademicYear: async (schoolId?: string): Promise<AcademicYearMaster | null> => {
-        const res = await apiClient.get<AcademicYearMaster>('/academic-years/current');
+        const res = await apiClient.get<AcademicYearMaster>('/academic-years/current', { silent: true } as ApiRequestConfig);
         return res.data || null;
     },
 
     getGrades: async (): Promise<GradeMaster[]> => {
         // Fetches from /academic/classes which lists classes with sections
-        const res = await apiClient.get<GradeMaster[]>('/academic/classes');
+        const res = await apiClient.get<GradeMaster[]>('/academic/classes', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 
     getTransportRoutes: async (): Promise<TransportRouteMaster[]> => {
-        const res = await apiClient.get<TransportRouteMaster[]>('/v1/admission/crm/transport-routes');
+        const res = await apiClient.get<TransportRouteMaster[]>('/v1/admission/crm/transport-routes', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 
     getFeeStructures: async (): Promise<FeeStructureMaster[]> => {
-        const res = await apiClient.get<any[]>('/v1/admission/crm/fee-structures');
+        const res = await apiClient.get<any[]>('/v1/admission/crm/fee-structures', { silent: true } as ApiRequestConfig);
         return res.data?.map(item => ({
             id: item.id,
             name: item.name,
@@ -87,12 +96,12 @@ export const MasterDataService = {
     },
 
     getOfferTemplates: async (): Promise<OfferTemplateMaster[]> => {
-        const res = await apiClient.get<OfferTemplateMaster[]>('/v1/admission/crm/offer-templates');
+        const res = await apiClient.get<OfferTemplateMaster[]>('/v1/admission/crm/offer-templates', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 
     getCounselors: async (schoolId?: string): Promise<CounselorMaster[]> => {
-        const res = await apiClient.get<CounselorMaster[]>('/v1/admission/crm/counselors');
+        const res = await apiClient.get<CounselorMaster[]>('/v1/admission/crm/counselors', { silent: true } as ApiRequestConfig);
         return res.data || [];
     },
 

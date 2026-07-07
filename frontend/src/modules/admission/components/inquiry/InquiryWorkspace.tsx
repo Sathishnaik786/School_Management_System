@@ -8,6 +8,7 @@ import { useLeadAssignment } from '../../hooks/useLeadAssignment';
 import { useInquiryWorkspace } from '../../hooks/useInquiryWorkspace';
 import { useAuth } from '../../../../context/AuthContext';
 import { useMasterData } from '../../context/MasterDataContext';
+import { useAdmissionMasterData } from '../../context/AdmissionMasterDataContext';
 import { findDuplicates } from '../../utils/duplicate.detector';
 import { ADMISSION_ERROR_LABELS, parseAdmissionApiError } from '../../utils/admissionError.utils';
 import {
@@ -91,7 +92,6 @@ export function InquiryWorkspace({
         schools,
         academicYears,
         grades,
-        counselors,
         boards,
         admissionSources,
         categories,
@@ -103,10 +103,10 @@ export function InquiryWorkspace({
         states,
         cities,
         hostelRoomTypes,
-        transportRoutes,
-        feeStructures,
         quotas
     } = useMasterData();
+
+    const { counselors, transportRoutes, feeStructures } = useAdmissionMasterData();
 
     const [activeSection, setActiveSection] = useState<WorkspaceSection>(
         initialSection ?? (mode === 'assignment' ? 'unassigned' : 'walkins'),

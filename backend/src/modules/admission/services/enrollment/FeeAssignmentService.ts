@@ -14,6 +14,12 @@ export class FeeAssignmentService {
         performedBy: string | null,
         correlationId?: string
     ): Promise<FeeAssignment[]> {
+        const existing = await this.feeRepo.findAssignmentsByApplicationId(applicationId);
+        if (existing && existing.length > 0) {
+            console.log(`[FeeAssignmentService] Idempotency triggered: returning existing assignments for application ${applicationId}`);
+            return existing;
+        }
+
         const components = await this.feeRepo.findComponentsByStructureId(structureId);
         if (!components || components.length === 0) {
             throw new Error(`No components found under Fee Structure template ID ${structureId}`);

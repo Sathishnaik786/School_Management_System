@@ -108,7 +108,7 @@ export const admissionApi = {
         }),
 
     getFeeStructures: () =>
-        apiClient.get<any[]>('/fees/structures'),
+        apiClient.get<any[]>('/v1/admission/crm/fee-structures', { silent: true } as any),
 
     // ==========================================
     // CRM / INQUIRY MANAGEMENT

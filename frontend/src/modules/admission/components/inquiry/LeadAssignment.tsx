@@ -3,7 +3,7 @@ import { UserCheck, UserMinus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../../../components/ui/button';
 import { useLeadAssignment } from '../../hooks/useLeadAssignment';
-import { useMasterData } from '../../context/MasterDataContext';
+import { useAdmissionMasterData } from '../../context/AdmissionMasterDataContext';
 import { parseAdmissionApiError } from '../../utils/admissionError.utils';
 import type { Lead } from '../../types/admission.types';
 
@@ -16,7 +16,7 @@ interface LeadAssignmentProps {
 
 export function LeadAssignment({ lead, counselorId, counselorName, onAssigned }: LeadAssignmentProps) {
     const { assign, reassign, unassign, changeCounselor, isAssigning } = useLeadAssignment();
-    const { counselors } = useMasterData();
+    const { counselors } = useAdmissionMasterData();
     
     // Default to the current assigned counselor or the passed counselorId
     const currentCounselorId = lead.assigned_counselor_id || lead.counselor || counselorId || '';

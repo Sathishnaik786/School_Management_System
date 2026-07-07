@@ -10,6 +10,7 @@ import { FacultyMySubjects } from '../modules/dashboard/components/FacultyMySubj
 import { ProtectedRoute, PermissionGuard, ExamOperationGuard } from '../components/auth/ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { ExamAdminLayout } from '../layouts/ExamAdminLayout';
+import { AdmissionWorkspaceLayout } from '../modules/admission/layouts/AdmissionWorkspaceLayout';
 import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
 import { MyApplications } from '../modules/admission/pages/MyApplications';
 import { AdmissionReviewList } from '../modules/admission/pages/AdmissionReviewList';
@@ -93,6 +94,15 @@ import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment
 import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
 import { MyFees } from '../modules/fees/pages/MyFees';
 import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
+import { FinanceDashboard } from '../modules/fees/pages/FinanceDashboard';
+import { FinanceLayout } from '../layouts/FinanceLayout';
+import { DemandManagement } from '../modules/fees/pages/DemandManagement';
+import { ReceiptCenter } from '../modules/fees/pages/ReceiptCenter';
+import { StudentLedger } from '../modules/fees/pages/StudentLedger';
+import { Waivers } from '../modules/fees/pages/Waivers';
+import { Refunds } from '../modules/fees/pages/Refunds';
+import { FinanceReports } from '../modules/fees/pages/FinanceReports';
+import { FinanceSettings } from '../modules/fees/pages/FinanceSettings';
 import { TransportSetup } from '../modules/transport/pages/TransportSetup';
 import { TransportBulkAssignmentPage } from '../modules/transport/pages/TransportBulkAssignmentPage';
 import { StudentTransportAssignment } from '../modules/transport/pages/StudentTransportAssignment';
@@ -219,126 +229,129 @@ export const AppRouter = () => {
                         } />
 
                         {/* Admission Module Routes */}
-                        <Route path="admissions/dashboard" element={
-                            <PermissionGuard permission="admission.review">
-                                <WorkspaceDashboard />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/analytics" element={
-                            <PermissionGuard permission="admission.review">
-                                <AnalyticsPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/inquiries" element={
-                            <AdmissionInquiryGuard>
-                                <InquiryListPage />
-                            </AdmissionInquiryGuard>
-                        } />
-                        <Route path="admissions/enquiry" element={
-                            <AdmissionInquiryGuard>
-                                <InquiryListPage />
-                            </AdmissionInquiryGuard>
-                        } />
-                        <Route path="admissions/assign" element={
-                            <AdmissionInquiryGuard>
-                                <InquiryListPage />
-                            </AdmissionInquiryGuard>
-                        } />
-                        <Route path="admissions/new" element={
-                            <PermissionGuard permission="admission.create">
-                                <AdmissionForm />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/wizard" element={
-                            <PermissionGuard permission="admission.create">
-                                <ApplicationWizardPage />
-                            </PermissionGuard>
-                        } />
                         <Route path="admissions/my" element={
                             <PermissionGuard permission="admission.view_own">
                                 <MyApplications />
                             </PermissionGuard>
                         } />
-                        <Route path="admissions/application/:id" element={
-                            <AdmissionApplicationGuard>
-                                <Applicant360Page />
-                            </AdmissionApplicationGuard>
-                        } />
-                        <Route path="admissions/documents/:id" element={
-                            <AdmissionApplicationGuard>
-                                <Applicant360Page />
-                            </AdmissionApplicationGuard>
-                        } />
-                        <Route path="admissions/timeline/:id" element={
-                            <AdmissionApplicationGuard>
-                                <Applicant360Page />
-                            </AdmissionApplicationGuard>
-                        } />
-                        <Route path="admissions/review" element={
-                            <PermissionGuard permission="admission.review">
-                                <PipelinePage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/review/:id" element={
-                            <PermissionGuard permission="admission.view_all">
-                                <AdmissionReviewPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/:id" element={
-                            <AdmissionApplicationGuard>
-                                <Applicant360Page />
-                            </AdmissionApplicationGuard>
-                        } />
-                        <Route path="admissions/verification" element={
-                            <PermissionGuard permission="admission.review">
-                                <DocumentVerificationPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/exams" element={
-                            <PermissionGuard permission="admission.review">
-                                <EntranceExamPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/interviews" element={
-                            <PermissionGuard permission="admission.review">
-                                <InterviewPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/merit" element={
-                            <PermissionGuard permission="admission.review">
-                                <MeritListPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/offers" element={
-                            <PermissionGuard permission="admission.review">
-                                <OfferLetterPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/merit/offers" element={
-                            <PermissionGuard permission="admission.review">
-                                <OfferLetterPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/fees" element={
-                            <PermissionGuard permission="admission.review">
-                                <AdmissionFeeCollectionPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/enrollment" element={
-                            <PermissionGuard permission="admission.review">
-                                <EnrollmentPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/reports" element={
-                            <PermissionGuard permission="admission.review">
-                                <ReportsPage />
-                            </PermissionGuard>
-                        } />
-                        <Route path="admissions/settings" element={
-                            <PermissionGuard permission="admission.review">
-                                <AdmissionSettingsPage />
-                            </PermissionGuard>
-                        } />
+
+                        <Route element={<AdmissionWorkspaceLayout />}>
+                            <Route path="admissions/dashboard" element={
+                                <PermissionGuard permission="admission.review">
+                                    <WorkspaceDashboard />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/analytics" element={
+                                <PermissionGuard permission="admission.review">
+                                    <AnalyticsPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/inquiries" element={
+                                <AdmissionInquiryGuard>
+                                    <InquiryListPage />
+                                </AdmissionInquiryGuard>
+                            } />
+                            <Route path="admissions/enquiry" element={
+                                <AdmissionInquiryGuard>
+                                    <InquiryListPage />
+                                </AdmissionInquiryGuard>
+                            } />
+                            <Route path="admissions/assign" element={
+                                <AdmissionInquiryGuard>
+                                    <InquiryListPage />
+                                </AdmissionInquiryGuard>
+                            } />
+                            <Route path="admissions/new" element={
+                                <PermissionGuard permission="admission.create">
+                                    <AdmissionForm />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/wizard" element={
+                                <PermissionGuard permission="admission.create">
+                                    <ApplicationWizardPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/application/:id" element={
+                                <AdmissionApplicationGuard>
+                                    <Applicant360Page />
+                                </AdmissionApplicationGuard>
+                            } />
+                            <Route path="admissions/documents/:id" element={
+                                <AdmissionApplicationGuard>
+                                    <Applicant360Page />
+                                </AdmissionApplicationGuard>
+                            } />
+                            <Route path="admissions/timeline/:id" element={
+                                <AdmissionApplicationGuard>
+                                    <Applicant360Page />
+                                </AdmissionApplicationGuard>
+                            } />
+                            <Route path="admissions/review" element={
+                                <PermissionGuard permission="admission.review">
+                                    <PipelinePage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/review/:id" element={
+                                <PermissionGuard permission="admission.view_all">
+                                    <AdmissionReviewPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/:id" element={
+                                <AdmissionApplicationGuard>
+                                    <Applicant360Page />
+                                </AdmissionApplicationGuard>
+                            } />
+                            <Route path="admissions/verification" element={
+                                <PermissionGuard permission="admission.review">
+                                    <DocumentVerificationPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/exams" element={
+                                <PermissionGuard permission="admission.review">
+                                    <EntranceExamPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/interviews" element={
+                                <PermissionGuard permission="admission.review">
+                                    <InterviewPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/merit" element={
+                                <PermissionGuard permission="admission.review">
+                                    <MeritListPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/offers" element={
+                                <PermissionGuard permission="admission.review">
+                                    <OfferLetterPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/merit/offers" element={
+                                <PermissionGuard permission="admission.review">
+                                    <OfferLetterPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/fees" element={
+                                <PermissionGuard permission="fees.payment.collect">
+                                    <AdmissionFeeCollectionPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/enrollment" element={
+                                <PermissionGuard permission="admission.review">
+                                    <EnrollmentPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/reports" element={
+                                <PermissionGuard permission="admission.review">
+                                    <ReportsPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/settings" element={
+                                <PermissionGuard permission="admission.review">
+                                    <AdmissionSettingsPage />
+                                </PermissionGuard>
+                            } />
+                        </Route>
 
                         {/* Student Module Routes */}
                         <Route path="students/dashboard" element={
@@ -741,30 +754,21 @@ export const AppRouter = () => {
                             </PermissionGuard>
                         } />
 
-                        {/* Fees Module Routes */}
-                        <Route path="fees/structures" element={
-                            <PermissionGuard permission="FEES_SETUP">
-                                <FeeStructureManagement />
-                            </PermissionGuard>
-                        } />
-                        <Route path="fees/assign" element={
-                            <PermissionGuard permission="FEES_ASSIGN">
-                                <StudentFeeAssignment />
-                            </PermissionGuard>
-                        } />
-                        <Route path="fees/payments" element={
-                            <PermissionGuard permission="PAYMENT_RECORD">
-                                <PaymentEntry />
-                            </PermissionGuard>
-                        } />
+
+                        {/* Legacy Fees Redirects & Self-service */}
+                        <Route path="fees" element={<Navigate to="/app/finance/dashboard" replace />} />
+                        <Route path="fees/dashboard" element={<Navigate to="/app/finance/dashboard" replace />} />
+                        <Route path="fees/structures" element={<Navigate to="/app/finance/structures" replace />} />
+                        <Route path="fees/payments" element={<Navigate to="/app/finance/payments" replace />} />
+                        <Route path="fees/ledger" element={<Navigate to="/app/finance/ledger" replace />} />
                         <Route path="fees/my" element={
                             <PermissionGuard permission="PAYMENT_VIEW_SELF">
                                 <MyFees />
                             </PermissionGuard>
                         } />
-                        <Route path="fees/ledger" element={
-                            <PermissionGuard permission="FEES_VIEW">
-                                <AdminFeeLedger />
+                        <Route path="fees/assign" element={
+                            <PermissionGuard permission="fees.demand.generate">
+                                <StudentFeeAssignment />
                             </PermissionGuard>
                         } />
 
@@ -843,6 +847,60 @@ export const AppRouter = () => {
                         {/* Common User Routes */}
                         <Route path="profile" element={<Profile />} />
                         <Route path="settings" element={<Settings />} />
+
+                        {/* Finance Workspace Routes (Phase 2 Upgrade) */}
+                        <Route element={<FinanceLayout />}>
+                            <Route path="finance/dashboard" element={
+                                <PermissionGuard permission="fees.view">
+                                    <FinanceDashboard />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/structures" element={
+                                <PermissionGuard permission="fees.structure.manage">
+                                    <FeeStructureManagement />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/demands" element={
+                                <PermissionGuard permission="fees.demand.view">
+                                    <DemandManagement />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/payments" element={
+                                <PermissionGuard permission="fees.payment.collect">
+                                    <PaymentEntry />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/ledger" element={
+                                <PermissionGuard permission="fees.view">
+                                    <StudentLedger />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/receipts" element={
+                                <PermissionGuard permission="fees.view">
+                                    <ReceiptCenter />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/waivers" element={
+                                <PermissionGuard permission="fees.waiver.approve">
+                                    <Waivers />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/refunds" element={
+                                <PermissionGuard permission="fees.refund.process">
+                                    <Refunds />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/reports" element={
+                                <PermissionGuard permission="fees.view">
+                                    <FinanceReports />
+                                </PermissionGuard>
+                            } />
+                            <Route path="finance/settings" element={
+                                <PermissionGuard permission="fees.structure.manage">
+                                    <FinanceSettings />
+                                </PermissionGuard>
+                            } />
+                        </Route>
 
                         <Route path="unauthorized" element={<UnauthorizedPage />} />
                     </Route>

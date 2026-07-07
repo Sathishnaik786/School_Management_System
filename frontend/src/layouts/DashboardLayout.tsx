@@ -20,6 +20,8 @@ import {
     Menu,
     X,
     UserCircle,
+    Receipt,
+    RefreshCw,
     FileText,
     Clock,
     Search,
@@ -168,8 +170,11 @@ export const DashboardLayout = () => {
             {
                 label: 'Finances',
                 items: [
-                    { label: 'Fee Management', icon: Coins, path: '/app/fees/structures', permission: 'FEES_SETUP' },
-                    { label: 'Fee Ledger', icon: FileText, path: '/app/fees/ledger', permission: 'FEES_VIEW' },
+                    { label: 'Finance Dashboard', icon: LayoutDashboard, path: '/app/finance/dashboard', permission: 'fees.view' },
+                    { label: 'Fee Structures', icon: Coins, path: '/app/finance/structures', permission: 'fees.structure.manage' },
+                    { label: 'Fee Demands', icon: FileText, path: '/app/finance/demands', permission: 'fees.demand.view' },
+                    { label: 'Payment Queue', icon: Coins, path: '/app/finance/payments', permission: 'fees.payment.collect' },
+                    { label: 'Student Ledger', icon: FileText, path: '/app/finance/ledger', permission: 'fees.view' },
                     { label: 'Transport', icon: Bus, path: '/app/transport/setup', permission: 'TRANSPORT_SETUP' },
                 ]
             },
@@ -423,7 +428,16 @@ export const DashboardLayout = () => {
             {
                 label: 'Finance Desk',
                 items: [
-                    { label: 'Fee Collection', icon: Coins, path: '/app/admissions/fees' }
+                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/finance/dashboard', permission: 'fees.view' },
+                    { label: 'Fee Structures', icon: Coins, path: '/app/finance/structures', permission: 'fees.structure.manage' },
+                    { label: 'Fee Demands', icon: FileText, path: '/app/finance/demands', permission: 'fees.demand.view' },
+                    { label: 'Payment Queue', icon: Coins, path: '/app/finance/payments', permission: 'fees.payment.collect' },
+                    { label: 'Student Ledger', icon: BookOpen, path: '/app/finance/ledger', permission: 'fees.view' },
+                    { label: 'Receipt Center', icon: Receipt, path: '/app/finance/receipts', permission: 'fees.view' },
+                    { label: 'Waivers', icon: ShieldCheck, path: '/app/finance/waivers', permission: 'fees.waiver.approve' },
+                    { label: 'Refunds', icon: RefreshCw, path: '/app/finance/refunds', permission: 'fees.refund.process' },
+                    { label: 'Reports', icon: BarChart3, path: '/app/finance/reports', permission: 'fees.view' },
+                    { label: 'Settings', icon: Settings, path: '/app/finance/settings', permission: 'fees.structure.manage' }
                 ]
             }
         ] : []),

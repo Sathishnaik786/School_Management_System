@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { ChevronRight, ChevronLeft, Save, FileText, Clock, RotateCcw, HelpCircle, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMasterData } from '../context/MasterDataContext';
+import { useAdmissionMasterData } from '../context/AdmissionMasterDataContext';
 
 const STEPS = [
     { title: 'Student Info', desc: 'Personal details' },
@@ -22,7 +23,8 @@ export function ApplicationWizardPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(0);
-    const { grades, quotas, bloodGroups, transportRoutes, hostelRoomTypes } = useMasterData();
+    const { grades, quotas, bloodGroups, hostelRoomTypes } = useMasterData();
+    const { transportRoutes } = useAdmissionMasterData();
 
     const [formData, setFormData] = useState<any>({
         student_name: '',
