@@ -249,7 +249,7 @@ const ApplicantSnapshot = ({ app }: { app: Admission }) => {
                     <span className="text-[10px] font-black uppercase tracking-widest">Academic Target</span>
                 </div>
                 <p className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-relaxed">
-                    Applicant seeking entry into <span className="text-blue-600 font-black">{app.grade_applied_for}</span> for Academic Year 2024-25. No disciplinary records flagged.
+                    Applicant seeking entry into <span className="text-blue-600 font-black">{app.grade_applied_for}</span> for Academic Year {app.academic_years?.year_label || '2026-27'}. No disciplinary records flagged.
                 </p>
             </div>
         </motion.aside>
@@ -613,7 +613,7 @@ const ApprovalPanel = ({ app, remarks, setRemarks, submitting, handleAction }: a
             </div>
             <div className="flex flex-wrap justify-center gap-4 pt-4">
                 <Badge variant="outline" className="px-4 py-2 border-green-500/30 text-green-700 bg-green-500/5 uppercase font-black text-[9px] tracking-widest">Grade: {app.grade_applied_for}</Badge>
-                <Badge variant="outline" className="px-4 py-2 border-green-500/30 text-green-700 bg-green-500/5 uppercase font-black text-[9px] tracking-widest">Batch: 2024-25</Badge>
+                <Badge variant="outline" className="px-4 py-2 border-green-500/30 text-green-700 bg-green-500/5 uppercase font-black text-[9px] tracking-widest">Batch: {app.academic_years?.year_label || '2026-27'}</Badge>
                 <Badge variant="outline" className="px-4 py-2 border-green-500/30 text-green-700 bg-green-500/5 uppercase font-black text-[9px] tracking-widest">Scholarship: N/A</Badge>
             </div>
         </div>

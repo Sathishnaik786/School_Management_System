@@ -69,7 +69,12 @@ export function MasterDataProvider({ children }: { children: React.ReactNode }) 
     });
 
     const schools = configQuery.data?.schools || [];
-    const academicYears = configQuery.data?.academicYears || [];
+    const academicYears = useMemo(() => {
+        if (configQuery.data?.academicYear) {
+            return [configQuery.data.academicYear];
+        }
+        return configQuery.data?.academicYears || [];
+    }, [configQuery.data]);
     
     // Map class objects from backend config cleanly to GradeMaster structure
     const grades = useMemo(() => {

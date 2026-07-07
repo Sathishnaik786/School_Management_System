@@ -152,6 +152,7 @@ router.get('/public/fee-structures', async (req: Request, res: Response) => {
     }
 });
 
+
 // Public lookup for admission grades (mapping layer)
 router.get('/public/admission/grades', async (req: Request, res: Response) => {
     try {

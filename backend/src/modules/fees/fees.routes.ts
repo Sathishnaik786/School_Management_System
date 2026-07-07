@@ -320,7 +320,7 @@ feesRouter.get('/receipts/:id',
 
             if (receipt.error) throw receipt.error;
             
-            const data = receipt.data;
+            const data = receipt.data as any;
             if (data && data.payment_transaction?.application) {
                 const enquiry = data.payment_transaction.application.lead?.enquiry;
                 data.payment_transaction.application = {
@@ -602,16 +602,17 @@ feesRouter.get('/demands/:id',
             if (error) throw error;
             if (!data) return res.status(404).json({ error: 'Demand not found' });
             
-            if (data.application) {
-                const enquiry = data.application.lead?.enquiry;
-                data.application = {
-                    id: data.application.id,
+            const resData = data as any;
+            if (resData.application) {
+                const enquiry = resData.application.lead?.enquiry;
+                resData.application = {
+                    id: resData.application.id,
                     applicant_name: enquiry?.student_name || 'Applicant',
                     class_applied: enquiry?.grade_applied_for || ''
                 };
             }
 
-            res.json(data);
+            res.json(resData);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }

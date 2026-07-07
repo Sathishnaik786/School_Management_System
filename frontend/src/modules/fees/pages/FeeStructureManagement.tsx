@@ -30,6 +30,20 @@ export const FeeStructureManagement = () => {
         fetchMetadata();
     }, []);
 
+    useEffect(() => {
+        if (academicYearId && academicYears.length > 0) {
+            const year = academicYears.find(y => y.id === academicYearId);
+            if (year) {
+                if (year.start_date) {
+                    setEffectiveFrom(year.start_date);
+                }
+                if (year.end_date) {
+                    setEffectiveTo(year.end_date);
+                }
+            }
+        }
+    }, [academicYearId, academicYears]);
+
     const fetchMetadata = async () => {
         try {
             const classesRes = await apiClient.get('/academic/classes');
