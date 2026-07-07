@@ -20,4 +20,18 @@ export interface IExamRepository {
     
     saveHallTicket(ticket: HallTicket): Promise<void>;
     findHallTicketByApplicationId(applicationId: string): Promise<HallTicket | null>;
+    
+    // Assessment Engine
+    findPolicyByScheduleId(scheduleId: string): Promise<any | null>;
+    findSessionById(id: string): Promise<any | null>;
+    findSessionByCandidateId(candidateId: string): Promise<any | null>;
+    saveSession(session: any): Promise<void>;
+    findAttemptById(id: string): Promise<any | null>;
+    findAttemptBySessionId(sessionId: string): Promise<any | null>;
+    saveAttempt(attempt: any): Promise<void>;
+    createSnapshot(templateId: string, schoolId: string): Promise<string>;
+    findSnapshotQuestions(snapshotId: string): Promise<any[]>;
+    saveResponses(attemptId: string, responses: any[]): Promise<void>;
+    saveEvent(sessionId: string, eventType: string, details: any): Promise<void>;
+    saveOutbox(schoolId: string, eventType: string, payload: any): Promise<void>;
 }

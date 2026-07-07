@@ -4,7 +4,7 @@ import { PERMISSIONS } from '../constants/permissions';
 export interface NavigationItem {
     title: string;
     path: string;
-    permission?: string;
+    permission?: string | string[];
     icon: string;
     badge?: string;
     children?: NavigationItem[];
@@ -70,13 +70,19 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
             {
                 title: 'Entrance Exams',
                 path: '/app/admissions/exams',
-                permission: 'admission.review',
+                permission: ['admission.review', 'admission.exam.manage', 'admission.exam.evaluate'],
+                icon: 'GraduationCap',
+            },
+            {
+                title: 'Entrance Assessment',
+                path: '/app/admissions/entrance-assessment',
+                permission: 'admission.assessment.write',
                 icon: 'GraduationCap',
             },
             {
                 title: 'Interview Desk',
                 path: '/app/admissions/interviews',
-                permission: 'admission.review',
+                permission: ['admission.review', 'admission.interview.manage', 'admission.interview.evaluate'],
                 icon: 'MessageSquare',
             },
             {

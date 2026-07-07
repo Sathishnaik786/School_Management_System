@@ -6,7 +6,7 @@ import { Icon } from '../../lib/icons';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 
 export const Sidebar = () => {
-    const { hasPermission } = useAuth();
+    const { hasPermission, user } = useAuth();
     const [collapsed, setCollapsed] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -17,7 +17,16 @@ export const Sidebar = () => {
     // Filters dynamic menu item options using RBAC hasPermission credentials
     const filterNavItems = (items: NavigationItem[]): NavigationItem[] => {
         return items
-            .filter(item => !item.permission || hasPermission(item.permission))
+            .filter(item => {
+                if (item.path === '/app/admissions/entrance-assessment') {
+                    return !!user?.enabledFeatures?.entrance_exam;
+                }
+                if (!item.permission) return true;
+                if (Array.isArray(item.permission)) {
+                    return item.permission.some(p => hasPermission(p));
+                }
+                return hasPermission(item.permission);
+            })
             .map(item => {
                 if (item.children) {
                     return {

@@ -228,4 +228,260 @@ export class ExamRepository implements IExamRepository {
         if (error) throw error;
         return data ? data.allowed : false;
     }
+
+    // Assessment Engine
+    public async findPolicyByScheduleId(scheduleId: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('admission_assessment_policies')
+            .select('*')
+            .eq('schedule_id', scheduleId)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    }
+
+    public async findSessionById(id: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('admission_assessment_sessions')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    }
+
+    public async findSessionByCandidateId(candidateId: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('admission_assessment_sessions')
+            .select('*')
+            .eq('candidate_allocation_id', candidateId)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    }
+
+    public async saveSession(session: any): Promise<void> {
+        const { error } = await supabase
+            .from('admission_assessment_sessions')
+            .upsert({
+                id: session.id,
+                school_id: session.school_id,
+                candidate_allocation_id: session.candidate_allocation_id,
+                otp_hash: session.otp_hash,
+                otp_expires_at: session.otp_expires_at,
+                exam_token_hash: session.exam_token_hash,
+                ip_address: session.ip_address,
+                browser_agent: session.browser_agent,
+                last_heartbeat_at: session.last_heartbeat_at,
+                status: session.status
+            });
+
+        if (error) throw error;
+    }
+
+    public async findAttemptById(id: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('admission_assessment_attempts')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    }
+
+    public async findAttemptBySessionId(sessionId: string): Promise<any | null> {
+        const { data, error } = await supabase
+            .from('admission_assessment_attempts')
+            .select('*')
+            .eq('session_id', sessionId)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data;
+    }
+
+    public async saveAttempt(attempt: any): Promise<void> {
+        const { error } = await supabase
+            .from('admission_assessment_attempts')
+            .upsert({
+                id: attempt.id,
+                school_id: attempt.school_id,
+                session_id: attempt.session_id,
+                snapshot_id: attempt.snapshot_id,
+                start_time: attempt.start_time,
+                submit_time: attempt.submit_time,
+                status: attempt.status,
+                evaluation_status: attempt.evaluation_status,
+                score_obtained: attempt.score_obtained
+            });
+
+        if (error) throw error;
+    }
+
+    public async createSnapshot(templateId: string, schoolId: string): Promise<string> {
+        const { data: template, error: tempErr } = await supabase
+            .from('admission_exam_templates')
+            .select('*')
+            .eq('id', templateId)
+            .single();
+
+        if (tempErr) throw tempErr;
+
+        const { data: snapshot, error: snapErr } = await supabase
+            .from('admission_assessment_snapshots')
+            .insert({
+                school_id: schoolId,
+                template_id: templateId,
+                name: template.name,
+                grade: template.grade,
+                version: template.version,
+                duration: template.duration,
+                total_marks: template.total_marks,
+                passing_marks: template.passing_marks,
+                evaluation_type: template.evaluation_type
+            })
+            .select()
+            .single();
+
+        if (snapErr) throw snapErr;
+
+        const { data: sections, error: secErr } = await supabase
+            .from('admission_assessment_sections')
+            .select('*')
+            .eq('template_id', templateId);
+
+        if (secErr) throw secErr;
+
+        for (const sec of sections || []) {
+            const { data: mappings, error: mapErr } = await supabase
+                .from('admission_assessment_question_mapping')
+                .select('*')
+                .eq('section_id', sec.id);
+
+            if (mapErr) throw mapErr;
+
+            for (const map of mappings || []) {
+                const { data: question, error: qErr } = await supabase
+                    .from('admission_question_bank')
+                    .select('*')
+                    .eq('id', map.question_id)
+                    .single();
+
+                if (qErr) throw qErr;
+
+                const { data: snapQuest, error: snapQErr } = await supabase
+                    .from('admission_assessment_snapshot_questions')
+                    .insert({
+                        snapshot_id: snapshot.id,
+                        question_id: question.id,
+                        section_name: sec.section_name,
+                        question_text: question.question_text,
+                        question_type: question.question_type,
+                        points: question.points,
+                        negative_marks: question.negative_marks,
+                        sort_order: map.sort_order
+                    })
+                    .select()
+                    .single();
+
+                if (snapQErr) throw snapQErr;
+
+                const { data: options, error: optErr } = await supabase
+                    .from('admission_question_options')
+                    .select('*')
+                    .eq('question_id', question.id);
+
+                if (optErr) throw optErr;
+
+                for (const opt of options || []) {
+                    const { error: snapOptErr } = await supabase
+                        .from('admission_assessment_snapshot_question_options')
+                        .insert({
+                            snapshot_question_id: snapQuest.id,
+                            option_text: opt.option_text,
+                            is_correct: opt.is_correct
+                        });
+
+                    if (snapOptErr) throw snapOptErr;
+                }
+            }
+        }
+
+        return snapshot.id;
+    }
+
+    public async findSnapshotQuestions(snapshotId: string): Promise<any[]> {
+        const { data: questions, error: qErr } = await supabase
+            .from('admission_assessment_snapshot_questions')
+            .select('*')
+            .eq('snapshot_id', snapshotId)
+            .order('sort_order', { ascending: true });
+
+        if (qErr) throw qErr;
+
+        const results: any[] = [];
+        for (const q of questions || []) {
+            const { data: options, error: optErr } = await supabase
+                .from('admission_assessment_snapshot_question_options')
+                .select('*')
+                .eq('snapshot_question_id', q.id);
+
+            if (optErr) throw optErr;
+
+            results.push({
+                ...q,
+                options: (options || []).map(opt => ({
+                    id: opt.id,
+                    option_text: opt.option_text
+                    // Omit correct flag for security in candidate workspace
+                }))
+            });
+        }
+
+        return results;
+    }
+
+    public async saveResponses(attemptId: string, responses: any[]): Promise<void> {
+        for (const res of responses) {
+            const { error } = await supabase
+                .from('admission_assessment_responses')
+                .upsert({
+                    attempt_id: attemptId,
+                    snapshot_question_id: res.snapshot_question_id,
+                    selected_option_id: res.selected_option_id || null,
+                    text_answer: res.text_answer || null,
+                    time_spent_seconds: res.time_spent_seconds || 0
+                });
+
+            if (error) throw error;
+        }
+    }
+
+    public async saveEvent(sessionId: string, eventType: string, details: any): Promise<void> {
+        const { error } = await supabase
+            .from('admission_assessment_events')
+            .insert({
+                session_id: sessionId,
+                event_type: eventType,
+                details: details || {}
+            });
+
+        if (error) throw error;
+    }
+
+    public async saveOutbox(schoolId: string, eventType: string, payload: any): Promise<void> {
+        const { error } = await supabase
+            .from('admission_assessment_outbox')
+            .insert({
+                school_id: schoolId,
+                event_type: eventType,
+                payload: payload
+            });
+
+        if (error) throw error;
+    }
 }

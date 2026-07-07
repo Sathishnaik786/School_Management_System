@@ -7,15 +7,19 @@ import { FacultyListPage } from '../modules/academic/pages/FacultyListPage';
 import { StaffListPage } from '../modules/academic/pages/StaffListPage';
 // import { SectionDetailsPage } from '../modules/academic/pages/SectionDetailsPage'; // Commented out until created
 import { FacultyMySubjects } from '../modules/dashboard/components/FacultyMySubjects';
-import { ProtectedRoute, PermissionGuard, ExamOperationGuard } from '../components/auth/ProtectedRoute';
+import { ProtectedRoute, PermissionGuard, ExamOperationGuard, AnyPermissionGuard } from '../components/auth/ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { ExamAdminLayout } from '../layouts/ExamAdminLayout';
 import { AdmissionWorkspaceLayout } from '../modules/admission/layouts/AdmissionWorkspaceLayout';
 import { AdmissionForm } from '../modules/admission/pages/AdmissionForm';
 import { MyApplications } from '../modules/admission/pages/MyApplications';
 import { AdmissionReviewList } from '../modules/admission/pages/AdmissionReviewList';
-import { ApplicationDetails } from '../modules/admission/pages/ApplicationDetails';
 import { AdmissionReviewPage } from '../modules/admission/pages/AdmissionReviewPage';
+import { ApplicationDetails } from '../modules/admission/pages/ApplicationDetails';
+import { InstructionsPage } from '../modules/admission/pages/InstructionsPage';
+import { TestPortal } from '../modules/admission/pages/TestPortal';
+import { SuccessPage } from '../modules/admission/pages/SuccessPage';
+import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashboard';
 import { StudentList } from '../modules/student/pages/StudentList';
 import { StudentPromotion } from '../modules/student/pages/StudentPromotion';
 import { MyChildren } from '../modules/student/pages/MyChildren';
@@ -306,15 +310,35 @@ export const AppRouter = () => {
                                     <DocumentVerificationPage />
                                 </PermissionGuard>
                             } />
-                            <Route path="admissions/exams" element={
-                                <PermissionGuard permission="admission.review">
-                                    <EntranceExamPage />
-                                </PermissionGuard>
-                            } />
+                             <Route path="admissions/exams" element={
+                                 <AnyPermissionGuard permissions={['admission.review', 'admission.exam.manage', 'admission.exam.evaluate']}>
+                                     <EntranceExamPage />
+                                 </AnyPermissionGuard>
+                             } />
+                             <Route path="admissions/entrance-assessment" element={
+                                 <PermissionGuard permission="admission.assessment.write">
+                                     <InstructionsPage />
+                                 </PermissionGuard>
+                             } />
+                             <Route path="admissions/entrance-assessment/workspace" element={
+                                 <PermissionGuard permission="admission.assessment.write">
+                                     <TestPortal />
+                                 </PermissionGuard>
+                             } />
+                             <Route path="admissions/entrance-assessment/success" element={
+                                 <PermissionGuard permission="admission.assessment.write">
+                                     <SuccessPage />
+                                 </PermissionGuard>
+                             } />
+                             <Route path="admissions/assessment-monitor" element={
+                                 <PermissionGuard permission="admission.assessment.manage">
+                                     <MonitoringDashboard />
+                                 </PermissionGuard>
+                             } />
                             <Route path="admissions/interviews" element={
-                                <PermissionGuard permission="admission.review">
+                                <AnyPermissionGuard permissions={['admission.review', 'admission.interview.manage', 'admission.interview.evaluate']}>
                                     <InterviewPage />
-                                </PermissionGuard>
+                                </AnyPermissionGuard>
                             } />
                             <Route path="admissions/merit" element={
                                 <PermissionGuard permission="admission.review">

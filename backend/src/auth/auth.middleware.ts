@@ -102,6 +102,7 @@ export const checkLoginApproval = (req: Request, res: Response, next: NextFuncti
             '/v1/admission/application',
             '/v1/admission/public-apply',
             '/v1/admission/apply',
+            '/v1/admission/assessment',
         ];
         const isAllowed = allowedPaths.some(path => req.path === path || req.path.startsWith(path + '/'));
 

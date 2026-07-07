@@ -9,6 +9,7 @@ import { crmRouter } from './modules/admission/crm.routes';
 import { applicationRouter } from './modules/admission/application.routes';
 import { documentRouter } from './modules/admission/document.routes';
 import { evaluationRouter } from './modules/admission/evaluation.routes';
+import { assessmentRouter } from './modules/admission/assessment.routes';
 import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
 import { applicationController, publicApplicationController } from './modules/admission/index';
@@ -276,10 +277,56 @@ router.post('/v1/admission/apply',
 
 // 1. GET /me
 // 1. GET /me
-router.get('/me', (req: Request, res: Response) => {
-    res.json({
-        user: req.context!.user
-    });
+router.get('/me', async (req: Request, res: Response) => {
+    try {
+        const userObj = req.context!.user;
+        let entranceExamEnabled = false;
+
+        if (userObj.roles.includes('PARENT')) {
+            const { data: apps } = await supabase
+                .from('admission_applications')
+                .select('id')
+                .eq('created_by', userObj.id)
+                .is('deleted_at', null);
+
+            const appIds = apps?.map(a => a.id) || [];
+            if (appIds.length > 0) {
+                const { data: candidates } = await supabase
+                    .from('admission_exam_session_candidates')
+                    .select('id')
+                    .in('application_id', appIds);
+
+                const candidateIds = candidates?.map(c => c.id) || [];
+                if (candidateIds.length > 0) {
+                    const { data: activeSessions } = await supabase
+                        .from('admission_assessment_sessions')
+                        .select('id')
+                        .in('candidate_allocation_id', candidateIds)
+                        .in('status', ['CREATED', 'ACTIVE']);
+
+                    if (activeSessions && activeSessions.length > 0) {
+                        entranceExamEnabled = true;
+                    }
+                }
+            }
+        }
+
+        const enabledFeatures = {
+            dashboard: true,
+            finance: userObj.roles.some(r => ['ADMIN', 'FINANCE_OFFICER'].includes(r)),
+            entrance_exam: userObj.roles.some(r => ['ADMIN', 'EXAM_CELL', 'EXAM_CELL_ADMIN'].includes(r)) || entranceExamEnabled,
+            hostel: false
+        };
+
+        res.json({
+            user: {
+                ...userObj,
+                enabledFeatures
+            }
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // 2. GET /schools/current
@@ -346,6 +393,7 @@ router.post('/academic-years', async (req: Request, res: Response) => {
 router.use('/v1/admission/crm', crmRouter);
 router.use('/v1/admission/application/documents', documentRouter);
 router.use('/v1/admission/evaluation', evaluationRouter);
+router.use('/v1/admission/assessment', assessmentRouter);
 router.use('/v1/admission/enrollment', enrollmentRouter);
 router.use('/v1/admission/application', applicationRouter);
 router.use('/v1/student', studentRouter);

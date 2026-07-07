@@ -127,7 +127,7 @@ export const HealthPanel: React.FC = () => {
                         <div className="space-y-1.5">
                             {[
                                 { key: 'Active Role(s)', val: roles },
-                                { key: 'User', val: user?.name || user?.email || 'Unknown' },
+                                { key: 'User', val: user?.full_name || user?.email || 'Unknown' },
                                 { key: 'Last Cache Sync', val: lastSyncLabel },
                                 { key: 'Pending Tasks', val: String(tasks.filter(t => t.status === 'pending').length) },
                                 { key: 'Unread Notifications', val: String(notifications.filter(n => !n.read).length) },

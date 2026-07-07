@@ -158,6 +158,15 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
+        // 2m. Exam Cell Bypass for listing and viewing applications (needed for exam evaluation dashboard)
+        if (
+            (requiredPermission === 'admission.view_all' ||
+             requiredPermission === 'admission.application.view') &&
+            roles.includes('EXAM_CELL')
+        ) {
+            return next();
+        }
+
         // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
         if (
             req.method === 'GET' &&
