@@ -167,6 +167,15 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
+        // 2n. Exam Cell Bypass for merit generation and offer management (Merit Desk & Offer Letters pages)
+        if (
+            (requiredPermission === 'admission.merit.generate' ||
+             requiredPermission === 'admission.offer.manage') &&
+            roles.includes('EXAM_CELL')
+        ) {
+            return next();
+        }
+
         // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
         if (
             req.method === 'GET' &&

@@ -341,19 +341,19 @@ export const AppRouter = () => {
                                 </AnyPermissionGuard>
                             } />
                             <Route path="admissions/merit" element={
-                                <PermissionGuard permission="admission.review">
+                                <AnyPermissionGuard permissions={['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage']}>
                                     <MeritListPage />
-                                </PermissionGuard>
+                                </AnyPermissionGuard>
                             } />
                             <Route path="admissions/offers" element={
-                                <PermissionGuard permission="admission.review">
+                                <AnyPermissionGuard permissions={['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage']}>
                                     <OfferLetterPage />
-                                </PermissionGuard>
+                                </AnyPermissionGuard>
                             } />
                             <Route path="admissions/merit/offers" element={
-                                <PermissionGuard permission="admission.review">
+                                <AnyPermissionGuard permissions={['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage']}>
                                     <OfferLetterPage />
-                                </PermissionGuard>
+                                </AnyPermissionGuard>
                             } />
                             <Route path="admissions/fees" element={
                                 <PermissionGuard permission="fees.payment.collect">
