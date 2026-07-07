@@ -3,6 +3,8 @@ import { PaymentService } from './PaymentService';
 import { ReceiptService } from './ReceiptService';
 import { LedgerBalanceService } from './LedgerBalanceService';
 import { EventPublisher } from './EventPublisher';
+import { FeeStructureService } from './FeeStructureService';
+import { FeePreviewResponseDto } from '../dto/FeePreviewDto';
 
 export class FinanceEngine {
     /**
@@ -66,6 +68,13 @@ export class FinanceEngine {
         application_id?: string;
     }): Promise<any[]> {
         return await LedgerBalanceService.getLedgerHistory(target);
+    }
+
+    /**
+     * Previews matching fee structures and components for an application.
+     */
+    public static async getFeePreview(applicationId: string): Promise<FeePreviewResponseDto> {
+        return await FeeStructureService.getFeePreview(applicationId);
     }
 
     /**

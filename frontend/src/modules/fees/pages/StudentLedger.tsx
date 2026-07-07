@@ -40,7 +40,7 @@ export const StudentLedger = () => {
         setLoadingLedger(true);
         try {
             const { data } = await apiClient.get(`/fees/ledger/student/${student.id}`);
-            setLedger(data?.entries || data || []);
+            setLedger(data?.entries ?? data?.history ?? data ?? []);
             setBalance(data?.balance ?? 0);
         } catch {
             toast.error('Failed to load ledger');

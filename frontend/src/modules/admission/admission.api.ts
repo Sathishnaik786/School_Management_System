@@ -101,11 +101,14 @@ export const admissionApi = {
         });
     },
 
-    billing: (id: string, fee_structure_ids: string[]) =>
+    billing: (id: string, legacyStructureId: string) =>
         apiClient.post('/v1/admission/enrollment/fees/assign', {
             application_id: id,
-            structure_id: fee_structure_ids[0],
+            structure_id: legacyStructureId,
         }),
+
+    getFeePreview: (applicationId: string) =>
+        apiClient.get<any>(`/fees/application/${applicationId}/preview`, { silent: true } as any),
 
     getFeeStructures: () =>
         apiClient.get<any[]>('/v1/admission/crm/fee-structures', { silent: true } as any),

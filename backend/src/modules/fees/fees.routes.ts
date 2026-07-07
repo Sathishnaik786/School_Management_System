@@ -6,6 +6,7 @@ import { FinanceEngine } from './services/FinanceEngine';
 import { ReportingService } from './services/ReportingService';
 import { SettingsService } from './services/SettingsService';
 import { LedgerPostingService } from './services/LedgerPostingService';
+import { FinanceController } from './controllers/FinanceController';
 
 export const feesRouter = Router();
 
@@ -159,6 +160,13 @@ feesRouter.delete('/structures/:id',
         }
     }
 );
+
+// GET /application/:applicationId/preview: Get fee structures and components preview for an admission application
+feesRouter.get('/application/:applicationId/preview',
+    checkPermission(PERMISSIONS.ADMISSION_FEES_INITIALIZE),
+    FinanceController.getFeePreview
+);
+
 // GET /demands: List billing demands
 feesRouter.get('/demands',
     checkPermission(PERMISSIONS.FEES_DEMAND_VIEW),
@@ -341,12 +349,13 @@ feesRouter.get('/ledger/student/:studentId',
         try {
             const { studentId } = req.params;
             const balance = await FinanceEngine.calculateBalance({ student_id: studentId });
-            const history = await FinanceEngine.getLedgerHistory({ student_id: studentId });
+            const entries = await FinanceEngine.getLedgerHistory({ student_id: studentId });
             
             res.json({
                 student_id: studentId,
                 balance,
-                history
+                entries,
+                history: entries
             });
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -361,12 +370,13 @@ feesRouter.get('/ledger/application/:applicationId',
         try {
             const { applicationId } = req.params;
             const balance = await FinanceEngine.calculateBalance({ application_id: applicationId });
-            const history = await FinanceEngine.getLedgerHistory({ application_id: applicationId });
+            const entries = await FinanceEngine.getLedgerHistory({ application_id: applicationId });
             
             res.json({
                 application_id: applicationId,
                 balance,
-                history
+                entries,
+                history: entries
             });
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -815,7 +825,7 @@ feesRouter.get('/receipts',
                     *,
                     transaction:payment_transaction_id(
                         amount, payment_mode, transaction_reference, created_at, student_id, application_id,
-                        cashier:cashier_id(email),
+                        cashier:users!cashier_id(email),
                         student:student_id(full_name, student_code)
                     )
                 `)

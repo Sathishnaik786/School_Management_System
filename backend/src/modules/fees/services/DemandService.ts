@@ -16,15 +16,29 @@ export class DemandService {
     }): Promise<any> {
         const { application_id, student_id, fee_structure_id, due_date, performedBy } = params;
 
+        let resolvedStructureId = fee_structure_id;
+        
+        // Check if the provided fee_structure_id exists in finance_fee_structures; if not, map via LegacyStructureAdapter
+        const { data: isFinance } = await supabase
+            .from('finance_fee_structures')
+            .select('id')
+            .eq('id', fee_structure_id)
+            .maybeSingle();
+
+        if (!isFinance) {
+            const { LegacyStructureAdapter } = await import('./LegacyStructureAdapter');
+            resolvedStructureId = await LegacyStructureAdapter.mapLegacyToFinanceStructure(fee_structure_id);
+        }
+
         // 1. Fetch template components to snapshot
         const { data: components, error: compErr } = await supabase
             .from('finance_fee_structure_components')
             .select('*')
-            .eq('fee_structure_id', fee_structure_id)
+            .eq('fee_structure_id', resolvedStructureId)
             .order('display_order', { ascending: true });
 
         if (compErr || !components || components.length === 0) {
-            throw new Error('No components found under this Fee Structure template');
+            throw new Error(`No components found under this Fee Structure template: ${resolvedStructureId}`);
         }
 
         // Sum up total amount
@@ -41,7 +55,7 @@ export class DemandService {
                 demand_no,
                 application_id: application_id || null,
                 student_id: student_id || null,
-                fee_structure_id,
+                fee_structure_id: resolvedStructureId,
                 amount: totalAmount,
                 balance_amount: totalAmount,
                 due_date,

@@ -23,6 +23,7 @@ const GLASS_BASE = "backdrop-blur-xl bg-white/10 dark:bg-black/30 border border-
 export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; handleAction: (action: string) => void }) => {
     const [feeStructures, setFeeStructures] = useState<any[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [legacyStructureId, setLegacyStructureId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [isConfirming, setIsConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -31,20 +32,18 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
     useEffect(() => {
         const fetchFees = async () => {
             try {
-                const { data } = await admissionApi.getFeeStructures();
-                // Filter by academic year and grade
-                const filtered = data.filter(f =>
-                    f.academic_year_id === app.academic_year_id &&
-                    (!f.applicable_classes || f.applicable_classes.toLowerCase().includes(app.grade_applied_for.toLowerCase()))
-                );
-                setFeeStructures(filtered);
+                const { data } = await admissionApi.getFeePreview(app.id);
+                setFeeStructures(data.components || []);
+                setLegacyStructureId(data.legacyStructureId);
                 setErrorStatus(null);
 
-                // Pre-select mandatory ones
-                const mandatoryIds = filtered.filter(f => f.is_mandatory).map(f => f.id);
+                // Pre-select mandatory components
+                const mandatoryIds = (data.components || [])
+                    .filter((f: any) => f.isMandatory)
+                    .map((f: any) => f.id);
                 setSelectedIds(mandatoryIds);
 
-                if (filtered.length === 0) {
+                if (!data.components || data.components.length === 0) {
                     setErrorStatus(404);
                 }
             } catch (error: any) {
@@ -71,13 +70,13 @@ export const PaymentPendingPanel = ({ app, handleAction }: { app: Admission; han
     const handleFinalize = async () => {
         setProcessing(true);
         try {
-            await admissionApi.billing(app.id, selectedIds);
+            await admissionApi.billing(app.id, legacyStructureId || '');
             toast.success("Billing finalized and parent gateway activated");
             handleAction('fetch'); // Refresh app state
         } catch (error: any) {
             toast.error(error.response?.data?.error || "Snapshot generation failed");
         } finally {
-            setProcessing(false);
+            setProcessing(processing => false);
             setIsConfirming(false);
         }
     };
@@ -252,14 +251,14 @@ export const FeeComponentCard = ({ fee, isSelected, onToggle, disabled }: any) =
                     <Switch
                         checked={isSelected}
                         onCheckedChange={onToggle}
-                        disabled={disabled || fee.is_mandatory}
+                        disabled={disabled || fee.isMandatory}
                     />
                     <div>
                         <div className="flex items-center gap-2">
                             <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase truncate max-w-[150px] md:max-w-none">
                                 {fee.name}
                             </h4>
-                            {fee.is_mandatory && (
+                            {fee.isMandatory && (
                                 <Badge variant="secondary" className="bg-red-500/10 text-red-600 border-0 text-[8px] font-black">MANDATORY</Badge>
                             )}
                         </div>
