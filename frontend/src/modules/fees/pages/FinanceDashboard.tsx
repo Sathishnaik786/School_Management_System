@@ -178,7 +178,7 @@ export const FinanceDashboard = () => {
                     {modes.length > 0 ? (
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
-                                <Pie data={modes} dataKey="total" nameKey="mode" cx="40%" cy="50%" outerRadius={80} label={({ mode, percent }) => `${mode} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                                <Pie data={modes} dataKey="total" nameKey="mode" cx="40%" cy="50%" outerRadius={80} label={({ mode, percent = 0 }) => `${mode} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                                     {modes.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                                 </Pie>
                                 <Legend iconType="circle" iconSize={8} />

@@ -62,7 +62,7 @@ export const FinanceReports = () => {
                 <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                         <Pie data={data.data} dataKey="total" nameKey="mode" cx="40%" cy="50%" outerRadius={100}
-                            label={({ mode, percent }) => `${mode} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                            label={({ mode, percent = 0 }) => `${mode} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                             {data.data.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                         </Pie>
                         <Legend iconType="circle" iconSize={8} />
