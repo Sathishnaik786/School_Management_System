@@ -178,7 +178,12 @@ feesRouter.get('/demands',
                 .select(`
                     *,
                     student:student_id(full_name, student_code),
-                    application:application_id(applicant_name),
+                    application:application_id(
+                        id,
+                        lead:lead_id(
+                            enquiry:enquiry_id(student_name, grade_applied_for)
+                        )
+                    ),
                     items:fee_demand_items(*)
                 `)
                 .order('due_date', { ascending: false });
@@ -189,7 +194,21 @@ feesRouter.get('/demands',
 
             const { data, error } = await query;
             if (error) throw error;
-            res.json(data || []);
+
+            // Map data to match the expected frontend contract
+            const mapped = (data || []).map((d: any) => {
+                const enquiry = d.application?.lead?.enquiry;
+                return {
+                    ...d,
+                    application: d.application ? {
+                        id: d.application.id,
+                        applicant_name: enquiry?.student_name || 'Applicant',
+                        class_applied: enquiry?.grade_applied_for || ''
+                    } : null
+                };
+            });
+
+            res.json(mapped);
         } catch (error: any) {
             console.error("[DEBUG GET /demands error]:", error);
             res.status(500).json({ error: error.message });
@@ -288,14 +307,30 @@ feesRouter.get('/receipts/:id',
                     payment_transaction:payment_transaction_id(
                         *,
                         student:student_id(full_name, student_code),
-                        application:application_id(applicant_name)
+                        application:application_id(
+                            id,
+                            lead:lead_id(
+                                enquiry:enquiry_id(student_name, grade_applied_for)
+                            )
+                        )
                     )
                 `)
                 .eq('id', id)
                 .single();
 
             if (receipt.error) throw receipt.error;
-            res.json(receipt.data);
+            
+            const data = receipt.data;
+            if (data && data.payment_transaction?.application) {
+                const enquiry = data.payment_transaction.application.lead?.enquiry;
+                data.payment_transaction.application = {
+                    id: data.payment_transaction.application.id,
+                    applicant_name: enquiry?.student_name || 'Applicant',
+                    class_applied: enquiry?.grade_applied_for || ''
+                };
+            }
+
+            res.json(data);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }
@@ -549,7 +584,12 @@ feesRouter.get('/demands/:id',
                 .select(`
                     *,
                     student:student_id(id, full_name, student_code),
-                    application:application_id(id, applicant_name, class_applied),
+                    application:application_id(
+                        id,
+                        lead:lead_id(
+                            enquiry:enquiry_id(student_name, grade_applied_for)
+                        )
+                    ),
                     fee_structure:fee_structure_id(id, name, version, academic_year:academic_years(year_label)),
                     items:fee_demand_items(*),
                     transactions:payment_transactions(
@@ -561,6 +601,16 @@ feesRouter.get('/demands/:id',
 
             if (error) throw error;
             if (!data) return res.status(404).json({ error: 'Demand not found' });
+            
+            if (data.application) {
+                const enquiry = data.application.lead?.enquiry;
+                data.application = {
+                    id: data.application.id,
+                    applicant_name: enquiry?.student_name || 'Applicant',
+                    class_applied: enquiry?.grade_applied_for || ''
+                };
+            }
+
             res.json(data);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
@@ -826,7 +876,13 @@ feesRouter.get('/receipts',
                     transaction:payment_transaction_id(
                         amount, payment_mode, transaction_reference, created_at, student_id, application_id,
                         cashier:users!cashier_id(email),
-                        student:student_id(full_name, student_code)
+                        student:student_id(full_name, student_code),
+                        application:application_id(
+                            id,
+                            lead:lead_id(
+                                enquiry:enquiry_id(student_name, grade_applied_for)
+                            )
+                        )
                     )
                 `)
                 .order('created_at', { ascending: false })
@@ -844,7 +900,20 @@ feesRouter.get('/receipts',
                 ? (data || []).filter((r: any) => r.transaction?.payment_mode === payment_mode)
                 : data || [];
 
-            res.json({ data: filtered, total: count || filtered.length });
+            // Map data to match the expected frontend contract
+            const mapped = (filtered || []).map((r: any) => {
+                if (r.transaction?.application) {
+                    const enquiry = r.transaction.application.lead?.enquiry;
+                    r.transaction.application = {
+                        id: r.transaction.application.id,
+                        applicant_name: enquiry?.student_name || 'Applicant',
+                        class_applied: enquiry?.grade_applied_for || ''
+                    };
+                }
+                return r;
+            });
+
+            res.json({ data: mapped, total: count || mapped.length });
         } catch (error: any) {
             console.error("[DEBUG GET /receipts error]:", error);
             res.status(500).json({ error: error.message });

@@ -63,13 +63,28 @@ export class ReceiptService {
                 payment_transaction:payment_transaction_id(
                     *,
                     student:student_id(full_name, student_code),
-                    application:application_id(applicant_name)
+                    application:application_id(
+                        id,
+                        lead:lead_id(
+                            enquiry:enquiry_id(student_name, grade_applied_for)
+                        )
+                    )
                 )
             `)
             .eq('id', receiptId)
             .single();
 
         if (error) throw error;
+        
+        if (data && data.payment_transaction?.application) {
+            const enquiry = data.payment_transaction.application.lead?.enquiry;
+            data.payment_transaction.application = {
+                id: data.payment_transaction.application.id,
+                applicant_name: enquiry?.student_name || 'Applicant',
+                class_applied: enquiry?.grade_applied_for || ''
+            };
+        }
+        
         return data;
     }
 }
