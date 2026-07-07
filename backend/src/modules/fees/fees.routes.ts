@@ -159,30 +159,6 @@ feesRouter.delete('/structures/:id',
         }
     }
 );
-
-feesRouter.get('/debug-db', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('fee_demands')
-            .select(`
-                *,
-                student:student_id(full_name, student_code),
-                application:application_id(applicant_name),
-                items:fee_demand_items(*)
-            `)
-            .limit(1);
-        if (error) throw error;
-        res.json({ success: true, data });
-    } catch (err: any) {
-        res.status(500).json({
-            error: err.message,
-            hint: err.hint,
-            details: err.details,
-            code: err.code
-        });
-    }
-});
-
 // GET /demands: List billing demands
 feesRouter.get('/demands',
     checkPermission(PERMISSIONS.FEES_DEMAND_VIEW),
