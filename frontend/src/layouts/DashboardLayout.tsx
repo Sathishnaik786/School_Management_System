@@ -140,6 +140,16 @@ export const DashboardLayout = () => {
             ]
         }] : []),
 
+        // ASSESSMENT PLATFORM MENU
+        ...((isExamAdmin || isAdmin) ? [{
+            label: 'Assessment Platform',
+            items: [
+                { label: 'Settings & Workflows', icon: Settings, path: '/app/admissions/settings/assessment', permission: 'assessment.config.view' },
+                { label: 'Question Bank', icon: FileText, path: '/app/admissions/settings/assessment/questions', permission: 'assessment.question.view' },
+                { label: 'Template Builder', icon: ClipboardList, path: '/app/admissions/settings/assessment/templates', permission: 'assessment.template.view' },
+            ]
+        }] : []),
+
         // ADMIN & HEAD_OF_INSTITUTE
         ...(isAdmin ? [
             {

@@ -29,6 +29,9 @@ import { adminRouter } from './modules/admin/admin.routes';
 import { bulkRouter } from './modules/admin/bulk.routes';
 import { workflowRouter } from './workflows/workflow.routes';
 import { taskRouter } from './workflows/task.routes';
+import { assessmentCoreRouter } from './modules/assessment/foundation';
+import { questionBankRouter } from './modules/assessment/question-bank';
+import { templateBuilderRouter } from './modules/assessment/template-builder/routes';
 
 import { env } from './config/env';
 
@@ -408,6 +411,9 @@ router.use('/transport', transportRouter);
 router.use('/import', importRouter);
 router.use('/v1/workflows', workflowRouter);
 router.use('/v1/tasks', taskRouter);
+router.use('/v1/assessment', assessmentCoreRouter);
+router.use('/v1/assessment/questions', questionBankRouter);
+router.use('/v1/assessment/templates', templateBuilderRouter);
 
 
 router.use('/admin', staffRouter);

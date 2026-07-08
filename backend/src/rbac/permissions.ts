@@ -88,6 +88,17 @@ export const PERMISSIONS = {
     STAFF_PROFILE_MANAGE: 'STAFF_PROFILE_MANAGE',
     SUBJECT_ASSIGN_FACULTY: 'SUBJECT_ASSIGN_FACULTY',
     SUBJECT_UPDATE_OWN: 'SUBJECT_UPDATE_OWN',
+
+    // ASSESSMENT PLATFORM
+    ASSESSMENT_CONFIG_VIEW: 'assessment.config.view',
+    ASSESSMENT_CONFIG_MANAGE: 'assessment.config.manage',
+    ASSESSMENT_WORKFLOW_MANAGE: 'assessment.workflow.manage',
+    ASSESSMENT_QUESTION_VIEW: 'assessment.question.view',
+    ASSESSMENT_QUESTION_MANAGE: 'assessment.question.manage',
+    ASSESSMENT_QUESTION_IMPORT: 'assessment.question.import',
+    ASSESSMENT_TEMPLATE_VIEW: 'assessment.template.view',
+    ASSESSMENT_TEMPLATE_MANAGE: 'assessment.template.manage',
+    ASSESSMENT_TEMPLATE_PUBLISH: 'assessment.template.publish',
 };
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

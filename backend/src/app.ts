@@ -15,17 +15,31 @@ app.set('trust proxy', 1);
 app.use(compression()); // Enable Gzip compression
 
 // Security Headers
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS Configuration (MUST be before Rate Limiter to handle 429 errors correctly)
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://appsms.netlify.app',
+    'https://appsms-076a.onrender.com',
+    process.env.FRONTEND_URL || ''
+].filter(Boolean);
+
 app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'https://appsms.netlify.app',
-        'https://appsms-076a.onrender.com',
-        process.env.FRONTEND_URL || ''
-    ].filter(Boolean), // Allow valid origins
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, or postman)
+        if (!origin) return callback(null, true);
+
+        const isLocal = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+        if (isLocal || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Not allowed by CORS: ${origin}`));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));

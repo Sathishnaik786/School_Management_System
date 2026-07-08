@@ -169,6 +169,9 @@ import { FeeCollectionPage as AdmissionFeeCollectionPage } from '../modules/admi
 import { EnrollmentPage } from '../modules/admission/pages/EnrollmentPage';
 import { ReportsPage as AdmissionReportsPage } from '../modules/admission/pages/ReportsPage';
 import { SettingsPage as AdmissionSettingsPage } from '../modules/admission/pages/SettingsPage';
+import { AssessmentSettings } from '../modules/assessment/foundation/pages/AssessmentSettings';
+import { QuestionBankManager } from '../modules/assessment/question-bank/pages/QuestionBankManager';
+import { TemplateBuilderManager } from '../modules/assessment/template-builder/pages/TemplateBuilderManager';
 
 // Upgraded Phase 3 Admissions UI Pages
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
@@ -226,11 +229,7 @@ export const AppRouter = () => {
                                 <ExecutiveOverview />
                             </PermissionGuard>
                         } />
-                        <Route path="exam-admin/dashboard" element={
-                            <PermissionGuard permission="EXAM_VIEW">
-                                <ExamDashboard />
-                            </PermissionGuard>
-                        } />
+                        {/* NOTE: /app/exam-admin/* routes are handled by ExamAdminLayout below — do NOT duplicate here */}
 
                         {/* Admission Module Routes */}
                         <Route path="admissions/my" element={
@@ -373,6 +372,21 @@ export const AppRouter = () => {
                             <Route path="admissions/settings" element={
                                 <PermissionGuard permission="admission.review">
                                     <AdmissionSettingsPage />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/settings/assessment" element={
+                                <PermissionGuard permission="assessment.config.view">
+                                    <AssessmentSettings />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/settings/assessment/questions" element={
+                                <PermissionGuard permission="assessment.question.view">
+                                    <QuestionBankManager />
+                                </PermissionGuard>
+                            } />
+                            <Route path="admissions/settings/assessment/templates" element={
+                                <PermissionGuard permission="assessment.template.view">
+                                    <TemplateBuilderManager />
                                 </PermissionGuard>
                             } />
                         </Route>

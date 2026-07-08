@@ -23,7 +23,7 @@ import {
     CalendarDays,
     ShieldCheck
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useMasterData } from '../../admission/context/MasterDataContext';
 import { ActivityTimeline } from '../../../components/ActivityTimeline';
@@ -109,6 +109,13 @@ const AdminDashboardInner = () => {
     }, []);
 
     const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
+    const isFullAdmin = hasRole('ADMIN') || hasRole('HEAD_OF_INSTITUTE');
+
+    // If the user is ONLY an exam admin (not a full school admin), redirect them to
+    // the dedicated exam-admin dashboard so they don't see school-wide KPIs.
+    if (isExamAdmin && !isFullAdmin) {
+        return <Navigate to="/app/exam-admin/dashboard" replace />;
+    }
 
     const { kpis, charts, loading: dashboardLoading, error: dashboardError } = useDashboard();
 
