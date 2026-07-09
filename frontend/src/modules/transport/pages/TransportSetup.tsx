@@ -13,7 +13,7 @@ import { ImportWizard } from '../../../components/import/ImportWizard';
 import { useAuth } from '../../../context/AuthContext';
 
 export const TransportSetup = () => {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState<'routes' | 'stops' | 'drivers' | 'vehicles' | 'fees' | 'exceptions'>('routes');
     const [lockedRouteIds, setLockedRouteIds] = useState<string[]>([]);
@@ -23,7 +23,7 @@ export const TransportSetup = () => {
     const [importEntity, setImportEntity] = useState<'VEHICLE' | 'DRIVER' | 'DRIVER_VEHICLE_MAP'>('VEHICLE');
     const [importTitle, setImportTitle] = useState('');
 
-    const canImport = user?.roles?.includes('ADMIN') || user?.roles?.includes('TRANSPORT_ADMIN');
+    const canImport = hasPermission('TRANSPORT_SETUP');
 
     const openImport = (entity: 'VEHICLE' | 'DRIVER' | 'DRIVER_VEHICLE_MAP', title: string) => {
         setImportEntity(entity);

@@ -114,9 +114,9 @@ import { ImportWizard } from "@/components/import/ImportWizard";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Faculty() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [importOpen, setImportOpen] = useState(false);
-  const canImport = user?.roles?.includes('ADMIN') || user?.roles?.includes('HEAD_OF_INSTITUTE');
+  const canImport = hasPermission('FACULTY_PROFILE_MANAGE');
 
   return (
     <div className="overflow-hidden">

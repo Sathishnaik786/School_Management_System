@@ -279,7 +279,7 @@ export const ExamDashboard = () => {
                                 status={lifecycle.marksEntry}
                                 icon={PenTool}
                                 cta="Go to Marks Entry"
-                                link="/app/exams/manage"
+                                link="/app/exam-admin/manage"
                             />
 
                             {/* CARD 6: PUBLISH MARKS */}
@@ -298,7 +298,7 @@ export const ExamDashboard = () => {
 
             {/* Quick Links Section (optional, non-intrusive) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60 hover:opacity-100 transition-opacity">
-                <Link to="/app/exams/manage" className="group p-6 bg-white border border-gray-100 rounded-2xl flex items-center justify-between hover:border-indigo-200 transition-colors">
+                <Link to="/app/exam-admin/manage" className="group p-6 bg-white border border-gray-100 rounded-2xl flex items-center justify-between hover:border-indigo-200 transition-colors">
                     <div>
                         <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Create New Exam</h3>
                         <p className="text-xs text-gray-500">Initialize a new exam window.</p>

@@ -104,7 +104,7 @@ export const AdminCrossModulePanel = memo(() => {
             value: getKPI('exams', '—'),
             subtext: 'Scheduled this week',
             icon: BookOpen,
-            link: '/app/exams/manage',
+            link: '/app/exam-admin/manage',
             accentClass: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/10 dark:text-indigo-400 dark:border-indigo-900/20',
         },
         {
@@ -188,7 +188,7 @@ export const PrincipalCrossModulePanel = memo(() => {
             value: getKPI('exams', '—'),
             subtext: 'Scheduled / Completed this month',
             icon: BookOpen,
-            link: '/app/exams/manage',
+            link: '/app/exam-admin/manage',
             accentClass: 'bg-indigo-50 text-indigo-600 border-indigo-100',
         },
         {
@@ -250,7 +250,7 @@ export const AdmissionsCrossModulePanel = memo(() => {
             value: getKPI('exams', '—'),
             subtext: 'Entrance tests this week',
             icon: BookOpen,
-            link: '/app/exams/manage',
+            link: '/app/exam-admin/manage',
             accentClass: 'bg-indigo-50 text-indigo-600 border-indigo-100',
         },
         {

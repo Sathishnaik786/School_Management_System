@@ -80,7 +80,7 @@ export const AdminDashboard = () => {
 };
 
 const AdminDashboardInner = () => {
-    const { user, hasRole } = useAuth();
+    const { user, hasPermission } = useAuth();
     const { activeSchool, activeAcademicYear } = useMasterData();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -108,8 +108,8 @@ const AdminDashboardInner = () => {
         };
     }, []);
 
-    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
-    const isFullAdmin = hasRole('ADMIN') || hasRole('HEAD_OF_INSTITUTE');
+    const isExamAdmin = hasPermission('exam.dashboard.view');
+    const isFullAdmin = hasPermission('admin.dashboard.view');
 
     // If the user is ONLY an exam admin (not a full school admin), redirect them to
     // the dedicated exam-admin dashboard so they don't see school-wide KPIs.
@@ -171,7 +171,7 @@ const AdminDashboardInner = () => {
         ...(isExamAdmin ? [{
             label: 'Exam Management',
             icon: BookOpen,
-            link: '/app/exams/manage',
+            link: '/app/exam-admin/manage',
             desc: 'Planning & Results',
         }] : []),
         { label: 'Fee Structures', icon: Coins, link: '/app/fees/structures', desc: 'Manage Fees' },

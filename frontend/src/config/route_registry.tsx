@@ -45,9 +45,6 @@ import { StudentResults } from '../modules/exam/pages/StudentResults';
 import { MyHallTicket } from '../modules/exam/pages/MyHallTicket';
 import { MyReportCard } from '../modules/exam/pages/MyReportCard';
 import { ExamHallManagement } from '../modules/exam/pages/ExamHallManagement';
-import { ExamSeatingAllocation } from '../modules/exam/pages/ExamSeatingAllocation';
-import { QuestionPaperManager } from '../modules/exam/pages/QuestionPaperManager';
-import { ExamAnalyticsDashboard } from '../modules/exam/pages/ExamAnalyticsDashboard';
 import { FacultyExamDashboard } from '../modules/exam/pages/FacultyExamDashboard';
 import { FacultyInvigilationView } from '../modules/exam/pages/FacultyInvigilationView';
 import { MyExams } from '../modules/exam/pages/MyExams';
@@ -219,28 +216,14 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'student/assignments', element: <MyAssignments />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
 
     // EXAM PLATFORM OPERATIONS
-    { path: 'admin/exams/dashboard', element: <ExamDashboard />, layout: 'dashboard', permission: 'admin.dashboard.view' },
-    { path: 'admin/exams/timetable', element: <ExamTimetablePage />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'admin/exams/seating', element: <ExamSeating />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'admin/exams/question-papers', element: <ExamQuestionPapers />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'admin/exams/results', element: <ExamResults />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'admin/exams/analytics', element: <ExamAnalytics />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'exams/subjects', element: <SubjectManagement />, layout: 'dashboard', permission: 'SUBJECT_VIEW' },
-    { path: 'exams/manage', element: <ExamManagement />, layout: 'dashboard', guardType: 'exam_operation' },
-    { path: 'exams/timetable', element: <ExamTimetablePage />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/eligibility', element: <ExamEligibilityPage />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/seating', element: <ExamSeatingAllocation />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/halls', element: <ExamHallManagement />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/hall-tickets', element: <ExamHallTickets />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/question-papers', element: <QuestionPaperManager />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/marks-entry', element: <MarksEntry />, layout: 'dashboard', permission: 'MARKS_ENTER' },
-    { path: 'exams/student-results', element: <StudentResults />, layout: 'dashboard', permission: 'MARKS_VIEW' },
-    { path: 'exams/my-hallticket', element: <MyHallTicket />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
-    { path: 'exams/my-reportcard', element: <MyReportCard />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
-    { path: 'exams/analytics', element: <ExamAnalyticsDashboard />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/faculty-dashboard', element: <FacultyExamDashboard />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/faculty-invigilation', element: <FacultyInvigilationView />, layout: 'dashboard', permission: 'EXAM_VIEW' },
-    { path: 'exams/my-exams', element: <MyExams />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
+    { path: 'academic/subjects', element: <SubjectManagement />, layout: 'dashboard', permission: 'SUBJECT_VIEW' },
+    { path: 'student/exams/my-results', element: <StudentResults />, layout: 'dashboard', permission: 'MARKS_VIEW' },
+    { path: 'student/exams/hall-ticket', element: <MyHallTicket />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
+    { path: 'student/exams/report-card', element: <MyReportCard />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
+    { path: 'student/exams/dashboard', element: <MyExams />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
+    { path: 'faculty/exams/dashboard', element: <FacultyExamDashboard />, layout: 'dashboard', permission: 'EXAM_VIEW' },
+    { path: 'faculty/exams/invigilation', element: <FacultyInvigilationView />, layout: 'dashboard', permission: 'EXAM_VIEW' },
+    { path: 'faculty/exams/marks-entry', element: <MarksEntry />, layout: 'dashboard', permission: 'MARKS_ENTER' },
 
     // ATTENDANCE OPERATIONS
     { path: 'attendance/mark', element: <AttendanceMarking />, layout: 'dashboard', permission: 'ATTENDANCE_MARK' },
@@ -312,5 +295,7 @@ export const EXAM_ADMIN_ROUTES: RouteConfig[] = [
     { path: 'hall-tickets', element: <ExamHallTickets />, layout: 'exam_admin' },
     { path: 'question-papers', element: <ExamQuestionPapers />, layout: 'exam_admin' },
     { path: 'results', element: <ExamResults />, layout: 'exam_admin' },
-    { path: 'analytics', element: <ExamAnalytics />, layout: 'exam_admin' }
+    { path: 'analytics', element: <ExamAnalytics />, layout: 'exam_admin' },
+    { path: 'manage', element: <ExamManagement />, layout: 'exam_admin' },
+    { path: 'marks-entry', element: <MarksEntry />, layout: 'exam_admin' }
 ];

@@ -104,7 +104,7 @@ function StudentDashboardInner() {
     const quickActions = [
         { icon: CalendarCheck, label: 'My Attendance', href: '/app/attendance/my', color: 'bg-green-500/10 text-green-500 border border-green-500/20' },
         { icon: DollarSign, label: 'Pay Fees', href: '/app/fees/my', color: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' },
-        { icon: GraduationCap, label: 'My Results', href: '/app/exams/results', color: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' },
+        { icon: GraduationCap, label: 'My Results', href: '/app/student/exams/dashboard', color: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' },
         { icon: BookOpen, label: 'Assignments', href: '/app/student/assignments', color: 'bg-blue-500/10 text-blue-500 border border-blue-500/20' },
         { icon: FileText, label: 'My Timetable', href: '/app/timetable/my', color: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' },
         { icon: Bus, label: 'My Transport', href: '/app/transport/my', color: 'bg-orange-500/10 text-orange-500 border border-orange-500/20' },

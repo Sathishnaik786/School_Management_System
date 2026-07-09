@@ -49,7 +49,26 @@ export const DASHBOARD_CONSTANTS = {
         EXAM_CELL: 'EXAM_CELL',
         FINANCE: 'FINANCE',
         PRINCIPAL: 'PRINCIPAL',
+    },
+    PROFILES: {
+        SYSTEM_ADMIN: 'ADMIN',
+        ACADEMIC_ADMIN: 'ADMIN',
+        EXAM_ADMIN: 'EXAM_CELL',
+        FINANCE_ADMIN: 'FINANCE',
+        RECEPTION: 'RECEPTIONIST',
+        STUDENT: 'STUDENT',
+        PARENT: 'PARENT',
+        FACULTY: 'FACULTY',
+        LIBRARY: 'LIBRARY',
+        TRANSPORT: 'TRANSPORT',
+        HR: 'HR',
+        PRINCIPAL: 'PRINCIPAL',
+        COUNSELOR: 'COUNSELOR',
+        ADMISSION_OFFICER: 'ADMISSION_OFFICER',
     }
 };
+
+export type DashboardProfileType = typeof DASHBOARD_CONSTANTS.PROFILES[keyof typeof DASHBOARD_CONSTANTS.PROFILES];
+
 
 export default DASHBOARD_CONSTANTS;

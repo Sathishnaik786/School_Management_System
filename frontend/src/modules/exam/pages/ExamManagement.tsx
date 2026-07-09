@@ -8,8 +8,8 @@ import { StudentResults } from './StudentResults';
 import { Calendar, BookOpen, FileText, BarChart2, Check, X, ChevronDown, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 
 export const ExamManagement = () => {
-    const { hasRole } = useAuth();
-    const isFaculty = hasRole('FACULTY');
+    const { hasPermission } = useAuth();
+    const isFaculty = hasPermission('exam.marks.enter');
     const [activeTab, setActiveTab] = useState<'terms' | 'subjects' | 'marks' | 'results'>('terms');
 
     useEffect(() => {

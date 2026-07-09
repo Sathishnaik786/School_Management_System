@@ -1,3 +1,4 @@
+// Trigger reload to execute RBAC self-healing seeder
 import { app } from './app';
 import { env } from './config/env';
 import { supabase } from './config/supabase';

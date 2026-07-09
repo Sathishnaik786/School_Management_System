@@ -9,7 +9,7 @@ const NAV_RESULTS: SearchResultItem[] = [
     { id: 'nav-attendance', label: 'Attendance', module: 'attendance', href: '/app/admin/attendance' },
     { id: 'nav-fees', label: 'Fee Payment', module: 'finance', href: '/app/fees/payment-entry' },
     { id: 'nav-transport', label: 'Transport', module: 'transport', href: '/app/transport/setup' },
-    { id: 'nav-exams', label: 'Exams', module: 'exams', href: '/app/exams/manage' },
+    { id: 'nav-exams', label: 'Exams', module: 'exams', href: '/app/exam-admin/manage' },
 ];
 
 export function useGlobalSearch() {

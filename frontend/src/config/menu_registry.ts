@@ -49,13 +49,12 @@ export const MENU_REGISTRY: MenuGroup[] = [
         module: 'exam',
         items: [
             { label: 'Overview', icon: LayoutDashboard, path: '/app/exam-admin/dashboard', permission: 'exam.dashboard.view' },
-            { label: 'Timetable', icon: Calendar, path: '/app/admin/exams/timetable', permission: 'exam.dashboard.view' },
-            { label: 'Seating', icon: Users, path: '/app/admin/exams/seating', permission: 'exam.dashboard.view' },
-            { label: 'Question Papers', icon: ClipboardList, path: '/app/admin/exams/question-papers', permission: 'exam.dashboard.view' },
-            { label: 'Results', icon: GraduationCap, path: '/app/admin/exams/results', permission: 'exam.dashboard.view' },
-            { label: 'Analytics', icon: BarChart3, path: '/app/admin/exams/analytics', permission: 'exam.dashboard.view' },
-            { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'exam.dashboard.view' },
-            { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'exam.dashboard.view' }
+            { label: 'Timetable', icon: Calendar, path: '/app/exam-admin/timetable', permission: 'exam.dashboard.view' },
+            { label: 'Seating', icon: Users, path: '/app/exam-admin/seating', permission: 'exam.dashboard.view' },
+            { label: 'Question Papers', icon: ClipboardList, path: '/app/exam-admin/question-papers', permission: 'exam.dashboard.view' },
+            { label: 'Results', icon: GraduationCap, path: '/app/exam-admin/results', permission: 'exam.dashboard.view' },
+            { label: 'Analytics', icon: BarChart3, path: '/app/exam-admin/analytics', permission: 'exam.dashboard.view' },
+            { label: 'Exam Management', icon: FileText, path: '/app/exam-admin/manage', permission: 'exam.dashboard.view' }
         ]
     },
     // HUMAN RESOURCES
@@ -78,7 +77,7 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'Student Management', icon: Users, path: '/app/students', permission: 'STUDENT_VIEW' },
             { label: 'Academic Setup', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
             { label: 'Departments', icon: Building, path: '/app/academic/departments', permission: 'DEPARTMENT_VIEW' },
-            { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
+            { label: 'Subject Management', icon: BookOpen, path: '/app/academic/subjects', permission: 'SUBJECT_VIEW' },
             { label: 'Attendance Dashboard', icon: BarChart3, path: '/app/attendance/admin/dashboard', permission: 'DASHBOARD_VIEW_ADMIN' },
             { label: 'System Settings', icon: Settings, path: '/app/settings', permission: 'admin.dashboard.view' }
         ]
@@ -116,7 +115,8 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'Classes', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
             { label: 'My Students', icon: Users, path: '/app/academic/my-students', permission: 'SECTION_VIEW' },
             { label: 'My Assignments', icon: BookOpen, path: '/app/academic/assignments', permission: 'SECTION_VIEW' },
-            { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
+            { label: 'Exam Dashboard', icon: FileText, path: '/app/faculty/exams/dashboard', permission: 'EXAM_VIEW' },
+            { label: 'My Invigilations', icon: Calendar, path: '/app/faculty/exams/invigilation', permission: 'EXAM_VIEW' },
             { label: 'Time Table', icon: Clock, path: '/app/timetable/manage', permission: 'TIMETABLE_CREATE' },
             { label: 'Attendance', icon: Calendar, path: '/app/attendance/mark', permission: 'ATTENDANCE_MARK' }
         ]
@@ -132,7 +132,7 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'Assignments', icon: ClipboardList, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
             { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
             { label: 'My Timetable', icon: Clock, path: '/app/timetable/my', permission: 'TIMETABLE_VIEW_SELF' },
-            { label: 'Results', icon: GraduationCap, path: '/app/exams/results', permission: 'MARKS_VIEW' },
+            { label: 'Results', icon: GraduationCap, path: '/app/student/exams/dashboard', permission: 'STUDENT_VIEW_SELF' },
             { label: 'My Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
             { label: 'My Fees', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
             { label: 'My Transport', icon: Bus, path: '/app/transport/my', permission: 'TRANSPORT_VIEW_SELF' }
@@ -149,7 +149,7 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'My Children', icon: Users, path: '/app/students/my-children', permission: 'STUDENT_VIEW_SELF' },
             { label: 'Children Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
             { label: 'Children Academics', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
-            { label: 'Children Results', icon: GraduationCap, path: '/app/exams/results', permission: 'MARKS_VIEW' },
+            { label: 'Children Results', icon: GraduationCap, path: '/app/student/exams/dashboard', permission: 'STUDENT_VIEW_SELF' },
             { label: 'Fees & Payments', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
             { label: 'Transport Details', icon: Bus, path: '/app/transport/my', permission: 'TRANSPORT_VIEW_SELF' },
             { label: 'My Profile', icon: UserCircle, path: '/app/profile', permission: 'parent.dashboard.view' }

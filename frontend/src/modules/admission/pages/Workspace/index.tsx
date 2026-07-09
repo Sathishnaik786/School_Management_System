@@ -10,29 +10,28 @@ import FinanceDashboard from './FinanceDashboard';
 import { AlertCircle } from 'lucide-react';
 
 export function WorkspaceDashboard() {
-    const { user } = useAuth();
-    const roles = user?.roles?.map(r => r.toUpperCase()) || [];
+    const { hasPermission } = useAuth();
 
-    // Dispatch dashboard component based on role
-    if (roles.includes('PARENT') || roles.includes('STUDENT')) {
+    // Dispatch dashboard component based on permission profiles
+    if (hasPermission('parent.dashboard.view') || hasPermission('student.dashboard.view')) {
         return <ParentDashboard />;
     }
-    if (roles.includes('RECEPTIONIST') || roles.includes('FRONT_DESK')) {
+    if (hasPermission('admission.enquiry.create')) {
         return <ReceptionistDashboard />;
     }
-    if (roles.includes('COUNSELOR') || roles.includes('COUNSELLOR')) {
+    if (hasPermission('admission.leads.manage') && !hasPermission('admission.review')) {
         return <CounselorDashboard />;
     }
-    if (roles.includes('ADMISSION_OFFICER')) {
+    if (hasPermission('admission.review') && hasPermission('admission.approve')) {
         return <AdmissionOfficerDashboard />;
     }
-    if (roles.includes('EXAM_CELL') || roles.includes('EXAM_CELL_ADMIN')) {
+    if (hasPermission('exam.dashboard.view')) {
         return <ExamCellDashboard />;
     }
-    if (roles.includes('PRINCIPAL') || roles.includes('HOI') || roles.includes('HEAD_OF_INSTITUTE') || roles.includes('ADMIN') || roles.includes('SUPERADMIN')) {
+    if (hasPermission('admin.dashboard.view')) {
         return <PrincipalDashboard />;
     }
-    if (roles.includes('FINANCE_OFFICER') || roles.includes('ACCOUNTANT')) {
+    if (hasPermission('fees.dashboard.view')) {
         return <FinanceDashboard />;
     }
 

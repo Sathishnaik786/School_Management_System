@@ -108,7 +108,7 @@ const FacultyDashboardInner = () => {
         { label: 'My Students', icon: Users, link: '/app/academic/my-students', desc: 'Roster & profiles', color: 'bg-blue-500/10 text-blue-500' },
         { label: 'Mark Attendance', icon: UserCheck, link: '/app/attendance/mark', desc: 'Daily attendance logs', color: 'bg-rose-500/10 text-rose-500' },
         { label: 'My Timetable', icon: Calendar, link: '/app/timetable/my', desc: 'Weekly schedules', color: 'bg-indigo-500/10 text-indigo-500' },
-        { label: 'Enter Marks', icon: Award, link: '/app/exams/marks', desc: 'Exam grading lists', color: 'bg-emerald-500/10 text-emerald-500' },
+        { label: 'Enter Marks', icon: Award, link: '/app/faculty/exams/marks-entry', desc: 'Exam grading lists', color: 'bg-emerald-500/10 text-emerald-500' },
         { label: 'Class Work', icon: BookOpen, link: '/app/academic/assignments', desc: 'Assignment tracking', color: 'bg-violet-500/10 text-violet-500' },
     ];
 

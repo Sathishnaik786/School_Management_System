@@ -73,7 +73,7 @@ export const QuickActions: React.FC = () => {
         }
         if (isExamCell) {
             return [
-                { label: 'Schedule Exam', href: '/app/exams/manage', icon: Calendar, color: 'bg-blue-50 border-blue-100 text-blue-600', description: 'Create scheduled slots' }
+                { label: 'Schedule Exam', href: '/app/exam-admin/manage', icon: Calendar, color: 'bg-blue-50 border-blue-100 text-blue-600', description: 'Create scheduled slots' }
             ];
         }
         // Fallback default student/parent shortcuts

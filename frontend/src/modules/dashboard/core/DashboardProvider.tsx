@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { DashboardContext, DashboardContextProps } from './DashboardContext';
 import { DashboardFilter } from '../types/dashboard.types';
 import { DashboardFiltersManager } from './DashboardFilters';
-import { RoleResolver } from './RoleResolver';
+import { PermissionProfileResolver } from './PermissionProfileResolver';
 import { DashboardRefreshManager } from './DashboardRefresh';
 
 export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -11,7 +11,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [filters, setFilters] = useState<DashboardFilter>(() => DashboardFiltersManager.createDefault());
     
     const [activeRole, setActiveRoleState] = useState<string>(() => {
-        return RoleResolver.resolve(user?.roles || []);
+        return PermissionProfileResolver.resolve(user?.permissions || []).profile;
     });
 
     const [refreshSignal, setRefreshSignal] = useState<number>(0);
@@ -25,10 +25,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, []);
 
     useEffect(() => {
-        if (user?.roles) {
-            setActiveRoleState(RoleResolver.resolve(user.roles));
+        if (user?.permissions) {
+            setActiveRoleState(PermissionProfileResolver.resolve(user.permissions).profile);
         }
-    }, [user?.roles]);
+    }, [user?.permissions]);
 
     // Visibility-focus auto refresh coordinator
     useEffect(() => {

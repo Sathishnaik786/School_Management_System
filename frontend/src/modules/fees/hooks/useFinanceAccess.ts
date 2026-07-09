@@ -1,10 +1,7 @@
 import { useAuth } from '../../../context/AuthContext';
 
 export function useFinanceAccess() {
-    const { user, isAuthenticated, hasPermission } = useAuth();
-
-    const role = user?.roles?.[0] || null;
-    const permissions = user?.permissions || [];
+    const { isAuthenticated, hasPermission } = useAuth();
 
     const canViewStructures = isAuthenticated && (
         hasPermission('fees.structure.view') ||
@@ -33,8 +30,6 @@ export function useFinanceAccess() {
     );
 
     return {
-        role,
-        permissions,
         canViewStructures,
         canManageStructures,
         canViewLedger,

@@ -14,7 +14,7 @@ import { Navigate } from 'react-router-dom';
 import { ImportWizard } from '../../../components/import/ImportWizard';
 
 export const ImportHistoryPage = () => {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const [jobs, setJobs] = useState<ImportJob[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -24,8 +24,10 @@ export const ImportHistoryPage = () => {
     const [reImportEntity, setReImportEntity] = useState<any>('STUDENT');
 
     // Basic RP Access Control Check
-    const allowedRoles = ['ADMIN', 'TRANSPORT_ADMIN', 'HEAD_OF_INSTITUTE'];
-    const canAccess = user?.roles?.some(r => allowedRoles.includes(r));
+    const canAccess = hasPermission('admin.dashboard.view') ||
+                      hasPermission('TRANSPORT_SETUP') ||
+                      hasPermission('FACULTY_PROFILE_MANAGE') ||
+                      hasPermission('STUDENT_CREATE');
 
     useEffect(() => {
         if (canAccess) {

@@ -1,19 +1,19 @@
-import { RoleResolver } from './RoleResolver';
+import { PermissionProfileResolver } from './PermissionProfileResolver';
 import { DashboardRegistry } from './DashboardRegistry';
 import { DashboardLayout, DashboardWidget } from '../types/dashboard.types';
 
 export class DashboardEngine {
-    public static resolveDashboard(roles: string | string[]): {
+    public static resolveDashboard(permissions: string[]): {
         role: string;
         layout: DashboardLayout | undefined;
         widgets: DashboardWidget[];
     } {
-        const resolvedRole = RoleResolver.resolve(roles);
-        const layout = DashboardRegistry.getLayout(resolvedRole);
-        const widgets = DashboardRegistry.getWidgetsForRole(resolvedRole);
+        const resolved = PermissionProfileResolver.resolve(permissions);
+        const layout = resolved.layouts;
+        const widgets = DashboardRegistry.getWidgetsForRole(resolved.profile);
 
         return {
-            role: resolvedRole,
+            role: resolved.profile,
             layout,
             widgets
         };

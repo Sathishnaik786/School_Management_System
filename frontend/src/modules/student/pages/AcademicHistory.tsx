@@ -16,7 +16,6 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 
 export const AcademicHistory = () => {
-    const { hasRole } = useAuth();
     const [searchParams] = useSearchParams();
     const studentIdParam = searchParams.get('studentId');
 
@@ -86,7 +85,7 @@ export const AcademicHistory = () => {
                     </p>
                 </div>
 
-                {hasRole('PARENT') && children.length > 1 && (
+                {children.length > 1 && (
                     <div className="flex items-center gap-2 bg-gray-50 p-2 pr-4 border border-gray-100 rounded-2xl">
                         <span className="text-[10px] font-black text-gray-400 uppercase pl-3 tracking-widest">Viewing:</span>
                         <select

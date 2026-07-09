@@ -28,14 +28,14 @@ const QUICK_ACTIONS_REGISTRY: QuickAction[] = [
 
     // Faculty
     { id: 'faculty-mark-attendance', label: 'Mark Attendance', href: '/app/attendance/marking', icon: 'CalendarCheck', color: 'bg-green-100 text-green-600', allowedRoles: ['FACULTY'] },
-    { id: 'faculty-marks-entry', label: 'Enter Marks', href: '/app/exams/marks-entry', icon: 'PenLine', color: 'bg-blue-100 text-blue-600', allowedRoles: ['FACULTY'] },
+    { id: 'faculty-marks-entry', label: 'Enter Marks', href: '/app/faculty/exams/marks-entry', icon: 'PenLine', color: 'bg-blue-100 text-blue-600', allowedRoles: ['FACULTY'] },
     { id: 'faculty-assignments', label: 'Assignments', href: '/app/assignments', icon: 'ClipboardList', color: 'bg-purple-100 text-purple-600', allowedRoles: ['FACULTY'] },
     { id: 'faculty-students', label: 'My Students', href: '/app/my-students', icon: 'GraduationCap', color: 'bg-indigo-100 text-indigo-600', allowedRoles: ['FACULTY'] },
 
     // Student
     { id: 'student-attendance', label: 'My Attendance', href: '/app/attendance/my', icon: 'CalendarCheck', color: 'bg-green-100 text-green-600', allowedRoles: ['STUDENT'] },
     { id: 'student-fees', label: 'Pay Fees', href: '/app/fees/my', icon: 'DollarSign', color: 'bg-amber-100 text-amber-600', allowedRoles: ['STUDENT'] },
-    { id: 'student-results', label: 'My Results', href: '/app/my-results', icon: 'GraduationCap', color: 'bg-purple-100 text-purple-600', allowedRoles: ['STUDENT'] },
+    { id: 'student-results', label: 'My Results', href: '/app/student/exams/dashboard', icon: 'GraduationCap', color: 'bg-purple-100 text-purple-600', allowedRoles: ['STUDENT'] },
     { id: 'student-timetable', label: 'Timetable', href: '/app/my-timetable', icon: 'Calendar', color: 'bg-blue-100 text-blue-600', allowedRoles: ['STUDENT'] },
     { id: 'student-leave', label: 'Apply Leave', href: '/app/attendance/leaves', icon: 'FileText', color: 'bg-rose-100 text-rose-600', allowedRoles: ['STUDENT'] },
     { id: 'student-transport', label: 'My Bus', href: '/app/transport/my', icon: 'Bus', color: 'bg-orange-100 text-orange-600', allowedRoles: ['STUDENT'] },

@@ -89,7 +89,7 @@ export const StudentList = () => {
 
     const filteredStudents = data; // Server-side filtered
 
-    const canImport = user?.roles?.includes('ADMIN');
+    const canImport = hasPermission('STUDENT_CREATE');
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[50vh]">
