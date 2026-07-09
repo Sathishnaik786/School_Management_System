@@ -261,6 +261,38 @@ router.get('/public/admission/config', async (req: Request, res: Response) => {
     }
 });
 
+// Temporary RBAC debug endpoint
+router.get('/public/inspect-rbac', async (req: Request, res: Response) => {
+    try {
+        const { data: users } = await supabase.from('users').select('*').eq('email', 'examplatform@edu.in');
+        let userRoles: any[] = [];
+        let permissions: any[] = [];
+        if (users && users.length > 0) {
+            const { data: ur } = await supabase.from('user_roles').select('*, roles(*)').eq('user_id', users[0].id);
+            userRoles = ur || [];
+            
+            const { data: rp } = await supabase.from('role_permissions').select('*, roles(*), permissions(*)').in('role_id', userRoles.map(u => u.role_id));
+            permissions = rp || [];
+        }
+        const { data: allRoles } = await supabase.from('roles').select('*');
+        const { data: allPerms } = await supabase.from('permissions').select('*');
+        
+        res.json({
+            user: users?.[0] || null,
+            userRoles,
+            permissions: permissions.map(p => ({
+                role: p.roles?.name,
+                permissionCode: p.permissions?.code,
+                permissionName: p.permissions?.name
+            })),
+            allRoles,
+            allPermsCount: allPerms?.length || 0
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ======================================
 // PROTECTED (Global Guard)
 // ======================================
@@ -416,6 +448,80 @@ router.use('/v1/assessment/questions', questionBankRouter);
 router.use('/v1/assessment/templates', templateBuilderRouter);
 
 
+// System RBAC Audit Endpoint
+router.get('/system/rbac/audit', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW), async (req: Request, res: Response) => {
+    try {
+        console.log("[Audit] Running RBAC System Integrity Scan...");
+        
+        // 1. Fetch Master Lists
+        const { data: dbRoles, error: rolesErr } = await supabase.from('roles').select('id, name, description');
+        const { data: dbPerms, error: permsErr } = await supabase.from('permissions').select('id, code, description');
+        const { data: dbUserRoles, error: urErr } = await supabase.from('user_roles').select('user_id, role_id');
+        const { data: dbRolePerms, error: rpErr } = await supabase.from('role_permissions').select('role_id, permission_id');
+        const { data: dbUsers, error: usersErr } = await supabase.from('users').select('id, email, status, login_status');
+
+        if (rolesErr || permsErr || urErr || rpErr || usersErr) {
+            throw new Error(`Data fetch failed: ${rolesErr?.message || permsErr?.message || urErr?.message || rpErr?.message || usersErr?.message}`);
+        }
+
+        // 2. Perform Checks
+        const registeredPermsInCode = Object.values(PERMISSIONS);
+        const dbPermCodes = dbPerms.map(p => p.code);
+
+        // Dangling Permissions (DB but not in code definitions, and vice versa)
+        const missingInDb = registeredPermsInCode.filter(p => !dbPermCodes.includes(p));
+        const unregisteredInCode = dbPermCodes.filter(p => !registeredPermsInCode.includes(p));
+
+        // Duplicate Mappings check in role_permissions
+        const pairingCounts = new Map<string, number>();
+        const duplicateMappings: any[] = [];
+        dbRolePerms.forEach(rp => {
+            const key = `${rp.role_id}:${rp.permission_id}`;
+            const count = pairingCounts.get(key) || 0;
+            pairingCounts.set(key, count + 1);
+            if (count > 0) {
+                duplicateMappings.push({ role_id: rp.role_id, permission_id: rp.permission_id });
+            }
+        });
+
+        // Statistics
+        const activeUsers = dbUsers.filter(u => u.status === 'active');
+        const pendingApprovals = dbUsers.filter(u => u.login_status === 'PENDING');
+
+        res.json({
+            timestamp: new Date().toISOString(),
+            status: "SECURE",
+            summary: {
+                total_roles: dbRoles.length,
+                total_permissions: dbPerms.length,
+                total_role_permission_mappings: dbRolePerms.length,
+                total_users: dbUsers.length,
+                active_users: activeUsers.length,
+                pending_login_approvals: pendingApprovals.length
+            },
+            dangling_permissions: {
+                defined_in_code_but_missing_in_db: missingInDb,
+                defined_in_db_but_missing_in_code: unregisteredInCode
+            },
+            integrity: {
+                duplicate_role_permission_mappings: duplicateMappings.length,
+                duplicate_mappings_details: duplicateMappings,
+                unassigned_roles: dbRoles.filter(r => !dbUserRoles.some(ur => ur.role_id === r.id)).map(r => r.name)
+            },
+            roles_list: dbRoles.map(r => ({
+                id: r.id,
+                name: r.name,
+                mapped_permissions_count: dbRolePerms.filter(rp => rp.role_id === r.id).length
+            }))
+        });
+    } catch (err: any) {
+        console.error("[RBAC Audit Error]:", err);
+        res.status(500).json({ error: 'RBAC Audit Failed', message: err.message });
+    }
+});
+
+// Guard all admin routes under admin.dashboard.view
+router.use('/admin', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW));
 router.use('/admin', staffRouter);
 router.use('/admin', adminRouter);
 router.use('/admin/bulk', bulkRouter);

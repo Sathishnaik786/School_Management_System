@@ -5,10 +5,10 @@ import { FileText, Lock, Upload, CheckCircle2, History, AlertCircle } from 'luci
 // import { supabase } from '../../../lib/supabase'; // Assuming supabase import exists or logic is mocked as per previous file
 
 export const QuestionPaperManager = () => {
-    const { hasRole } = useAuth();
-    // PART 3 SAFETY: Only Exam Cell Admin can lock. Global Admin is restricted.
-    const canLock = hasRole('EXAM_CELL_ADMIN');
-    const isAdmin = hasRole('ADMIN') || canLock; // For generic admin views if any, but specifically for locking we use canLock
+    const { hasPermission } = useAuth();
+    // ONLY users with explicit lock permissions can lock question papers.
+    const canLock = hasPermission('exam.paper.lock');
+    const isAdmin = hasPermission('exam.paper.upload') || canLock;
 
     const [exams, setExams] = useState<any[]>([]);
     const [selectedExamId, setSelectedExamId] = useState('');

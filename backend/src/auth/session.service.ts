@@ -12,8 +12,22 @@ export interface UserProfile {
     login_status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
 }
 
+interface CachedSession {
+    profile: UserProfile;
+    expiresAt: number;
+}
+
+const sessionCache = new Map<string, CachedSession>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache TTL
+
 export class SessionService {
     async validateSession(token: string): Promise<UserProfile | null> {
+        const cached = sessionCache.get(token);
+        if (cached && cached.expiresAt > Date.now()) {
+            console.log(`[Session Cache] Hit for user: ${cached.profile.email}`);
+            return cached.profile;
+        }
+
         try {
             // 1. Verify Auth User (validates JWT)
             const urlMatch = env.SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase/);
@@ -104,6 +118,11 @@ export class SessionService {
                 permissions: Array.from(permissions),
                 login_status: user.login_status || 'PENDING'
             };
+
+            sessionCache.set(token, {
+                profile: finalProfile,
+                expiresAt: Date.now() + CACHE_TTL_MS
+            });
 
             console.log(`[Session] Validated ${user.email}. Roles: ${roles.join(',')}. Perms Count: ${permissions.size}`);
             return finalProfile;

@@ -297,7 +297,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                                     </div>
                                 )}
 
-                                {hasRole('ADMIN') && app.applicant && app.applicant.login_status !== 'APPROVED' && (
+                                {AdmissionPermissions.canDecideLogin(permCtx) && app.applicant && app.applicant.login_status !== 'APPROVED' && (
                                     <div className="pt-4 mt-4 border-t border-gray-100 space-y-3">
                                         <p className="text-sm font-bold text-gray-600 mb-2">Login Access Control</p>
                                         <div className="flex gap-2">

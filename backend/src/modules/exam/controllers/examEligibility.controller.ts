@@ -44,8 +44,7 @@ export const ExamEligibilityController = {
             // 2. Fetch Students
             let query = supabase
                 .from('student_sections')
-                .select('student_id')
-                .eq('academic_year_id', exam.academic_year_id);
+                .select('student_id');
 
             if (exam.applicable_classes && exam.applicable_classes.length > 0) {
                 // Resolve section_ids for these classes
@@ -54,9 +53,15 @@ export const ExamEligibilityController = {
                     .select('id')
                     .in('class_id', exam.applicable_classes);
 
-                if (sections) {
+                if (sections && sections.length > 0) {
                     query = query.in('section_id', sections.map(s => s.id));
+                } else {
+                    // Fallback to academic year if sections are not resolved
+                    query = query.eq('academic_year_id', exam.academic_year_id);
                 }
+            } else {
+                // Fallback to academic year if no specific classes are defined
+                query = query.eq('academic_year_id', exam.academic_year_id);
             }
 
             const { data: enrollments } = await query;

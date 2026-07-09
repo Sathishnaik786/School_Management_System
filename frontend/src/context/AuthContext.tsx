@@ -135,8 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const hasPermission = (code: string) => {
         if (!user) return false;
-        // Global Admin bypass - simplifies management for root users
-        if (user.roles?.some(r => r === 'ADMIN' || r === 'SUPERADMIN')) return true;
+        // Super Admin bypasses all permission checks
+        if (user.roles?.some(r => r === 'SUPERADMIN')) return true;
         return user.permissions?.includes(code) || false;
     };
 

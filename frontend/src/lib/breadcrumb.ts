@@ -7,6 +7,9 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
     // Root
     app: 'Home',
     dashboard: 'Dashboard',
+    assessment: 'Assessment Platform',
+    questions: 'Question Bank',
+    templates: 'Template Builder',
 
     // Admissions
     admissions: 'Admissions',
@@ -121,6 +124,41 @@ export interface BreadcrumbItem {
  * Skips 'app' as it's the root wrapper segment.
  */
 export const parseBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
+    const isAssessmentPath = pathname.includes('/assessment') || 
+                             pathname.includes('/questions') || 
+                             pathname.includes('/templates');
+
+    if (isAssessmentPath) {
+        const items: BreadcrumbItem[] = [
+            {
+                label: 'Assessment Platform',
+                path: '/app/assessment/dashboard',
+                isLast: pathname === '/app/assessment/dashboard'
+            }
+        ];
+
+        if (pathname.includes('/questions')) {
+            items.push({
+                label: 'Question Bank',
+                path: '/app/assessment/questions',
+                isLast: true
+            });
+        } else if (pathname.includes('/templates')) {
+            items.push({
+                label: 'Template Builder',
+                path: '/app/assessment/templates',
+                isLast: true
+            });
+        } else if (pathname.includes('/settings')) {
+            items.push({
+                label: 'Settings & Workflows',
+                path: '/app/assessment/settings',
+                isLast: true
+            });
+        }
+        return items;
+    }
+
     const segments = pathname.split('/').filter(Boolean);
 
     return segments

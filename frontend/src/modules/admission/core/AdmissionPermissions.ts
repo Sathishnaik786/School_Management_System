@@ -56,8 +56,8 @@ export const AdmissionPermissions = {
 
     isPrincipal(ctx: PermissionContext): boolean {
         return ctx.roles.some(r =>
-            ['PRINCIPAL', 'HOI', 'HEAD_OF_INSTITUTE', 'ADMIN', 'SUPERADMIN'].includes(normalize(r)),
-        );
+            ['PRINCIPAL', 'HOI', 'HEAD_OF_INSTITUTE'].includes(normalize(r))
+        ) || ctx.hasPermission('admin.dashboard.view');
     },
 
     isFinance(ctx: PermissionContext): boolean {
@@ -68,8 +68,8 @@ export const AdmissionPermissions = {
         return (
             AdmissionPermissions.isAdmissionOfficer(ctx) ||
             AdmissionPermissions.isPrincipal(ctx) ||
-            ctx.hasRole('ADMIN') ||
-            ctx.hasRole('HOI')
+            ctx.hasPermission('admin.dashboard.view') ||
+            ctx.roles.some(r => normalize(r) === 'HOI')
         );
     },
 
@@ -219,7 +219,7 @@ export const AdmissionPermissions = {
     },
 
     canDecideLogin(ctx: PermissionContext): boolean {
-        return ctx.hasRole('ADMIN') || AdmissionPermissions.isPrincipal(ctx);
+        return ctx.hasPermission('manage_users') || AdmissionPermissions.isPrincipal(ctx);
     },
 
     resolveWorkspaceDashboard(ctx: PermissionContext): string {

@@ -1,65 +1,33 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
+import { useModuleVisibility } from '../services/ModuleVisibilityService';
+import { LandingResolver } from '../services/LandingResolver';
 import { FacultyDashboard } from '../modules/dashboard/pages/FacultyDashboard';
 import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
 import { TransportAdminDashboard } from '../modules/transport/pages/TransportAdminDashboard';
 import { DriverDashboard } from '../modules/transport/pages/DriverDashboard';
 
-// Exam Dashboard is now routed independently, but we might render it briefly?
-// No, we are redirecting.
-
 export default function Dashboard() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
+    const { getVisibleModules } = useModuleVisibility();
 
-    // Determine Role Logic
-    const isAdmin = user?.roles.some(r => ['ADMIN', 'HEAD_OF_INSTITUTE'].includes(r.toUpperCase()));
-    const isExamAdmin = user?.roles.some(r => r.toUpperCase() === 'EXAM_CELL_ADMIN');
-
-    // Phase 4: Enforce Dedicated Dashboards
-    // If Admin, go to Admin Dashboard (Governance)
-    if (isAdmin) {
-        return <Navigate to="/app/admin/dashboard" replace />;
+    if (!user) {
+        return <Navigate to="/login" replace />;
     }
 
-    // If Exam Cell Admin (and NOT Admin), go to Exam Admin Dashboard (Operations)
-    if (isExamAdmin) {
-        return <Navigate to="/app/exam-admin/dashboard" replace />;
+    const visibleModules = getVisibleModules();
+    const targetRoute = LandingResolver.resolveLandingRoute(visibleModules);
+
+    // If targetRoute is different from "/app/dashboard" and valid, redirect to it
+    if (targetRoute !== '/app/dashboard' && targetRoute !== '/unauthorized') {
+        return <Navigate to={targetRoute} replace />;
     }
 
-    // Consolidated Admissions Role Redirects
-    const isReceptionist = user?.roles.some(r => ['RECEPTIONIST', 'FRONT_DESK'].includes(r.toUpperCase()));
-    const isCounselor = user?.roles.some(r => ['COUNSELOR', 'COUNSELLOR'].includes(r.toUpperCase()));
-    const isFinance = user?.roles.some(r => ['FINANCE_OFFICER', 'ACCOUNTANT'].includes(r.toUpperCase()));
-    const isAdmissionOfficer = user?.roles.some(r => r.toUpperCase() === 'ADMISSION_OFFICER');
-
-    if (isReceptionist || isCounselor) {
-        return <Navigate to="/app/admissions/inquiries" replace />;
-    }
-    if (isFinance) {
-        return <Navigate to="/app/admissions/fees" replace />;
-    }
-    if (isAdmissionOfficer) {
-        return <Navigate to="/app/admissions/dashboard" replace />;
-    }
-
-    // Others stay on generic dashboard dispatcher for now, OR we can route them too.
-    // User asked "FACULTY -> existing faculty dashboard".
-    // I will render Faculty/Parent/Driver inline here as before, to maintain "existing" behavior without new routes if not requested.
-
-    const isFaculty = user?.roles.some(r => r.toUpperCase() === 'FACULTY');
-    const isStudent = user?.roles.some(r => r.toUpperCase() === 'STUDENT');
-    const isParent = user?.roles.some(r => r.toUpperCase() === 'PARENT');
-    const isTransportAdmin = user?.roles.some(r => r.toUpperCase() === 'TRANSPORT_ADMIN');
-    const isDriver = user?.roles.some(r => r.toUpperCase() === 'BUS_DRIVER');
-
-    if (isStudent) {
-        return <Navigate to="/app/student/dashboard" replace />;
-    }
-
-    if (isParent && !isFaculty && !isTransportAdmin && !isDriver) {
-        return <Navigate to="/app/admissions/my" replace />;
-    }
+    // Render components inline if the resolved landing route is /app/dashboard
+    const isFaculty = hasPermission('faculty.dashboard.view');
+    const isParent = hasPermission('parent.dashboard.view');
+    const isTransportAdmin = hasPermission('transport.dashboard.view');
+    const isDriver = hasPermission('driver.dashboard.view');
 
     return (
         <div className="space-y-6">
@@ -73,7 +41,7 @@ export default function Dashboard() {
                     <div className="text-4xl mb-4">🔓</div>
                     <h2 className="text-xl font-bold text-gray-800 mb-2">Account Pending Verification</h2>
                     <p className="text-gray-500 max-w-md mx-auto">
-                        Your account doesn't have any specific dashboard roles assigned. Please contact the administrator.
+                        Your account doesn't have any specific dashboard modules assigned. Please contact the administrator.
                     </p>
                 </div>
             )}

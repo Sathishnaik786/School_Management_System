@@ -60,8 +60,8 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
         const roles = getEffectiveRoles(req.context.user.roles);
         console.log(`[RBAC] User: ${req.context.user.email}, Required: ${requiredPermission}, Has: ${permissions.length} perms`);
 
-        // 2. Admin Bypass
-        if (roles.includes('ADMIN')) {
+        // 2. Super Admin Bypass
+        if (roles.includes('SUPERADMIN')) {
             return next();
         }
 
@@ -176,6 +176,21 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
+        // 2o. Exam Cell Bypass for general exams, marks entry, and student lists
+        if (
+            (requiredPermission === 'EXAM_VIEW' ||
+             requiredPermission === 'EXAM_CREATE' ||
+             requiredPermission === 'MARKS_ENTER' ||
+             requiredPermission === 'MARKS_VIEW' ||
+             requiredPermission === 'SUBJECT_VIEW' ||
+             requiredPermission === 'student.view' ||
+             requiredPermission === 'student.read' ||
+             requiredPermission === 'STUDENT_VIEW') &&
+            roles.includes('EXAM_CELL')
+        ) {
+            return next();
+        }
+
         // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
         if (
             req.method === 'GET' &&
@@ -217,7 +232,7 @@ export const checkRole = (allowedRoles: string[]) => {
         const userRoles = getEffectiveRoles(req.context.user.roles);
         const hasRole = userRoles.some(r => allowedRoles.includes(r));
 
-        if (hasRole || userRoles.includes('ADMIN')) {
+        if (hasRole || userRoles.includes('SUPERADMIN')) {
             return next();
         }
 

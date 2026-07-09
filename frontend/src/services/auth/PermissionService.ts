@@ -20,7 +20,7 @@ export const PermissionService = {
      */
     checkPermission: (user: EnrichedUser, permission: string): boolean => {
         if (!user) return false;
-        if (user.roles?.some(r => r === 'ADMIN' || r === 'SUPERADMIN')) return true;
+        if (user.roles?.some(r => r === 'SUPERADMIN')) return true;
         return user.permissions?.includes(permission) ?? false;
     },
 

@@ -273,15 +273,23 @@ academicRouter.get('/sections/my',
         try {
             const { user } = req.context!;
 
-            // ADMIN Bypass: Return ALL sections
-            if (user.roles.includes('ADMIN') || user.roles.includes('HEAD_OF_INSTITUTE')) {
+            // ADMIN / EXAM CELL / HOI Bypass: Return ALL sections
+            if (
+                user.roles.includes('ADMIN') ||
+                user.roles.includes('HEAD_OF_INSTITUTE') ||
+                user.roles.includes('EXAM_CELL') ||
+                user.roles.includes('EXAM_CELL_ADMIN')
+            ) {
                 const { data, error } = await supabase
                     .from('sections')
                     .select(`
                         id, name,
-                        class:class_id (name, academic_year:academic_year_id(year_label))
+                        class:class_id!inner (
+                            id, name, school_id,
+                            academic_year:academic_year_id(year_label)
+                        )
                     `)
-                    .eq('school_id', user.school_id)
+                    .eq('class.school_id', user.school_id)
                     .order('name');
 
                 if (error) throw error;

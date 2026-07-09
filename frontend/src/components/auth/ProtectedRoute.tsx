@@ -5,6 +5,8 @@ import { Loading } from '../ui/Loading';
 import { PendingApprovalPage } from '../../pages/PendingApproval';
 import { AccessDenied } from './AccessDenied';
 import { ShieldAlert } from 'lucide-react';
+import { useModuleVisibility } from '../../services/ModuleVisibilityService';
+import { LandingResolver } from '../../services/LandingResolver';
 
 export const ProtectedRoute = () => {
     const { user, loading, session } = useAuth();
@@ -58,12 +60,28 @@ interface PermissionGuardProps {
 export const PermissionGuard = ({
     permission,
     children,
-    fallback = <AccessDenied />,
+    fallback,
 }: PermissionGuardProps) => {
     const { hasPermission, user } = useAuth();
+    const location = useLocation();
+    const { getVisibleModules } = useModuleVisibility();
 
-    if (!user || !hasPermission || !hasPermission(permission)) {
-        return <>{fallback}</>;
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (!hasPermission || !hasPermission(permission)) {
+        if (fallback) return <>{fallback}</>;
+        
+        const visible = getVisibleModules();
+        const targetRoute = LandingResolver.resolveLandingRoute(visible);
+        
+        if (location.pathname === targetRoute) {
+            return <Navigate to="/app/unauthorized" replace />;
+        }
+        
+        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`);
+        return <Navigate to={targetRoute} replace />;
     }
 
     return <>{children}</>;
@@ -79,17 +97,29 @@ interface AnyPermissionGuardProps {
 export const AnyPermissionGuard = ({
     permissions,
     children,
-    fallback = <AccessDenied />,
+    fallback,
 }: AnyPermissionGuardProps) => {
     const { hasPermission, user } = useAuth();
+    const location = useLocation();
+    const { getVisibleModules } = useModuleVisibility();
 
-    if (!user || !hasPermission) {
-        return <>{fallback}</>;
+    if (!user) {
+        return <Navigate to="/login" replace />;
     }
 
-    const allowed = permissions.some(p => hasPermission(p));
+    const allowed = permissions.some(p => hasPermission && hasPermission(p));
     if (!allowed) {
-        return <>{fallback}</>;
+        if (fallback) return <>{fallback}</>;
+        
+        const visible = getVisibleModules();
+        const targetRoute = LandingResolver.resolveLandingRoute(visible);
+        
+        if (location.pathname === targetRoute) {
+            return <Navigate to="/app/unauthorized" replace />;
+        }
+        
+        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`);
+        return <Navigate to={targetRoute} replace />;
     }
 
     return <>{children}</>;

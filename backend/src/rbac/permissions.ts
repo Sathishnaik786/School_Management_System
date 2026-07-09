@@ -67,9 +67,21 @@ export const PERMISSIONS = {
     ATTENDANCE_VIEW: 'ATTENDANCE_VIEW',
     ATTENDANCE_VIEW_SELF: 'ATTENDANCE_VIEW_SELF',
 
-    // DASHBOARD
+    // DASHBOARD VIEWS
     DASHBOARD_VIEW_ADMIN: 'DASHBOARD_VIEW_ADMIN',
     DASHBOARD_VIEW_FACULTY: 'DASHBOARD_VIEW_FACULTY',
+
+    // UNIFIED MODULE DASHBOARD PERMISSIONS
+    ADMIN_DASHBOARD_VIEW: 'admin.dashboard.view',
+    ASSESSMENT_DASHBOARD_VIEW: 'assessment.dashboard.view',
+    EXAM_DASHBOARD_VIEW: 'exam.dashboard.view',
+    FEES_DASHBOARD_VIEW: 'fees.dashboard.view',
+    ADMISSION_DASHBOARD_VIEW: 'admission.dashboard.view',
+    TRANSPORT_DASHBOARD_VIEW: 'transport.dashboard.view',
+    FACULTY_DASHBOARD_VIEW: 'faculty.dashboard.view',
+    STUDENT_DASHBOARD_VIEW: 'student.dashboard.view',
+    PARENT_DASHBOARD_VIEW: 'parent.dashboard.view',
+    DRIVER_DASHBOARD_VIEW: 'driver.dashboard.view',
 
     // EXAMS
     SUBJECT_VIEW: 'SUBJECT_VIEW',
@@ -89,7 +101,7 @@ export const PERMISSIONS = {
     SUBJECT_ASSIGN_FACULTY: 'SUBJECT_ASSIGN_FACULTY',
     SUBJECT_UPDATE_OWN: 'SUBJECT_UPDATE_OWN',
 
-    // ASSESSMENT PLATFORM
+    // ASSESSMENT PLATFORM GRANULAR NAMESPACES
     ASSESSMENT_CONFIG_VIEW: 'assessment.config.view',
     ASSESSMENT_CONFIG_MANAGE: 'assessment.config.manage',
     ASSESSMENT_WORKFLOW_MANAGE: 'assessment.workflow.manage',
@@ -99,6 +111,21 @@ export const PERMISSIONS = {
     ASSESSMENT_TEMPLATE_VIEW: 'assessment.template.view',
     ASSESSMENT_TEMPLATE_MANAGE: 'assessment.template.manage',
     ASSESSMENT_TEMPLATE_PUBLISH: 'assessment.template.publish',
+    
+    ASSESSMENT_FOUNDATION_VIEW: 'assessment.foundation.view',
+    ASSESSMENT_FOUNDATION_MANAGE: 'assessment.foundation.manage',
+    ASSESSMENT_PAPER_GENERATE: 'assessment.paper.generate',
+    ASSESSMENT_PAPER_VIEW: 'assessment.paper.view',
+    ASSESSMENT_SCHEDULE_MANAGE: 'assessment.schedule.manage',
+    ASSESSMENT_SCHEDULE_VIEW: 'assessment.schedule.view',
+    ASSESSMENT_ATTEMPT_WRITE: 'assessment.attempt.write',
+    ASSESSMENT_ATTEMPT_VIEW: 'assessment.attempt.view',
+    ASSESSMENT_EVALUATION_MANAGE: 'assessment.evaluation.manage',
+    ASSESSMENT_RESULT_VIEW: 'assessment.result.view',
+    ASSESSMENT_RESULT_PUBLISH: 'assessment.result.publish',
+    ASSESSMENT_ANALYTICS_VIEW: 'assessment.analytics.view',
+    ASSESSMENT_SETTINGS_VIEW: 'assessment.settings.view',
+    ASSESSMENT_SETTINGS_MANAGE: 'assessment.settings.manage',
 };
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -36,24 +36,20 @@ export function isWidgetVisible(
     const vc = widget.visibilityConfig;
     if (!vc) return true; // No restrictions → always visible
 
-    // 1. Role check
-    if (vc.roles && vc.roles.length > 0) {
-        const upperRoles = ctx.userRoles.map(r => r.toUpperCase());
-        const hasRole = vc.roles.some(r => upperRoles.includes(r.toUpperCase()));
-        if (!hasRole) return false;
-    }
+    // Super Admin bypasses all checks
+    if (ctx.userRoles.includes('SUPERADMIN')) return true;
 
-    // 2. Permission check
+    // 1. Permission check
     if (vc.permission) {
         if (!ctx.userPermissions.includes(vc.permission)) return false;
     }
 
-    // 3. Feature flag check
+    // 2. Feature flag check
     if (vc.featureFlag) {
         if (!ctx.enabledFeatureFlags.includes(vc.featureFlag)) return false;
     }
 
-    // 4. Data presence check
+    // 3. Data presence check
     if (vc.requiresData && !ctx.hasData) return false;
 
     return true;

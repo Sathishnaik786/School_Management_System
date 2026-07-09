@@ -5,6 +5,9 @@ import { useTheme } from '../hooks/theme/useTheme';
 import { useMasterData } from '../modules/admission/context/MasterDataContext';
 
 import { useSettingsStore } from '../store/settings.store';
+import { MENU_REGISTRY } from '../config/menu_registry';
+import { useModuleVisibility } from '../services/ModuleVisibilityService';
+import { LandingResolver } from '../services/LandingResolver';
 import {
     LayoutDashboard,
     Users,
@@ -37,20 +40,15 @@ import {
     Briefcase,
     Building,
     AlertCircle,
-    History,
-    Command,
     ChevronLeft,
     ChevronRight,
-    Star,
-    SlidersHorizontal,
-    MessageSquare,
-    CheckSquare,
-    Sparkles,
-    Palette,
     Moon,
     Sun,
-    HelpCircle,
-    Shield
+    Command,
+    Sparkles,
+    SlidersHorizontal,
+    CheckSquare,
+    MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CommandPalette } from '../components/search/CommandPalette';
@@ -58,8 +56,6 @@ import { useCommandPalette } from '../hooks/layout/useCommandPalette';
 import { NotificationCenter } from '../features/notifications/NotificationCenter';
 import { useNotificationStore } from '../store/notification.store';
 import { Breadcrumb } from '../components/navigation/Breadcrumb';
-import { useNavigationStore } from '../store/navigation.store';
-import { ROUTE_LABEL_MAP } from '../lib/breadcrumb';
 import { useWorkspaceOptional } from '../modules/common/workspace/WorkspaceContext';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
@@ -76,13 +72,6 @@ export const DashboardLayout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [sidebarSearch, setSidebarSearch] = useState('');
-    const [favorites, setFavorites] = useState<string[]>(() => {
-        try {
-            return JSON.parse(localStorage.getItem('erp-favorites') || '[]');
-        } catch {
-            return [];
-        }
-    });
     
     // Preference states from global store
     const { theme, setTheme, colorPreset, setColorPreset, density, setDensity, reducedMotion, toggleReducedMotion } = useTheme();
@@ -91,371 +80,21 @@ export const DashboardLayout = () => {
     const { isOpen: isPaletteOpen, open: openPalette, close: closePalette } = useCommandPalette();
     const workspace = useWorkspaceOptional();
     const { unreadCount, togglePanel: toggleNotifications } = useNotificationStore();
-    const { trackVisit, recentlyVisited } = useNavigationStore();
 
-    // Sync favorites to local storage
-    useEffect(() => {
-        localStorage.setItem('erp-favorites', JSON.stringify(favorites));
-    }, [favorites]);
+    const { getVisibleModules, isModuleVisible } = useModuleVisibility();
 
-    // Track visit
-    useEffect(() => {
-        const segments = location.pathname.split('/').filter(Boolean);
-        const lastSeg = segments[segments.length - 1];
-        const label = ROUTE_LABEL_MAP[lastSeg] || lastSeg?.charAt(0).toUpperCase() + lastSeg?.slice(1) || 'Page';
-        trackVisit(location.pathname, label);
-    }, [location.pathname, trackVisit]);
-
-    // Roles check
-    const isAdmin = hasRole('ADMIN') || hasRole('HEAD_OF_INSTITUTE');
-    const isFaculty = hasRole('FACULTY');
-    const isStudent = hasRole('STUDENT');
-    const isParent = hasRole('PARENT');
-    const isTransportAdmin = hasRole('TRANSPORT_ADMIN');
-    const isDriver = hasRole('BUS_DRIVER');
-    const isExamAdmin = hasRole('EXAM_CELL_ADMIN');
-
-    // Consolidated Admission Roles
-    const isReceptionist = hasRole('RECEPTIONIST') || hasRole('FRONT_DESK');
-    const isCounselor = hasRole('COUNSELOR') || hasRole('COUNSELLOR');
-    const isAdmissionOfficer = hasRole('ADMISSION_OFFICER') || hasRole('ADMIN');
-    const isExamCell = hasRole('EXAM_CELL') || hasRole('EXAM_CELL_ADMIN');
-    const isPrincipal = hasRole('PRINCIPAL') || hasRole('HOI') || hasRole('HEAD_OF_INSTITUTE');
-    const isFinance = hasRole('FINANCE_OFFICER') || hasRole('ACCOUNTANT');
-
-    // Menu list
-    const menuGroups = [
-        // EXAM CELL ADMIN MENU
-        ...(isExamAdmin ? [{
-            label: 'Examination Cell',
-            items: [
-                { label: 'Overview', icon: LayoutDashboard, path: '/app/exam-admin/dashboard', permission: 'EXAM_VIEW' },
-                { label: 'Timetable', icon: Calendar, path: '/app/admin/exams/timetable', permission: 'EXAM_VIEW' },
-                { label: 'Seating', icon: Users, path: '/app/admin/exams/seating', permission: 'EXAM_VIEW' },
-                { label: 'Question Papers', icon: ClipboardList, path: '/app/admin/exams/question-papers', permission: 'EXAM_VIEW' },
-                { label: 'Results', icon: GraduationCap, path: '/app/admin/exams/results', permission: 'MARKS_VIEW' },
-                { label: 'Analytics', icon: BarChart3, path: '/app/admin/exams/analytics', permission: 'EXAM_VIEW' },
-                { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
-                { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
-            ]
-        }] : []),
-
-        // ASSESSMENT PLATFORM MENU
-        ...((isExamAdmin || isAdmin) ? [{
-            label: 'Assessment Platform',
-            items: [
-                { label: 'Settings & Workflows', icon: Settings, path: '/app/admissions/settings/assessment', permission: 'assessment.config.view' },
-                { label: 'Question Bank', icon: FileText, path: '/app/admissions/settings/assessment/questions', permission: 'assessment.question.view' },
-                { label: 'Template Builder', icon: ClipboardList, path: '/app/admissions/settings/assessment/templates', permission: 'assessment.template.view' },
-            ]
-        }] : []),
-
-        // ADMIN & HEAD_OF_INSTITUTE
-        ...(isAdmin ? [
-            {
-                label: 'General',
-                items: [
-                    { label: 'Overview', icon: LayoutDashboard, path: '/app/dashboard' },
-                ]
-            },
-            {
-                label: 'Human Resources',
-                items: [
-                    { label: 'Faculty Management', icon: GraduationCap, path: '/app/academic/faculty', permission: 'FACULTY_PROFILE_MANAGE' },
-                    { label: 'Staff Management', icon: Briefcase, path: '/app/admin/staff', permission: 'STAFF_PROFILE_MANAGE' },
-                ]
-            },
-            {
-                label: 'Administration',
-                items: [
-                    { label: 'Admissions', icon: ClipboardList, path: '/app/admissions/review', permission: 'admission.review' },
-                    { label: 'Student Management', icon: Users, path: '/app/students', permission: 'STUDENT_VIEW' },
-                    { label: 'Academic Setup', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
-                    { label: 'Departments', icon: Building, path: '/app/academic/departments', permission: 'DEPARTMENT_VIEW' },
-                    { label: 'Subject Management', icon: BookOpen, path: '/app/exams/subjects', permission: 'SUBJECT_VIEW' },
-                    { label: 'Attendance Dashboard', icon: BarChart3, path: '/app/attendance/admin/dashboard', permission: 'DASHBOARD_VIEW_ADMIN' },
-                    { label: 'System Settings', icon: Settings, path: '/app/settings' },
-                ]
-            },
-            {
-                label: 'Finances',
-                items: [
-                    { label: 'Finance Dashboard', icon: LayoutDashboard, path: '/app/finance/dashboard', permission: 'fees.view' },
-                    { label: 'Fee Structures', icon: Coins, path: '/app/finance/structures', permission: 'fees.structure.manage' },
-                    { label: 'Fee Demands', icon: FileText, path: '/app/finance/demands', permission: 'fees.demand.view' },
-                    { label: 'Payment Queue', icon: Coins, path: '/app/finance/payments', permission: 'fees.payment.collect' },
-                    { label: 'Student Ledger', icon: FileText, path: '/app/finance/ledger', permission: 'fees.view' },
-                    { label: 'Transport', icon: Bus, path: '/app/transport/setup', permission: 'TRANSPORT_SETUP' },
-                ]
-            },
-            {
-                label: 'Tools & Utilities',
-                items: [
-                    { label: 'Import History', icon: ClipboardList, path: '/app/import/history' },
-                ]
-            }
-        ] : []),
-
-        // FACULTY
-        ...(isFaculty ? [
-            {
-                label: 'General',
-                items: [
-                    { label: 'Overview', icon: LayoutDashboard, path: '/app/dashboard' },
-                ]
-            },
-            {
-                label: 'Academic',
-                items: [
-                    { label: 'Classes', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
-                    { label: 'My Students', icon: Users, path: '/app/academic/my-students', permission: 'SECTION_VIEW' },
-                    { label: 'My Assignments', icon: BookOpen, path: '/app/academic/assignments', permission: 'SECTION_VIEW' },
-                    { label: 'Exam Management', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
-                    { label: 'Time Table', icon: Clock, path: '/app/timetable/manage', permission: 'TIMETABLE_CREATE' },
-                    { label: 'Attendance', icon: Calendar, path: '/app/attendance/mark', permission: 'ATTENDANCE_MARK' },
-                ]
-            },
-        ] : []),
-
-        // STUDENT
-        ...(isStudent ? [
-            {
-                label: 'Core',
-                items: [
-                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-                    { label: 'My Profile', icon: UserCircle, path: '/app/profile' },
-                ]
-            },
-            {
-                label: 'Academics',
-                items: [
-                    { label: 'Assignments', icon: ClipboardList, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
-                    { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
-                    { label: 'My Timetable', icon: Clock, path: '/app/timetable/my', permission: 'TIMETABLE_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Exams & Results',
-                items: [
-                    { label: 'Results', icon: GraduationCap, path: '/app/exams/results', permission: 'MARKS_VIEW' },
-                ]
-            },
-            {
-                label: 'Attendance',
-                items: [
-                    { label: 'My Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Fees',
-                items: [
-                    { label: 'My Fees', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Transport',
-                items: [
-                    { label: 'My Transport', icon: Bus, path: '/app/transport/my', permission: 'TRANSPORT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Account',
-                items: [
-                    { label: 'Settings', icon: Settings, path: '/app/settings' },
-                ]
-            },
-        ] : []),
-
-        // PARENT
-        ...(isParent ? [
-            {
-                label: 'Admission',
-                items: [
-                    { label: 'My Admission', icon: ClipboardList, path: '/app/admissions/my', permission: 'admission.view_own' },
-                    { label: 'Documents', icon: FileText, path: '/app/admissions/my', permission: 'admission.view_own' },
-                    { label: 'Timeline', icon: Clock, path: '/app/admissions/my', permission: 'admission.view_own' },
-                    { label: 'Admission Fees', icon: Coins, path: '/app/admissions/my', permission: 'admission.view_own' },
-                    { label: 'Offer Letter', icon: GraduationCap, path: '/app/admissions/my', permission: 'admission.view_own' },
-                ]
-            },
-            {
-                label: 'Core',
-                items: [
-                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/admissions/my' },
-                ]
-            },
-            {
-                label: 'Children',
-                items: [
-                    { label: 'My Children', icon: Users, path: '/app/students/my-children', permission: 'STUDENT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Academics',
-                items: [
-                    { label: 'Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
-                    { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
-                    { label: 'Assignments', icon: BookOpen, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Exams & Results',
-                items: [
-                    { label: 'Results', icon: GraduationCap, path: '/app/exams/results', permission: 'MARKS_VIEW' },
-                ]
-            },
-            {
-                label: 'Fees',
-                items: [
-                    { label: 'Fees & Payments', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Transport',
-                items: [
-                    { label: 'Transport Details', icon: Bus, path: '/app/transport/my', permission: 'TRANSPORT_VIEW_SELF' },
-                ]
-            },
-            {
-                label: 'Account',
-                items: [
-                    { label: 'Profile', icon: UserCircle, path: '/app/profile' },
-                    { label: 'Settings', icon: Settings, path: '/app/settings' },
-                ]
-            },
-        ] : []),
-
-        // TRANSPORT ADMIN
-        ...(user?.roles.includes('TRANSPORT_ADMIN') ? [
-            {
-                label: '1. Transport Setup',
-                items: [
-                    { label: 'Routes', icon: MapPin, path: '/app/transport/setup#routes' },
-                    { label: 'Stops & Points', icon: Settings, path: '/app/transport/setup#stops' },
-                    { label: 'Vehicle Fleet', icon: Bus, path: '/app/transport/setup#vehicles' },
-                    { label: 'Driver Registry', icon: User, path: '/app/transport/setup#drivers' },
-                    { label: 'Fees', icon: DollarSign, path: '/app/transport/setup#fees' },
-                ]
-            },
-            {
-                label: '2. Transport Operations',
-                items: [
-                    { label: 'Overview', icon: LayoutDashboard, path: '/app/transport/overview' },
-                    { label: 'Live Trip Monitor', icon: Activity, path: '/app/transport/monitor' },
-                    { label: 'Print Manifests', icon: FileText, path: '/app/transport/manifests' },
-                    { label: 'Start Incident', icon: AlertOctagon, path: '/app/transport/incidents' },
-                    { label: 'Analytics', icon: BarChart3, path: '/app/transport/analytics' },
-                ]
-            },
-            {
-                label: '3. Assignments',
-                items: [
-                    { label: 'Student Assignment', icon: Users, path: '/app/transport/assign' },
-                    { label: 'Bulk Assignment', icon: ClipboardList, path: '/app/transport/bulk-assign' },
-                ]
-            },
-            {
-                label: '4. System Diagnostics',
-                items: [
-                    { label: 'Debug Info', icon: ShieldCheck, path: '/app/transport/debug' },
-                ]
-            }
-        ] : []),
-
-        // BUS DRIVER
-        ...(isDriver ? [
-            {
-                label: 'Driver Console',
-                items: [
-                    { label: 'My Trips', icon: Bus, path: '/app/transport/driver' },
-                    { label: 'My Profile', icon: UserCircle, path: '/app/profile' },
-                ]
-            }
-        ] : []),
-
-        // RECEPTIONIST MENU
-        ...(isReceptionist ? [
-            {
-                label: 'Reception Desk',
-                items: [
-                    { label: 'Walk-ins Log', icon: Users, path: '/app/admissions/inquiries' },
-                    { label: 'New Inquiry', icon: FileText, path: '/app/admissions/inquiries#new' }
-                ]
-            }
-        ] : []),
-
-        // COUNSELOR MENU
-        ...(isCounselor ? [
-            {
-                label: 'Counseling Desk',
-                items: [
-                    { label: 'Assigned Leads', icon: ClipboardList, path: '/app/admissions/inquiries' },
-                    { label: 'Follow-up Scheduler', icon: Calendar, path: '/app/admissions/inquiries#calls' }
-                ]
-            }
-        ] : []),
-
-        // ADMISSION OFFICER MENU
-        ...(isAdmissionOfficer ? [
-            {
-                label: 'Admissions Desk',
-                items: [
-                    { label: 'Overview', icon: LayoutDashboard, path: '/app/admissions/dashboard' },
-                    { label: 'Applications Pipeline', icon: FileText, path: '/app/admissions/review' },
-                    { label: 'Document Checklist', icon: ShieldCheck, path: '/app/admissions/verification' },
-                    { label: 'Enrollment Handoff', icon: GraduationCap, path: '/app/admissions/enrollment' }
-                ]
-            }
-        ] : []),
-
-        // EXAM CELL DESK (ADMISSIONS ADDITIONS)
-        ...(isExamCell ? [
-            {
-                label: 'Exam Cell Desk',
-                items: [
-                    { label: 'Entrance Exams', icon: Calendar, path: '/app/admissions/exams' },
-                    { label: 'Interviews Panel', icon: Users, path: '/app/admissions/interviews' },
-                    { label: 'Merit List Desk', icon: FileText, path: '/app/admissions/merit' },
-                    { label: 'Offer Dispatch Desk', icon: GraduationCap, path: '/app/admissions/offers' }
-                ]
-            }
-        ] : []),
-
-        // PRINCIPAL / HOI MENU
-        ...(isPrincipal ? [
-            {
-                label: 'Principal Desk',
-                items: [
-                    { label: 'Merit Approvals', icon: ShieldCheck, path: '/app/admissions/merit' },
-                    { label: 'Offer Dispatch approvals', icon: FileText, path: '/app/admissions/offers' },
-                    { label: 'Admissions Funnel', icon: BarChart3, path: '/app/admissions/analytics' }
-                ]
-            }
-        ] : []),
-
-        // FINANCE OFFICER MENU
-        ...(isFinance ? [
-            {
-                label: 'Finance Desk',
-                items: [
-                    { label: 'Dashboard', icon: LayoutDashboard, path: '/app/finance/dashboard', permission: 'fees.view' },
-                    { label: 'Fee Structures', icon: Coins, path: '/app/finance/structures', permission: 'fees.structure.manage' },
-                    { label: 'Fee Demands', icon: FileText, path: '/app/finance/demands', permission: 'fees.demand.view' },
-                    { label: 'Payment Queue', icon: Coins, path: '/app/finance/payments', permission: 'fees.payment.collect' },
-                    { label: 'Student Ledger', icon: BookOpen, path: '/app/finance/ledger', permission: 'fees.view' },
-                    { label: 'Receipt Center', icon: Receipt, path: '/app/finance/receipts', permission: 'fees.view' },
-                    { label: 'Waivers', icon: ShieldCheck, path: '/app/finance/waivers', permission: 'fees.waiver.approve' },
-                    { label: 'Refunds', icon: RefreshCw, path: '/app/finance/refunds', permission: 'fees.refund.process' },
-                    { label: 'Reports', icon: BarChart3, path: '/app/finance/reports', permission: 'fees.view' },
-                    { label: 'Settings', icon: Settings, path: '/app/finance/settings', permission: 'fees.structure.manage' }
-                ]
-            }
-        ] : []),
-    ];
-
-    // Filter menu items by sidebarSearch
-    const filteredMenuGroups = menuGroups.map(group => {
+    // Dynamic permission-driven menu filtration
+    const filteredMenuGroups = MENU_REGISTRY.map(group => {
+        // Enforce module boundary check
+        if (group.module && !isModuleVisible(group.module)) {
+            return { ...group, items: [] };
+        }
+        // If group itself requires a permission, check it
+        if (group.permission && !hasPermission(group.permission)) {
+            return { ...group, items: [] };
+        }
         const matchingItems = group.items.filter(item => 
+            (!item.permission || hasPermission(item.permission)) &&
             item.label.toLowerCase().includes(sidebarSearch.toLowerCase())
         );
         return {
@@ -466,59 +105,43 @@ export const DashboardLayout = () => {
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-    const toggleFavorite = (path: string, e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setFavorites(prev => {
-            if (prev.includes(path)) {
-                return prev.filter(p => p !== path);
-            }
-            return [...prev, path];
-        });
-    };
-
-    // Mobile Dynamic bottom nav generation
+    // Mobile Dynamic bottom nav generation using permissions and visible modules
     const getMobileBottomNav = () => {
-        if (isAdmin) {
-            return [
-                { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-                { label: 'Admissions', icon: ClipboardList, path: '/app/admissions/review', permission: 'admission.review' },
-                { label: 'Students', icon: Users, path: '/app/students', permission: 'STUDENT_VIEW' },
-                { label: 'Attendance', icon: BarChart3, path: '/app/attendance/admin/dashboard', permission: 'DASHBOARD_VIEW_ADMIN' },
-                { label: 'Settings', icon: Settings, path: '/app/settings' },
-            ];
-        }
-        if (isParent) {
-            return [
-                { label: 'Home', icon: LayoutDashboard, path: '/app/dashboard' },
-                { label: 'Children', icon: Users, path: '/app/students/my-children', permission: 'STUDENT_VIEW_SELF' },
-                { label: 'Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
-                { label: 'Fees', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
-                { label: 'Profile', icon: UserCircle, path: '/app/profile' },
-            ];
-        }
-        if (isFaculty) {
-            return [
-                { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-                { label: 'Classes', icon: GraduationCap, path: '/app/academic/classes', permission: 'CLASS_VIEW' },
-                { label: 'Attendance', icon: Calendar, path: '/app/attendance/mark', permission: 'ATTENDANCE_MARK' },
-                { label: 'Exams', icon: FileText, path: '/app/exams/manage', permission: 'EXAM_VIEW' },
-                { label: 'Profile', icon: UserCircle, path: '/app/profile' },
-            ];
-        }
-        if (isStudent) {
-            return [
-                { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-                { label: 'Timetable', icon: Clock, path: '/app/timetable/my', permission: 'TIMETABLE_VIEW_SELF' },
-                { label: 'Exams', icon: GraduationCap, path: '/app/exams/results', permission: 'MARKS_VIEW' },
-                { label: 'Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
-                { label: 'Profile', icon: UserCircle, path: '/app/profile' },
-            ];
-        }
-        return [
-            { label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
-            { label: 'Profile', icon: UserCircle, path: '/app/profile' },
+        const visibleModules = getVisibleModules();
+        const activeModuleIds = new Set(visibleModules.map(m => m.id));
+        const landingRoute = LandingResolver.resolveLandingRoute(visibleModules);
+
+        const items = [
+            { label: 'Dashboard', icon: LayoutDashboard, path: landingRoute }
         ];
+
+        if (activeModuleIds.has('assessment')) {
+            items.push({ label: 'Assessments', icon: ClipboardList, path: '/app/assessment/dashboard' });
+        }
+        if (activeModuleIds.has('admission')) {
+            items.push({ label: 'Admissions', icon: ClipboardList, path: '/app/admissions/review' });
+        }
+        if (activeModuleIds.has('student') || activeModuleIds.has('parent')) {
+            items.push({ label: 'Students', icon: Users, path: '/app/students' });
+        }
+        if (activeModuleIds.has('finance')) {
+            items.push({ label: 'Finance', icon: Coins, path: '/app/finance/dashboard' });
+        }
+        if (activeModuleIds.has('driver') || activeModuleIds.has('transport')) {
+            items.push({ label: 'Transport', icon: Bus, path: '/app/transport/overview' });
+        }
+
+        items.push({ label: 'Profile', icon: UserCircle, path: '/app/profile' });
+
+        const uniqueItems: any[] = [];
+        const paths = new Set<string>();
+        for (const item of items) {
+            if (!paths.has(item.path)) {
+                paths.add(item.path);
+                uniqueItems.push(item);
+            }
+        }
+        return uniqueItems.slice(0, 5);
     };
 
     const mobileBottomNavItems = getMobileBottomNav().filter(item => 
@@ -531,7 +154,6 @@ export const DashboardLayout = () => {
         const pathBase = item.path.split('#')[0];
         const pathHash = item.path.split('#')[1] ? '#' + item.path.split('#')[1] : '';
         const isActive = location.pathname === pathBase && (pathHash ? location.hash === pathHash : !location.hash);
-        const isFav = favorites.includes(item.path);
 
         return (
             <Link
@@ -560,15 +182,6 @@ export const DashboardLayout = () => {
                     >
                         {item.label}
                     </motion.span>
-                )}
-
-                {isSidebarOpen && (
-                    <button
-                        onClick={(e) => toggleFavorite(item.path, e)}
-                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/20 text-muted-foreground/60 hover:text-yellow-500`}
-                    >
-                        <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-yellow-500 text-yellow-500 opacity-100' : ''}`} />
-                    </button>
                 )}
             </Link>
         );
@@ -602,7 +215,7 @@ export const DashboardLayout = () => {
                         </div>
 
                         {/* Exam Cell Identity Banner */}
-                        {isExamAdmin && isSidebarOpen && (
+                        {hasPermission('exam.dashboard.view') && isSidebarOpen && (
                             <div className="mt-2 px-3 py-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 rounded-xl">
                                 <h4 className="text-[10px] font-black text-purple-900 dark:text-purple-300 uppercase tracking-wide">Examination Cell</h4>
                                 <p className="text-[8px] text-purple-600 dark:text-purple-400 font-bold">Controller of Examinations</p>
@@ -628,47 +241,6 @@ export const DashboardLayout = () => {
 
                     {/* Sidebar Navigation Body */}
                     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6 custom-scrollbar">
-                        {/* Favorites Section */}
-                        {favorites.length > 0 && isSidebarOpen && (
-                            <div className="space-y-1 bg-yellow-500/5 p-2 rounded-2xl border border-yellow-500/10">
-                                <div className="px-2 py-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-yellow-600">
-                                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                                    Favorites
-                                </div>
-                                <div className="space-y-0.5">
-                                    {menuGroups.flatMap(g => g.items).filter(item => favorites.includes(item.path)).map((item, i) => (
-                                        <SidebarItem key={`fav-${i}`} item={item} />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Recent History Section */}
-                        {recentlyVisited && recentlyVisited.length > 0 && isSidebarOpen && (
-                            <div className="space-y-1 p-2 rounded-2xl border border-border/40">
-                                <div className="px-2 py-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                    <History className="w-3 h-3 text-muted-foreground" />
-                                    Recents
-                                </div>
-                                <div className="space-y-0.5">
-                                    {recentlyVisited.slice(0, 3).map((visit: { path: string; label: string }, i: number) => {
-                                        // Match label with icon
-                                        const matchingItem = menuGroups.flatMap(g => g.items).find(item => item.path === visit.path);
-                                        const IconComponent = matchingItem?.icon || FileText;
-                                        return (
-                                            <Link
-                                                key={`recent-${i}`}
-                                                to={visit.path}
-                                                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground truncate"
-                                            >
-                                                <IconComponent className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
-                                                <span className="truncate">{visit.label}</span>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
 
                         {/* Main Group Menus */}
                         {filteredMenuGroups.map((group, idx) => (
@@ -728,7 +300,7 @@ export const DashboardLayout = () => {
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-1">
-                                    {menuGroups.map((group, idx) => (
+                                    {filteredMenuGroups.map((group, idx) => (
                                         <div key={idx} className="space-y-1.5">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">{group.label}</p>
                                             <div className="space-y-0.5">
