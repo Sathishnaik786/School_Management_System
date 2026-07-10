@@ -1,5 +1,5 @@
 import { BaseService } from '../../admission/services/BaseService';
-import { supabase } from '../../../../config/supabase';
+import { supabase } from '../../../config/supabase';
 
 export class AttendanceValidationService extends BaseService {
     public async validateMarking(
