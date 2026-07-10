@@ -122,9 +122,66 @@ import { FeeCollectionPage as AdmissionFeeCollectionPage } from '../modules/admi
 import { EnrollmentPage } from '../modules/admission/pages/EnrollmentPage';
 import { SettingsPage as AdmissionSettingsPage } from '../modules/admission/pages/SettingsPage';
 import { AssessmentSettings } from '../modules/assessment/foundation/pages/AssessmentSettings';
-import { QuestionBankManager } from '../modules/assessment/question-bank/pages/QuestionBankManager';
-import { TemplateBuilderManager } from '../modules/assessment/template-builder/pages/TemplateBuilderManager';
+import { WorkflowBuilder as AssessmentWorkflowBuilder } from '../modules/assessment/foundation/pages/WorkflowBuilder';
+import { QuestionBankPage } from '../modules/assessment/question-bank/pages/QuestionBankPage';
+import { QuestionEditorPage } from '../modules/assessment/question-bank/pages/QuestionEditorPage';
+import { QuestionPreviewPage } from '../modules/assessment/question-bank/pages/QuestionPreviewPage';
+import { QuestionHistoryPage } from '../modules/assessment/question-bank/pages/QuestionHistoryPage';
+import { QuestionImportPage } from '../modules/assessment/question-bank/pages/QuestionImportPage';
+import { QuestionReviewQueuePage } from '../modules/assessment/question-bank/pages/QuestionReviewQueuePage';
+import { QuestionFolderPage } from '../modules/assessment/question-bank/pages/QuestionFolderPage';
+import { QuestionAssetsPage } from '../modules/assessment/question-bank/pages/QuestionAssetsPage';
+import { TemplateDashboardPage } from '../modules/assessment/template-builder/pages/TemplateDashboardPage';
+import { TemplateEditorPage } from '../modules/assessment/template-builder/pages/TemplateEditorPage';
+import { TemplatePreviewPage } from '../modules/assessment/template-builder/pages/TemplatePreviewPage';
+import { TemplateHistoryPage } from '../modules/assessment/template-builder/pages/TemplateHistoryPage';
+import { BlueprintDashboardPage } from '../modules/assessment/blueprint-builder/pages/BlueprintDashboardPage';
+import { BlueprintEditorPage } from '../modules/assessment/blueprint-builder/pages/BlueprintEditorPage';
+import { BlueprintPreviewPage } from '../modules/assessment/blueprint-builder/pages/BlueprintPreviewPage';
+import { BlueprintHistoryPage } from '../modules/assessment/blueprint-builder/pages/BlueprintHistoryPage';
 import { AssessmentDashboard } from '../modules/assessment/foundation/pages/AssessmentDashboard';
+
+import { PaperDashboardPage } from '../modules/assessment/paper-generator/pages/PaperDashboardPage';
+import { PaperGeneratorWizard } from '../modules/assessment/paper-generator/pages/PaperGeneratorWizard';
+import { PaperPreviewPage } from '../modules/assessment/paper-generator/pages/PaperPreviewPage';
+
+import { EvaluationDashboardPage } from '../modules/assessment/evaluation/pages/EvaluationDashboardPage';
+import { EvaluationWorkspacePage } from '../modules/assessment/evaluation/pages/EvaluationWorkspacePage';
+import { RubricDesignerPage } from '../modules/assessment/evaluation/pages/RubricDesignerPage';
+import { ModerationQueuePage } from '../modules/assessment/evaluation/pages/ModerationQueuePage';
+import { RevaluationPage } from '../modules/assessment/evaluation/pages/RevaluationPage';
+import { GradeCalculationPage } from '../modules/assessment/evaluation/pages/GradeCalculationPage';
+import { EvaluationAnalyticsPage } from '../modules/assessment/evaluation/pages/EvaluationAnalyticsPage';
+
+import { ResultDashboardPage } from '../modules/assessment/result-engine/pages/ResultDashboardPage';
+import { StudentResultsPage } from '../modules/assessment/result-engine/pages/StudentResultsPage';
+import { RankingPage } from '../modules/assessment/result-engine/pages/RankingPage';
+import { PromotionPage } from '../modules/assessment/result-engine/pages/PromotionPage';
+import { GradeCardPage } from '../modules/assessment/result-engine/pages/GradeCardPage';
+import { TranscriptPage } from '../modules/assessment/result-engine/pages/TranscriptPage';
+import { ResultAnalyticsPage } from '../modules/assessment/result-engine/pages/ResultAnalyticsPage';
+
+import { AssessmentAnalyticsDashboard } from '../modules/assessment/analytics/pages/AssessmentAnalyticsDashboard';
+import { QuestionAnalyticsPage } from '../modules/assessment/analytics/pages/QuestionAnalyticsPage';
+import { COAttainmentPage } from '../modules/assessment/analytics/pages/COAttainmentPage';
+import { POAttainmentPage } from '../modules/assessment/analytics/pages/POAttainmentPage';
+import { LearningGapPage } from '../modules/assessment/analytics/pages/LearningGapPage';
+import { AccreditationPage } from '../modules/assessment/analytics/pages/AccreditationPage';
+
+import { AcademicRecordsDashboard } from '../modules/assessment/academic-records/pages/AcademicRecordsDashboard';
+import { AcademicHistoryPage } from '../modules/assessment/academic-records/pages/AcademicHistoryPage';
+import { DegreeAuditPage } from '../modules/assessment/academic-records/pages/DegreeAuditPage';
+import { GraduationDashboard } from '../modules/assessment/academic-records/pages/GraduationDashboard';
+import { TranscriptCenterPage } from '../modules/assessment/academic-records/pages/TranscriptCenterPage';
+import { AcademicStandingPage } from '../modules/assessment/academic-records/pages/AcademicStandingPage';
+
+import { AttendanceDashboard } from '../modules/attendance/pages/AttendanceDashboard';
+import { AttendanceCalendarManager } from '../modules/attendance/pages/AttendanceCalendarManager';
+import { AttendanceExceptionsPage } from '../modules/attendance/pages/AttendanceExceptionsPage';
+import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
+import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
+import { AttendanceAnalyticsPage } from '../modules/attendance/pages/AttendanceAnalyticsPage';
+import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
 export interface RouteConfig {
     path: string;
@@ -180,8 +237,75 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     
     // ASSESSMENT PLATFORM NAMESPACES (Admin dashboard layouts)
     { path: 'assessment/settings', element: <AssessmentSettings />, layout: 'dashboard', permission: 'assessment.foundation.manage' },
-    { path: 'assessment/questions', element: <QuestionBankManager />, layout: 'dashboard', permission: 'assessment.question.view' },
-    { path: 'assessment/templates', element: <TemplateBuilderManager />, layout: 'dashboard', permission: 'assessment.template.view' },
+    { path: 'assessment/workflows/new', element: <AssessmentWorkflowBuilder />, layout: 'dashboard', permission: 'assessment.foundation.manage' },
+    { path: 'assessment/workflows/:id/edit', element: <AssessmentWorkflowBuilder />, layout: 'dashboard', permission: 'assessment.foundation.manage' },
+    { path: 'assessment/questions', element: <QuestionBankPage />, layout: 'dashboard', permission: 'assessment.question.view' },
+    { path: 'assessment/questions/new', element: <QuestionEditorPage />, layout: 'dashboard', permission: 'assessment.question.create' },
+    { path: 'assessment/questions/:id/edit', element: <QuestionEditorPage />, layout: 'dashboard', permission: 'assessment.question.update' },
+    { path: 'assessment/questions/:id', element: <QuestionPreviewPage />, layout: 'dashboard', permission: 'assessment.question.view' },
+    { path: 'assessment/questions/:id/history', element: <QuestionHistoryPage />, layout: 'dashboard', permission: 'assessment.question.view' },
+    { path: 'assessment/questions/import', element: <QuestionImportPage />, layout: 'dashboard', permission: 'assessment.question.publish' },
+    { path: 'assessment/questions/review', element: <QuestionReviewQueuePage />, layout: 'dashboard', permission: 'assessment.question.review' },
+    { path: 'assessment/questions/folders', element: <QuestionFolderPage />, layout: 'dashboard', permission: 'assessment.folder.manage' },
+    { path: 'assessment/questions/assets', element: <QuestionAssetsPage />, layout: 'dashboard', permission: 'assessment.asset.upload' },
+    { path: 'assessment/templates', element: <TemplateDashboardPage />, layout: 'dashboard', permission: 'assessment.template.view' },
+    { path: 'assessment/templates/new', element: <TemplateEditorPage />, layout: 'dashboard', permission: 'assessment.template.create' },
+    { path: 'assessment/templates/:id', element: <TemplatePreviewPage />, layout: 'dashboard', permission: 'assessment.template.view' },
+    { path: 'assessment/templates/:id/edit', element: <TemplateEditorPage />, layout: 'dashboard', permission: 'assessment.template.update' },
+    { path: 'assessment/templates/:id/history', element: <TemplateHistoryPage />, layout: 'dashboard', permission: 'assessment.template.view' },
+    { path: 'assessment/blueprints', element: <BlueprintDashboardPage />, layout: 'dashboard', permission: 'assessment.blueprint.view' },
+    { path: 'assessment/blueprints/new', element: <BlueprintEditorPage />, layout: 'dashboard', permission: 'assessment.blueprint.create' },
+    { path: 'assessment/blueprints/:id', element: <BlueprintPreviewPage />, layout: 'dashboard', permission: 'assessment.blueprint.view' },
+    { path: 'assessment/blueprints/:id/edit', element: <BlueprintEditorPage />, layout: 'dashboard', permission: 'assessment.blueprint.update' },
+    { path: 'assessment/blueprints/:id/history', element: <BlueprintHistoryPage />, layout: 'dashboard', permission: 'assessment.blueprint.view' },
+
+    // PAPER GENERATOR
+    { path: 'assessment/papers', element: <PaperDashboardPage />, layout: 'dashboard', permission: 'assessment.paper.preview' },
+    { path: 'assessment/papers/wizard', element: <PaperGeneratorWizard />, layout: 'dashboard', permission: 'assessment.paper.generate' },
+    { path: 'assessment/papers/:id', element: <PaperPreviewPage />, layout: 'dashboard', permission: 'assessment.paper.preview' },
+
+    // EVALUATION & GRADING ENGINE
+    { path: 'assessment/evaluation', element: <EvaluationDashboardPage />, layout: 'dashboard', permission: 'assessment.evaluation.view' },
+    { path: 'assessment/evaluation/workspace/:id', element: <EvaluationWorkspacePage />, layout: 'dashboard', permission: 'assessment.evaluation.score' },
+    { path: 'assessment/evaluation/rubrics', element: <RubricDesignerPage />, layout: 'dashboard', permission: 'assessment.evaluation.score' },
+    { path: 'assessment/evaluation/moderation', element: <ModerationQueuePage />, layout: 'dashboard', permission: 'assessment.evaluation.moderate' },
+    { path: 'assessment/evaluation/revaluation', element: <RevaluationPage />, layout: 'dashboard', permission: 'assessment.evaluation.revaluate' },
+    { path: 'assessment/evaluation/grades', element: <GradeCalculationPage />, layout: 'dashboard', permission: 'assessment.evaluation.finalize' },
+    { path: 'assessment/evaluation/analytics', element: <EvaluationAnalyticsPage />, layout: 'dashboard', permission: 'assessment.evaluation.analytics' },
+
+    // RESULT PROCESSING & PUBLICATION ENGINE
+    { path: 'assessment/results', element: <ResultDashboardPage />, layout: 'dashboard', permission: 'assessment.result.view' },
+    { path: 'assessment/results/student-results', element: <StudentResultsPage />, layout: 'dashboard', permission: 'assessment.result.view' },
+    { path: 'assessment/results/rankings', element: <RankingPage />, layout: 'dashboard', permission: 'assessment.result.statistics' },
+    { path: 'assessment/results/promotions', element: <PromotionPage />, layout: 'dashboard', permission: 'assessment.result.promotion' },
+    { path: 'assessment/results/grade-cards', element: <GradeCardPage />, layout: 'dashboard', permission: 'assessment.result.gradecard' },
+    { path: 'assessment/results/transcripts', element: <TranscriptPage />, layout: 'dashboard', permission: 'assessment.result.transcript' },
+    { path: 'assessment/results/analytics', element: <ResultAnalyticsPage />, layout: 'dashboard', permission: 'assessment.result.analytics' },
+
+    // ACCREDITATION & ANALYTICS ENGINE
+    { path: 'assessment/analytics', element: <AssessmentAnalyticsDashboard />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+    { path: 'assessment/analytics/question-analysis', element: <QuestionAnalyticsPage />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+    { path: 'assessment/analytics/co-attainment', element: <COAttainmentPage />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+    { path: 'assessment/analytics/po-attainment', element: <POAttainmentPage />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+    { path: 'assessment/analytics/learning-gap', element: <LearningGapPage />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+    { path: 'assessment/analytics/accreditation', element: <AccreditationPage />, layout: 'dashboard', permission: 'assessment.analytics.view' },
+
+    // ACADEMIC RECORDS & GRADUATION ENGINE
+    { path: 'academic-records', element: <AcademicRecordsDashboard />, layout: 'dashboard', permission: 'academic.records.view' },
+    { path: 'academic-records/history', element: <AcademicHistoryPage />, layout: 'dashboard', permission: 'academic.records.view' },
+    { path: 'academic-records/degree-audit', element: <DegreeAuditPage />, layout: 'dashboard', permission: 'academic.records.view' },
+    { path: 'academic-records/graduation', element: <GraduationDashboard />, layout: 'dashboard', permission: 'academic.records.view' },
+    { path: 'academic-records/transcripts', element: <TranscriptCenterPage />, layout: 'dashboard', permission: 'academic.records.view' },
+    { path: 'academic-records/standing', element: <AcademicStandingPage />, layout: 'dashboard', permission: 'academic.records.view' },
+
+    // ATTENDANCE ENGINE
+    { path: 'attendance', element: <AttendanceDashboard />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/calendar', element: <AttendanceCalendarManager />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/exceptions', element: <AttendanceExceptionsPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/leaves', element: <LeaveManagementPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/defaulters', element: <DefaultersPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/analytics', element: <AttendanceAnalyticsPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/devices', element: <DeviceMonitoringPage />, layout: 'dashboard', permission: 'attendance.view' },
 
     // STUDENT MANAGEMENT
     { path: 'students/dashboard', element: <StudentDashboardPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },

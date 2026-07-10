@@ -4,15 +4,13 @@ import { useToast } from '../../../../components/ui/use-toast';
 import { GitBranch, Trash2, Edit2, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
-interface WorkflowListProps {
-    onEdit: (workflow: any) => void;
-}
-
-export function WorkflowList({ onEdit }: WorkflowListProps) {
+export function WorkflowList() {
     const { data: workflows, isLoading } = useWorkflowsList();
     const { mutateAsync: deleteWorkflow, isPending: isDeleting } = useDeleteWorkflow();
     const { toast } = useToast();
+    const navigate = useNavigate();
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this workflow definition?')) return;
@@ -72,7 +70,7 @@ export function WorkflowList({ onEdit }: WorkflowListProps) {
                                 </div>
                                 <div className="flex gap-1">
                                     <Button
-                                        onClick={() => onEdit(wf)}
+                                        onClick={() => navigate(`/app/assessment/workflows/${wf.id}/edit`)}
                                         size="icon"
                                         variant="outline"
                                         className="w-7 h-7 rounded-lg text-gray-500 border-gray-200"

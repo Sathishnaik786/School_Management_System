@@ -20,57 +20,138 @@ export interface TemplateSection {
     rules: TemplateRule[];
 }
 
+export interface TemplateHeaderConfig {
+    institution_logo: boolean;
+    school_name: boolean;
+    exam_name: boolean;
+    subject: boolean;
+    class: boolean;
+    academic_year: boolean;
+    exam_date: boolean;
+    duration: boolean;
+    max_marks: boolean;
+    student_name: boolean;
+    hall_ticket: boolean;
+    signature_block: boolean;
+    qr_code: boolean;
+    barcode: boolean;
+}
+
+export interface TemplateFooterConfig {
+    invigilator_signature: boolean;
+    chief_superintendent: boolean;
+    generated_timestamp: boolean;
+    page_number: boolean;
+    confidential_watermark: boolean;
+    qr_verification: boolean;
+    instructions_footer: boolean;
+}
+
+export interface TemplateLayoutRule {
+    property: string;
+    value: string;
+}
+
 export interface TemplateItem {
     id: string;
     school_id: string;
     subject_id: string;
+    blueprint_id?: string | null;
     name: string;
     description?: string | null;
+    instructions?: string;
     version: number;
-    status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+    status: 'DRAFT' | 'UNDER_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'ARCHIVED';
     is_deleted: boolean;
     created_at: string;
     updated_at: string;
     sections?: TemplateSection[];
+    layoutRules?: TemplateLayoutRule[];
+    header?: TemplateHeaderConfig | null;
+    footer?: TemplateFooterConfig | null;
+}
+
+export interface TemplateMetrics {
+    totalTemplates: number;
+    statusDistribution: Record<string, number>;
 }
 
 export const templateApi = {
-    async listTemplates(params: { subjectId?: string; page: number; limit: number }): Promise<{ data: TemplateItem[]; totalCount: number }> {
-        const { data } = await apiClient.get('/v1/assessment/templates', { params });
+    listTemplates: async (params: { subjectId?: string; blueprintId?: string; page: number; limit: number }) => {
+        const { data } = await apiClient.get<{ data: TemplateItem[]; totalCount: number }>('/v1/assessment/templates', { params });
         return data;
     },
 
-    async getTemplateById(id: string): Promise<TemplateItem> {
-        const { data } = await apiClient.get(`/v1/assessment/templates/${id}`);
+    getTemplateById: async (id: string) => {
+        const { data } = await apiClient.get<TemplateItem>(`/v1/assessment/templates/${id}`);
         return data;
     },
 
-    async createTemplate(payload: { subject_id: string; name: string; description?: string | null }): Promise<TemplateItem> {
-        const { data } = await apiClient.post('/v1/assessment/templates', payload);
+    createTemplate: async (payload: Partial<TemplateItem>) => {
+        const { data } = await apiClient.post<TemplateItem>('/v1/assessment/templates', payload);
         return data;
     },
 
-    async updateTemplate(id: string, payload: Partial<{ name: string; description: string | null }>): Promise<TemplateItem> {
-        const { data } = await apiClient.put(`/v1/assessment/templates/${id}`, payload);
+    updateTemplate: async (id: string, payload: Partial<TemplateItem>) => {
+        const { data } = await apiClient.put<TemplateItem>(`/v1/assessment/templates/${id}`, payload);
         return data;
     },
 
-    async deleteTemplate(id: string): Promise<void> {
+    deleteTemplate: async (id: string) => {
         await apiClient.delete(`/v1/assessment/templates/${id}`);
     },
 
-    async updateTemplateSections(id: string, sections: Omit<TemplateSection, 'id' | 'template_id'>[]): Promise<TemplateItem> {
-        const { data } = await apiClient.post(`/v1/assessment/templates/${id}/sections`, { sections });
+    updateTemplateSections: async (id: string, sections: TemplateSection[]) => {
+        const { data } = await apiClient.post<TemplateItem>(`/v1/assessment/templates/${id}/sections`, { sections });
         return data;
     },
 
-    async publishTemplate(id: string): Promise<TemplateItem & { warnings?: string[] }> {
-        const { data } = await apiClient.post(`/v1/assessment/templates/${id}/publish`);
+    publishTemplate: async (id: string) => {
+        const { data } = await apiClient.post<TemplateItem & { warnings?: string[] }>(`/v1/assessment/templates/${id}/publish`);
         return data;
     },
 
-    async cloneTemplate(id: string): Promise<TemplateItem> {
-        const { data } = await apiClient.post(`/v1/assessment/templates/${id}/clone`);
+    cloneTemplate: async (id: string) => {
+        const { data } = await apiClient.post<TemplateItem>(`/v1/assessment/templates/${id}/clone`);
+        return data;
+    },
+
+    // Layout configuration save
+    saveLayout: async (id: string, payload: { layoutRules: TemplateLayoutRule[]; header: Partial<TemplateHeaderConfig>; footer: Partial<TemplateFooterConfig>; instructions?: string }) => {
+        const { data } = await apiClient.post<{ message: string }>(`/v1/assessment/templates/${id}/layout`, payload);
+        return data;
+    },
+
+    // Preview Generator
+    getPreview: async (id: string, format: string) => {
+        const { data } = await apiClient.get<{ html: string }>(`/v1/assessment/templates/${id}/preview`, { params: { format } });
+        return data;
+    },
+
+    // Validate rules
+    validateRules: async (id: string) => {
+        const { data } = await apiClient.get<{ success: boolean; errors: string[]; warnings: string[] }>(`/v1/assessment/templates/${id}/validate`);
+        return data;
+    },
+
+    // History Timeline
+    getVersionsHistory: async (id: string) => {
+        const { data } = await apiClient.get<any[]>(`/v1/assessment/templates/${id}/versions`);
+        return data;
+    },
+
+    restoreVersion: async (id: string, versionNumber: number) => {
+        const { data } = await apiClient.post<TemplateItem>(`/v1/assessment/templates/${id}/versions/restore`, { versionNumber });
+        return data;
+    },
+
+    transitionStatus: async (id: string, payload: { target_status: string; transition_reason?: string }) => {
+        const { data } = await apiClient.post<TemplateItem>(`/v1/assessment/templates/${id}/workflow/transition`, payload);
+        return data;
+    },
+
+    getMetrics: async () => {
+        const { data } = await apiClient.get<TemplateMetrics>('/v1/assessment/templates/analytics');
         return data;
     }
 };

@@ -112,6 +112,13 @@ export const PERMISSIONS = {
     ASSESSMENT_TEMPLATE_MANAGE: 'assessment.template.manage',
     ASSESSMENT_TEMPLATE_PUBLISH: 'assessment.template.publish',
     
+    // Phase 5 Exact Required Permissions
+    ASSESSMENT_CONFIGURATION_VIEW: 'assessment.configuration.view',
+    ASSESSMENT_CONFIGURATION_MANAGE: 'assessment.configuration.manage',
+    ASSESSMENT_WORKFLOW_VIEW: 'assessment.workflow.view',
+    ASSESSMENT_WORKFLOW_PUBLISH: 'assessment.workflow.publish',
+    ASSESSMENT_WORKFLOW_ARCHIVE: 'assessment.workflow.archive',
+    
     ASSESSMENT_FOUNDATION_VIEW: 'assessment.foundation.view',
     ASSESSMENT_FOUNDATION_MANAGE: 'assessment.foundation.manage',
     ASSESSMENT_PAPER_GENERATE: 'assessment.paper.generate',

@@ -32,6 +32,13 @@ import { taskRouter } from './workflows/task.routes';
 import { assessmentCoreRouter } from './modules/assessment/foundation';
 import { questionBankRouter } from './modules/assessment/question-bank';
 import { templateBuilderRouter } from './modules/assessment/template-builder/routes';
+import { blueprintRouter } from './modules/assessment/blueprint-builder/routes';
+import { paperGeneratorRouter } from './modules/assessment/paper-generator/routes';
+import { evaluationRouter as assessmentEvaluationRouter } from './modules/assessment/evaluation/routes';
+import { resultEngineRouter } from './modules/assessment/result-engine/routes';
+import { analyticsRouter } from './modules/assessment/analytics/routes';
+import { academicRecordsRouter } from './modules/assessment/academic-records/routes';
+import { attendanceRouter } from './modules/attendance/routes';
 
 import { env } from './config/env';
 
@@ -446,6 +453,13 @@ router.use('/v1/tasks', taskRouter);
 router.use('/v1/assessment', assessmentCoreRouter);
 router.use('/v1/assessment/questions', questionBankRouter);
 router.use('/v1/assessment/templates', templateBuilderRouter);
+router.use('/v1/assessment/blueprints', blueprintRouter);
+router.use('/v1/assessment/papers', paperGeneratorRouter);
+router.use('/v1/assessment/evaluations', assessmentEvaluationRouter);
+router.use('/v1/assessment/results', resultEngineRouter);
+router.use('/v1/assessment/analytics', analyticsRouter);
+router.use('/v1/assessment/academic-records', academicRecordsRouter);
+router.use('/v1/attendance', attendanceRouter);
 
 
 // System RBAC Audit Endpoint

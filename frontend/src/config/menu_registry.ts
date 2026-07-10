@@ -1,5 +1,5 @@
 import { 
-    LayoutDashboard, Calendar, Users, ClipboardList, GraduationCap, BarChart3, 
+    LayoutDashboard, Calendar, Users, ClipboardList, GraduationCap, BarChart3, Award, 
     BookOpen, FileText, Settings, Briefcase, Building, Coins, Bus, Clock, 
     History, UserCircle, MapPin, User, DollarSign, Activity, AlertOctagon,
     Receipt, RefreshCw, Sparkles, SlidersHorizontal, CheckSquare, MessageSquare,
@@ -39,7 +39,14 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'Overview', icon: LayoutDashboard, path: '/app/assessment/dashboard', permission: 'assessment.dashboard.view' },
             { label: 'Settings & Workflows', icon: Settings, path: '/app/assessment/settings', permission: 'assessment.foundation.manage' },
             { label: 'Question Bank', icon: FileText, path: '/app/assessment/questions', permission: 'assessment.question.view' },
-            { label: 'Template Builder', icon: ClipboardList, path: '/app/assessment/templates', permission: 'assessment.template.view' }
+            { label: 'Template Builder', icon: ClipboardList, path: '/app/assessment/templates', permission: 'assessment.template.view' },
+            { label: 'Blueprint Builder', icon: ClipboardList, path: '/app/assessment/blueprints', permission: 'assessment.blueprint.view' },
+            { label: 'Paper Generator', icon: Sparkles, path: '/app/assessment/papers', permission: 'assessment.paper.preview' },
+            { label: 'Evaluation Desk', icon: CheckSquare, path: '/app/assessment/evaluation', permission: 'assessment.evaluation.view' },
+            { label: 'Results Center', icon: GraduationCap, path: '/app/assessment/results', permission: 'assessment.result.view' },
+            { label: 'Analytics Desk', icon: BarChart3, path: '/app/assessment/analytics', permission: 'assessment.analytics.view' },
+            { label: 'Academic Records', icon: Award, path: '/app/academic-records', permission: 'academic.records.view' },
+            { label: 'Attendance Desk', icon: Clock, path: '/app/attendance', permission: 'attendance.view' }
         ]
     },
     // EXAMINATION CELL

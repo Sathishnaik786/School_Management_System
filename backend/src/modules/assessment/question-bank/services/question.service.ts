@@ -1,41 +1,30 @@
 import { BaseService } from '../../../admission/services/BaseService';
 import { QuestionRepository } from '../repositories/question.repository';
-import { createQuestionSchema, updateQuestionSchema, CreateQuestionDto, UpdateQuestionDto } from '../dto/question.dto';
-import { createFolderSchema, updateFolderSchema, CreateFolderDto, UpdateFolderDto } from '../dto/folder.dto';
+import { QuestionOptionRepository } from '../repositories/QuestionOptionRepository';
+import { QuestionFolderRepository } from '../repositories/QuestionFolderRepository';
+import { QuestionValidator } from '../validators/QuestionValidator';
 import { AuditService } from '../../../admission/services/AuditService';
-import { ValidationError } from '../../../admission/errors/ValidationError';
+import { EventBus } from '../../../../workflows/event-bus.service';
 import { NotFoundError } from '../../../admission/errors/NotFoundError';
-import { BusinessRuleError } from '../../../admission/errors/BusinessRuleError';
 
 export class QuestionService extends BaseService {
-    private readonly repo: QuestionRepository;
-    private readonly auditService: AuditService;
-
-    constructor() {
-        super();
-        this.repo = new QuestionRepository();
-        this.auditService = new AuditService();
-    }
+    private readonly repo = new QuestionRepository();
+    private readonly optionRepo = new QuestionOptionRepository();
+    private readonly folderRepo = new QuestionFolderRepository();
+    private readonly audit = new AuditService();
 
     // ==========================================
-    // FOLDERS SERVICES
+    // FOLDERS DELEGATION
     // ==========================================
-
     public async listFolders(schoolId: string, correlationId?: string): Promise<any[]> {
-        this.logInfo(`Listing question folders for school: ${schoolId}`, correlationId);
-        return this.repo.listFolders(schoolId);
+        return this.folderRepo.findBySchool(schoolId);
     }
 
-    public async createFolder(
-        schoolId: string,
-        userId: string,
-        payload: CreateFolderDto,
-        correlationId?: string
-    ): Promise<any> {
-        const validated = this.validate(createFolderSchema, payload);
-        const folder = await this.repo.createFolder(schoolId, validated);
-
-        await this.auditService.logAudit({
+    public async createFolder(schoolId: string, userId: string, payload: any, correlationId?: string): Promise<any> {
+        const validated = QuestionValidator.validateFolder(payload);
+        const folder = await this.folderRepo.create(schoolId, validated);
+        
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_FOLDER_CREATE',
             entityName: 'assessment_folders',
@@ -44,55 +33,41 @@ export class QuestionService extends BaseService {
             correlationId
         });
 
+        await EventBus.publish('FolderCreated', { folderId: folder.id, schoolId, userId });
         return folder;
     }
 
-    public async updateFolder(
-        folderId: string,
-        schoolId: string,
-        userId: string,
-        payload: UpdateFolderDto,
-        correlationId?: string
-    ): Promise<any> {
-        const validated = this.validate(updateFolderSchema, payload);
-        const beforeState = await this.repo.findFolderById(folderId, schoolId); // Basic find check
-        if (!beforeState || beforeState.school_id !== schoolId) {
-            throw new NotFoundError(`Folder not found with ID: ${folderId}`);
-        }
+    public async updateFolder(id: string, schoolId: string, userId: string, payload: any, correlationId?: string): Promise<any> {
+        const validated = QuestionValidator.validateFolder(payload);
+        const beforeState = await this.folderRepo.findById(id, schoolId);
+        if (!beforeState) throw new NotFoundError(`Folder not found with ID: ${id}`);
 
-        const folder = await this.repo.updateFolder(folderId, schoolId, validated);
+        const updated = await this.folderRepo.update(id, schoolId, validated);
 
-        await this.auditService.logAudit({
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_FOLDER_UPDATE',
             entityName: 'assessment_folders',
-            entityId: folderId,
+            entityId: id,
             beforeState,
-            afterState: folder,
+            afterState: updated,
             correlationId
         });
 
-        return folder;
+        return updated;
     }
 
-    public async deleteFolder(
-        folderId: string,
-        schoolId: string,
-        userId: string,
-        correlationId?: string
-    ): Promise<void> {
-        const beforeState = await this.repo.findFolderById(folderId, schoolId);
-        if (!beforeState || beforeState.school_id !== schoolId) {
-            throw new NotFoundError(`Folder not found with ID: ${folderId}`);
-        }
+    public async deleteFolder(id: string, schoolId: string, userId: string, correlationId?: string): Promise<void> {
+        const beforeState = await this.folderRepo.findById(id, schoolId);
+        if (!beforeState) throw new NotFoundError(`Folder not found with ID: ${id}`);
 
-        await this.repo.deleteFolder(folderId, schoolId, userId);
+        await this.folderRepo.softDelete(id, schoolId, userId);
 
-        await this.auditService.logAudit({
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_FOLDER_DELETE',
             entityName: 'assessment_folders',
-            entityId: folderId,
+            entityId: id,
             beforeState,
             afterState: { ...beforeState, is_deleted: true },
             correlationId
@@ -100,53 +75,35 @@ export class QuestionService extends BaseService {
     }
 
     // ==========================================
-    // QUESTIONS SERVICES
+    // QUESTIONS CRUD
     // ==========================================
-
-    public async listQuestions(
-        schoolId: string,
-        filters: {
-            folderId?: string | null;
-            subjectId?: string;
-            difficulty?: string;
-            bloomLevel?: string;
-            status?: string;
-            search?: string;
-            page: number;
-            limit: number;
-        },
-        correlationId?: string
-    ): Promise<{ data: any[]; totalCount: number }> {
-        this.logInfo(`Listing paginated questions for school: ${schoolId}`, correlationId);
+    public async listQuestions(schoolId: string, filters: any, correlationId?: string): Promise<any> {
         return this.repo.listQuestions(schoolId, filters);
     }
 
-    public async getQuestionById(questionId: string, schoolId: string, correlationId?: string): Promise<any> {
-        const question = await this.repo.findQuestionById(questionId, schoolId);
-        if (!question) {
-            throw new NotFoundError(`Question not found with ID: ${questionId}`);
-        }
+    public async getQuestionById(id: string, schoolId: string, correlationId?: string): Promise<any> {
+        const question = await this.repo.findQuestionById(id, schoolId);
+        if (!question) throw new NotFoundError(`Question not found with ID: ${id}`);
         return question;
     }
 
-    public async createQuestion(
-        schoolId: string,
-        userId: string,
-        payload: CreateQuestionDto,
-        correlationId?: string
-    ): Promise<any> {
-        const validated = this.validate(createQuestionSchema, payload);
+    public async createQuestion(schoolId: string, userId: string, payload: any, correlationId?: string): Promise<any> {
+        const validated = QuestionValidator.validateCreate(payload);
 
         // Deduplication warning check
         const isDuplicate = await this.repo.duplicateCheck(schoolId, validated.subject_id, validated.question_text);
         if (isDuplicate) {
-            this.logInfo(`Duplicate question detected: "${validated.question_text.substring(0, 30)}..."`, correlationId);
-            // We log warning but allow creation, or throw a conflict warning validation. Here we proceed but log it.
+            this.logInfo(`Duplicate warning: matching question found for subject: ${validated.subject_id}`, correlationId);
         }
 
-        const question = await this.repo.createQuestion(schoolId, validated);
+        const question = await this.repo.createQuestion(schoolId, {
+            ...validated,
+            version: 1,
+            status: 'DRAFT',
+            created_by: userId
+        });
 
-        await this.auditService.logAudit({
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_QUESTION_CREATE',
             entityName: 'assessment_question_bank',
@@ -155,85 +112,77 @@ export class QuestionService extends BaseService {
             correlationId
         });
 
+        await EventBus.publish('QuestionCreated', { questionId: question.id, schoolId, userId });
         return question;
     }
 
-    /**
-     * Updates question definition. For APPROVED questions, we fork a new draft version.
-     */
-    public async updateQuestion(
-        questionId: string,
-        schoolId: string,
-        userId: string,
-        payload: UpdateQuestionDto,
-        correlationId?: string
-    ): Promise<any> {
-        const validated = this.validate(updateQuestionSchema, payload);
-        const currentQuestion = await this.getQuestionById(questionId, schoolId, correlationId);
+    public async updateQuestion(id: string, schoolId: string, userId: string, payload: any, correlationId?: string): Promise<any> {
+        const validated = QuestionValidator.validateUpdate(payload);
+        const current = await this.getQuestionById(id, schoolId, correlationId);
 
-        // Fork check: If question is APPROVED, modify splits a new DRAFT copy
-        if (currentQuestion.status === 'APPROVED') {
-            this.logInfo(`Question ${questionId} is APPROVED. Forking a new version.`, correlationId);
+        // Fork if approved or published
+        if (current.status === 'APPROVED' || current.status === 'PUBLISHED') {
+            this.logInfo(`Forking new draft version for question: ${id}`, correlationId);
             const forkedPayload = {
-                ...currentQuestion,
+                ...current,
                 ...validated,
-                version: currentQuestion.version + 1,
+                version: current.version + 1,
                 status: 'DRAFT',
-                parent_id: questionId,
-                options: validated.options || currentQuestion.options
+                parent_id: current.parent_id || current.id,
+                options: validated.options || current.options
             };
             delete forkedPayload.id;
             delete forkedPayload.created_at;
             delete forkedPayload.updated_at;
 
-            const forkedQuestion = await this.repo.createQuestion(schoolId, forkedPayload);
+            const forked = await this.repo.createQuestion(schoolId, forkedPayload);
 
-            await this.auditService.logAudit({
+            await this.audit.logAudit({
                 userId,
                 action: 'ASSESSMENT_QUESTION_FORK',
                 entityName: 'assessment_question_bank',
-                entityId: forkedQuestion.id,
-                beforeState: currentQuestion,
-                afterState: forkedQuestion,
+                entityId: forked.id,
+                beforeState: current,
+                afterState: forked,
                 correlationId
             });
 
-            return forkedQuestion;
+            await EventBus.publish('QuestionVersionCreated', { questionId: forked.id, version: forked.version, schoolId, userId });
+            return forked;
         }
 
-        // Standard draft update in place
-        const updatedQuestion = await this.repo.updateQuestion(questionId, schoolId, validated);
+        // Standard update
+        const updated = await this.repo.updateQuestion(id, schoolId, validated);
 
-        await this.auditService.logAudit({
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_QUESTION_UPDATE',
             entityName: 'assessment_question_bank',
-            entityId: questionId,
-            beforeState: currentQuestion,
-            afterState: updatedQuestion,
+            entityId: id,
+            beforeState: current,
+            afterState: updated,
             correlationId
         });
 
-        return updatedQuestion;
+        await EventBus.publish('QuestionUpdated', { questionId: id, schoolId, userId });
+        return updated;
     }
 
-    public async deleteQuestion(
-        questionId: string,
-        schoolId: string,
-        userId: string,
-        correlationId?: string
-    ): Promise<void> {
-        const beforeState = await this.getQuestionById(questionId, schoolId, correlationId);
-        await this.repo.deleteQuestion(questionId, schoolId, userId);
+    public async deleteQuestion(id: string, schoolId: string, userId: string, correlationId?: string): Promise<void> {
+        const beforeState = await this.getQuestionById(id, schoolId, correlationId);
+        await this.repo.deleteQuestion(id, schoolId, userId);
 
-        await this.auditService.logAudit({
+        await this.audit.logAudit({
             userId,
             action: 'ASSESSMENT_QUESTION_DELETE',
             entityName: 'assessment_question_bank',
-            entityId: questionId,
+            entityId: id,
             beforeState,
             afterState: { ...beforeState, is_deleted: true },
             correlationId
         });
+
+        await EventBus.publish('QuestionDeleted', { questionId: id, schoolId, userId });
     }
 }
+export default QuestionService;

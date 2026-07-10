@@ -1,25 +1,28 @@
 import { BaseService } from '../../../admission/services/BaseService';
 import { TemplateRepository } from '../repositories/template.repository';
-import { createTemplateSchema, updateTemplateSchema, updateTemplateSectionsSchema, CreateTemplateDto, UpdateTemplateDto, UpdateTemplateSectionsDto } from '../dto/template.dto';
+import { TemplateLayoutRepository } from '../repositories/TemplateLayoutRepository';
+import { TemplateHeaderRepository } from '../repositories/TemplateHeaderRepository';
+import { TemplateFooterRepository } from '../repositories/TemplateFooterRepository';
+import { TemplateInstructionRepository } from '../repositories/TemplateInstructionRepository';
+import { TemplatePreviewCacheRepository } from '../repositories/TemplatePreviewCacheRepository';
+import { TemplateValidator } from '../validators/TemplateValidator';
 import { AuditService } from '../../../admission/services/AuditService';
-import { ValidationError } from '../../../admission/errors/ValidationError';
+import { EventBus } from '../../../../workflows/event-bus.service';
 import { NotFoundError } from '../../../admission/errors/NotFoundError';
 import { BusinessRuleError } from '../../../admission/errors/BusinessRuleError';
-import { supabase } from '../../../../config/supabase';
 
 export class TemplateService extends BaseService {
-    private readonly repo: TemplateRepository;
-    private readonly auditService: AuditService;
-
-    constructor() {
-        super();
-        this.repo = new TemplateRepository();
-        this.auditService = new AuditService();
-    }
+    private readonly repo = new TemplateRepository();
+    private readonly layoutRepo = new TemplateLayoutRepository();
+    private readonly headerRepo = new TemplateHeaderRepository();
+    private readonly footerRepo = new TemplateFooterRepository();
+    private readonly instRepo = new TemplateInstructionRepository();
+    private readonly cacheRepo = new TemplatePreviewCacheRepository();
+    private readonly auditService = new AuditService();
 
     public async listTemplates(
         schoolId: string,
-        filters: { subjectId?: string; page: number; limit: number },
+        filters: { subjectId?: string; blueprintId?: string; page: number; limit: number },
         correlationId?: string
     ): Promise<{ data: any[]; totalCount: number }> {
         this.logInfo(`Listing templates for school: ${schoolId}`, correlationId);
@@ -38,39 +41,96 @@ export class TemplateService extends BaseService {
     public async createTemplate(
         schoolId: string,
         userId: string,
-        payload: CreateTemplateDto,
+        payload: any,
         correlationId?: string
     ): Promise<any> {
-        const validated = this.validate(createTemplateSchema, payload);
-        const template = await this.repo.createTemplate(schoolId, validated);
+        const validated = TemplateValidator.validateCreate(payload);
+        const { header, footer, layoutRules, sections, instructions, ...headerData } = validated;
+
+        const template = await this.repo.createTemplate(schoolId, {
+            ...headerData,
+            created_by: userId
+        });
+
+        // Save layout configurations
+        if (layoutRules) await this.layoutRepo.saveLayoutRules(template.id, layoutRules);
+        if (header) await this.headerRepo.saveHeader(template.id, header);
+        if (footer) await this.footerRepo.saveFooter(template.id, footer);
+        if (instructions !== undefined) await this.instRepo.saveInstructions(template.id, instructions);
+
+        // Sections
+        if (sections && sections.length > 0) {
+            await this.repo.updateTemplateSections(template.id, schoolId, sections);
+        }
+
+        const fullTemplate = await this.repo.findTemplateById(template.id, schoolId);
 
         await this.auditService.logAudit({
             userId,
             action: 'ASSESSMENT_TEMPLATE_CREATE',
             entityName: 'assessment_templates',
             entityId: template.id,
-            afterState: template,
+            afterState: fullTemplate,
             correlationId
         });
 
-        return template;
+        await EventBus.publish('TemplateCreated', { templateId: template.id, schoolId, userId });
+        return fullTemplate;
     }
 
     public async updateTemplate(
         templateId: string,
         schoolId: string,
         userId: string,
-        payload: UpdateTemplateDto,
+        payload: any,
         correlationId?: string
     ): Promise<any> {
-        const validated = this.validate(updateTemplateSchema, payload);
+        const validated = TemplateValidator.validateUpdate(payload);
         const current = await this.getTemplateById(templateId, schoolId, correlationId);
         
-        if (current.status !== 'DRAFT') {
-            throw new BusinessRuleError('Cannot modify templates that are already published.');
+        if (current.status === 'APPROVED' || current.status === 'PUBLISHED') {
+            // Fork version if approved/published
+            this.logInfo(`Forking version draft for template: ${templateId}`, correlationId);
+            const forkedPayload = {
+                ...current,
+                ...validated,
+                version: current.version + 1,
+                status: 'DRAFT',
+                sections: validated.sections || current.sections,
+                layoutRules: validated.layoutRules || current.layoutRules,
+                header: validated.header || current.header,
+                footer: validated.footer || current.footer,
+                instructions: validated.instructions !== undefined ? validated.instructions : current.instructions
+            };
+            delete forkedPayload.id;
+            delete forkedPayload.created_at;
+            delete forkedPayload.updated_at;
+
+            const cloned = await this.createTemplate(schoolId, userId, forkedPayload, correlationId);
+            await EventBus.publish('TemplateVersionCreated', { templateId: cloned.id, version: cloned.version, schoolId, userId });
+            return cloned;
         }
 
-        const template = await this.repo.updateTemplate(templateId, schoolId, validated);
+        // Standard update
+        const { header, footer, layoutRules, sections, instructions, ...headerData } = validated;
+
+        if (Object.keys(headerData).length > 0) {
+            await this.repo.updateTemplate(templateId, schoolId, headerData);
+        }
+
+        if (layoutRules) await this.layoutRepo.saveLayoutRules(templateId, layoutRules);
+        if (header) await this.headerRepo.saveHeader(templateId, header);
+        if (footer) await this.footerRepo.saveFooter(templateId, footer);
+        if (instructions !== undefined) await this.instRepo.saveInstructions(templateId, instructions);
+
+        if (sections) {
+            await this.repo.updateTemplateSections(templateId, schoolId, sections);
+        }
+
+        // Invalidate cache on any modifications
+        await this.cacheRepo.invalidateCache(templateId);
+
+        const updated = await this.repo.findTemplateById(templateId, schoolId);
 
         await this.auditService.logAudit({
             userId,
@@ -78,11 +138,12 @@ export class TemplateService extends BaseService {
             entityName: 'assessment_templates',
             entityId: templateId,
             beforeState: current,
-            afterState: template,
+            afterState: updated,
             correlationId
         });
 
-        return template;
+        await EventBus.publish('TemplateUpdated', { templateId, schoolId, userId });
+        return updated;
     }
 
     public async deleteTemplate(
@@ -103,128 +164,10 @@ export class TemplateService extends BaseService {
             afterState: { ...current, is_deleted: true },
             correlationId
         });
+
+        await EventBus.publish('TemplateArchived', { templateId, schoolId, userId });
     }
 
-    /**
-     * Updates sections and dynamic rules associated with a template.
-     */
-    public async updateTemplateSections(
-        templateId: string,
-        schoolId: string,
-        userId: string,
-        payload: UpdateTemplateSectionsDto,
-        correlationId?: string
-    ): Promise<any> {
-        const validated = this.validate(updateTemplateSectionsSchema, payload);
-        const current = await this.getTemplateById(templateId, schoolId, correlationId);
-
-        if (current.status !== 'DRAFT') {
-            throw new BusinessRuleError('Cannot modify sections of a published template.');
-        }
-
-        const updated = await this.repo.updateTemplateSections(templateId, schoolId, validated.sections);
-
-        await this.auditService.logAudit({
-            userId,
-            action: 'ASSESSMENT_TEMPLATE_SECTIONS_UPDATE',
-            entityName: 'assessment_templates',
-            entityId: templateId,
-            beforeState: current,
-            afterState: updated,
-            correlationId
-        });
-
-        return updated;
-    }
-
-    /**
-     * Publishes a template, saving its immutable snapshot after verifying question rule counts.
-     */
-    public async publishTemplate(
-        templateId: string,
-        schoolId: string,
-        userId: string,
-        correlationId?: string
-    ): Promise<any> {
-        const template = await this.getTemplateById(templateId, schoolId, correlationId);
-
-        if (template.status === 'PUBLISHED') {
-            throw new BusinessRuleError('Template is already published.');
-        }
-
-        if (!template.sections || template.sections.length === 0) {
-            throw new BusinessRuleError('Cannot publish template without any sections configured.');
-        }
-
-        // 1. Dynamic Rule Verification: Count available matched questions in Question Bank
-        const warnings: string[] = [];
-        for (const sec of template.sections) {
-            let query = supabase
-                .from('assessment_question_bank')
-                .select('id', { count: 'exact', head: true })
-                .eq('school_id', schoolId)
-                .eq('subject_id', template.subject_id)
-                .eq('status', 'APPROVED')
-                .eq('is_deleted', false);
-
-            // Apply section filters rules
-            if (sec.rules && sec.rules.length > 0) {
-                for (const rule of sec.rules) {
-                    if (rule.filter_field === 'difficulty') {
-                        query = query.eq('difficulty', rule.filter_value);
-                    } else if (rule.filter_field === 'bloom_level') {
-                        query = query.eq('bloom_level', rule.filter_value);
-                    } else if (rule.filter_field === 'course_outcome') {
-                        query = query.eq('course_outcome_code', rule.filter_value);
-                    } else if (rule.filter_field === 'program_outcome') {
-                        query = query.eq('program_outcome_code', rule.filter_value);
-                    }
-                }
-            }
-
-            const { count, error } = await query;
-            if (error) throw error;
-
-            const matchedCount = count || 0;
-            if (matchedCount < sec.total_questions) {
-                warnings.push(
-                    `Section "${sec.section_name}" requires ${sec.total_questions} questions, but only ${matchedCount} are approved in the Question Bank.`
-                );
-            }
-        }
-
-        // If there are warnings, we log them but proceed (warnings are returned to client for review)
-        if (warnings.length > 0) {
-            this.logInfo(`Publish warning generated: ${warnings.join(' | ')}`, correlationId);
-        }
-
-        // 2. Perform publishing snapshot
-        const publishedTemplate = await this.repo.publishTemplate(
-            templateId,
-            schoolId,
-            template.version,
-            { sections: template.sections } // Schema snapshot
-        );
-
-        await this.auditService.logAudit({
-            userId,
-            action: 'ASSESSMENT_TEMPLATE_PUBLISH',
-            entityName: 'assessment_templates',
-            entityId: templateId,
-            beforeState: template,
-            afterState: { ...publishedTemplate, warnings },
-            correlationId
-        });
-
-        return {
-            ...publishedTemplate,
-            warnings
-        };
-    }
-
-    /**
-     * Clones an existing template as a new version or draft.
-     */
     public async cloneTemplate(
         templateId: string,
         schoolId: string,
@@ -233,48 +176,21 @@ export class TemplateService extends BaseService {
     ): Promise<any> {
         const source = await this.getTemplateById(templateId, schoolId, correlationId);
         
-        // Create cloned header
         const clonePayload = {
             subject_id: source.subject_id,
+            blueprint_id: source.blueprint_id,
             name: `Copy of ${source.name}`,
             description: source.description,
             status: 'DRAFT',
-            version: source.status === 'PUBLISHED' ? source.version + 1 : source.version
+            version: 1,
+            instructions: source.instructions,
+            header: source.header,
+            footer: source.footer,
+            layoutRules: source.layoutRules,
+            sections: source.sections
         };
 
-        const clonedHeader = await this.repo.createTemplate(schoolId, clonePayload);
-
-        // Copy sections and rules
-        if (source.sections && source.sections.length > 0) {
-            const sectionsPayload = source.sections.map((sec: any) => ({
-                section_name: sec.section_name,
-                description: sec.description,
-                points_per_question: sec.points_per_question,
-                negative_marks: sec.negative_marks,
-                total_questions: sec.total_questions,
-                sort_order: sec.sort_order,
-                rules: sec.rules.map((r: any) => ({
-                    filter_field: r.filter_field,
-                    filter_value: r.filter_value,
-                    match_operator: r.match_operator
-                }))
-            }));
-            await this.repo.updateTemplateSections(clonedHeader.id, schoolId, sectionsPayload);
-        }
-
-        const fullyCloned = await this.getTemplateById(clonedHeader.id, schoolId, correlationId);
-
-        await this.auditService.logAudit({
-            userId,
-            action: 'ASSESSMENT_TEMPLATE_CLONE',
-            entityName: 'assessment_templates',
-            entityId: clonedHeader.id,
-            beforeState: source,
-            afterState: fullyCloned,
-            correlationId
-        });
-
-        return fullyCloned;
+        return this.createTemplate(schoolId, userId, clonePayload, correlationId);
     }
 }
 export default TemplateService;

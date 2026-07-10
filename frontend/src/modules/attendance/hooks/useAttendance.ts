@@ -1,58 +1,120 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { attendanceApi, AttendanceRecordPayload, PeriodAttendancePayload } from '../services/attendance.api';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export function useAttendance(sectionId?: string, date?: string) {
-    const queryClient = useQueryClient();
+const API_BASE = 'http://localhost:3000/v1/attendance';
 
-    const sessionQuery = useQuery({
-        queryKey: ['attendance-session', sectionId, date],
-        queryFn: async () => {
-            if (!sectionId || !date) return null;
-            const res = await attendanceApi.getOrCreateSession({
-                school_id: '457bbda3-f542-47dc-9d41-3d7729226f86', // default school_id fallback
-                academic_year_id: '8db7f474-3252-475a-bc84-9092be0f8f12', // active year fallback
-                grade: 'Grade 10',
-                section_id: sectionId,
-                date,
-            });
+export interface AttendanceSession {
+    id: string;
+    campus_id: string;
+    branch_id: string;
+    academic_year_id: string;
+    session_date: string;
+    timetable_slot_id: string;
+    status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'LOCKED';
+    created_at: string;
+}
+
+export function useAttendance() {
+    const [sessions, setSessions] = useState<AttendanceSession[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const getHeaders = () => {
+        const token = localStorage.getItem('token');
+        return { headers: { Authorization: `Bearer ${token}` } };
+    };
+
+    const fetchSessions = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE}/sessions`, getHeaders());
+            setSessions(res.data || []);
+        } catch (err: any) {
+            setError(err.response?.data?.error || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const createSession = async (campusId: string, branchId: string, yearId: string, date: string, slotId: string) => {
+        try {
+            const res = await axios.post(`${API_BASE}/sessions`, {
+                campus_id: campusId,
+                branch_id: branchId,
+                academic_year_id: yearId,
+                session_date: date,
+                timetable_slot_id: slotId
+            }, getHeaders());
+            await fetchSessions();
             return res.data;
-        },
-        enabled: !!sectionId && !!date,
-    });
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        }
+    };
 
-    const createSession = useMutation({
-        mutationFn: attendanceApi.getOrCreateSession,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['attendance-session'] });
-        },
-    });
+    const markStudent = async (sessionId: string, studentId: string, status: string, source: string) => {
+        try {
+            const res = await axios.post(`${API_BASE}/mark`, {
+                session_id: sessionId,
+                student_id: studentId,
+                status,
+                source
+            }, getHeaders());
+            return res.data;
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        }
+    };
 
-    const markSingle = useMutation({
-        mutationFn: attendanceApi.markAttendance,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['attendance-session'] });
-        },
-    });
+    const transitionWorkflow = async (sessionId: string, decision: string, comments?: string) => {
+        try {
+            const res = await axios.post(`${API_BASE}/workflow`, {
+                session_id: sessionId,
+                decision,
+                comments
+            }, getHeaders());
+            await fetchSessions();
+            return res.data;
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        }
+    };
 
-    const bulkMark = useMutation({
-        mutationFn: attendanceApi.bulkAttendance,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['attendance-session'] });
-        },
-    });
-
-    const markPeriod = useMutation({
-        mutationFn: attendanceApi.markPeriodAttendance,
-    });
+    useEffect(() => {
+        fetchSessions();
+    }, []);
 
     return {
-        session: sessionQuery.data,
-        isLoadingSession: sessionQuery.isLoading,
-        createSession: createSession.mutateAsync,
-        isCreatingSession: createSession.isPending,
-        markSingle: markSingle.mutateAsync,
-        bulkMark: bulkMark.mutateAsync,
-        isBulking: bulkMark.isPending,
-        markPeriod: markPeriod.mutateAsync,
+        sessions,
+        loading,
+        error,
+        fetchSessions,
+        createSession,
+        markStudent,
+        transitionWorkflow
     };
+}
+
+export function useLeave() {
+    const getHeaders = () => {
+        const token = localStorage.getItem('token');
+        return { headers: { Authorization: `Bearer ${token}` } };
+    };
+
+    const submitLeave = async (studentId: string, start: string, end: string, type: string, reason: string) => {
+        try {
+            const res = await axios.post(`${API_BASE}/leave`, {
+                student_id: studentId,
+                start_date: start,
+                end_date: end,
+                leave_type: type,
+                reason
+            }, getHeaders());
+            return res.data;
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        }
+    };
+
+    return { submitLeave };
 }

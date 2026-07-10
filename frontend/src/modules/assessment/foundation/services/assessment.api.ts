@@ -1,8 +1,8 @@
 import { apiClient } from '../../../../lib/api-client';
 
 export interface AssessmentConfig {
-    id: string;
-    school_id: string;
+    id?: string;
+    school_id?: string;
     max_upload_size_mb: number;
     autosave_interval_secs: number;
     default_heartbeat_secs: number;
@@ -10,8 +10,44 @@ export interface AssessmentConfig {
     grading_scale: any[];
     retention_telemetry_days: number;
     retention_attempts_years: number;
-    created_at: string;
-    updated_at: string;
+    settings: {
+        assessmentTypes: string[];
+        durationMinutes: number;
+        passingMarks: number;
+        negativeMarking: boolean;
+        negativeMarkingValue: number;
+        autoSave: boolean;
+        shuffleQuestions: boolean;
+        shuffleOptions: boolean;
+        browserLock: boolean;
+        fullscreenEnforcement: boolean;
+        resumePolicy: string;
+        attemptLimit: number;
+        proctoring: {
+            enabled: boolean;
+            webcam: boolean;
+            microphone: boolean;
+            screenShare: boolean;
+            aiVerification: boolean;
+        };
+        publishingRules: {
+            autoPublish: boolean;
+            releaseGradesImmediately: boolean;
+        };
+        notifications: {
+            emailOnScheduled: boolean;
+            emailOnGraded: boolean;
+        };
+        lateSubmission: {
+            allowed: boolean;
+            gracePeriodMinutes: number;
+            penaltyPercentagePerMinute: number;
+        };
+        evaluationType: string;
+        resultVisibility: string;
+        version: number;
+        status: string;
+    };
 }
 
 export interface WorkflowStep {
@@ -42,16 +78,48 @@ export interface WorkflowDefinition {
 }
 
 export const assessmentApi = {
-    getConfig: async () => {
-        const { data } = await apiClient.get<AssessmentConfig>('/v1/assessment/config');
+    // Configurations API
+    listConfigurations: async () => {
+        const { data } = await apiClient.get<AssessmentConfig[]>('/v1/assessment/configurations');
         return data;
     },
 
-    updateConfig: async (payload: Partial<AssessmentConfig>) => {
-        const { data } = await apiClient.put<AssessmentConfig>('/v1/assessment/config', payload);
+    getConfigurationById: async (id: string) => {
+        const { data } = await apiClient.get<AssessmentConfig>(`/v1/assessment/configurations/${id}`);
         return data;
     },
 
+    createConfiguration: async (payload: Partial<AssessmentConfig>) => {
+        const { data } = await apiClient.post<AssessmentConfig>('/v1/assessment/configurations', payload);
+        return data;
+    },
+
+    updateConfiguration: async (id: string, payload: Partial<AssessmentConfig>) => {
+        const { data } = await apiClient.put<AssessmentConfig>(`/v1/assessment/configurations/${id}`, payload);
+        return data;
+    },
+
+    deleteConfiguration: async (id: string) => {
+        const { data } = await apiClient.delete<{ message: string }>(`/v1/assessment/configurations/${id}`);
+        return data;
+    },
+
+    cloneConfiguration: async (id: string) => {
+        const { data } = await apiClient.post<AssessmentConfig>('/v1/assessment/configurations/clone', { id });
+        return data;
+    },
+
+    resetConfiguration: async (id: string) => {
+        const { data } = await apiClient.post<AssessmentConfig>('/v1/assessment/configurations/reset', { id });
+        return data;
+    },
+
+    validateConfiguration: async (payload: any) => {
+        const { data } = await apiClient.post<{ valid: boolean; error?: string }>('/v1/assessment/configurations/validate', payload);
+        return data;
+    },
+
+    // Workflows API
     listWorkflows: async () => {
         const { data } = await apiClient.get<WorkflowDefinition[]>('/v1/assessment/workflows');
         return data;
@@ -74,6 +142,48 @@ export const assessmentApi = {
 
     deleteWorkflow: async (id: string) => {
         const { data } = await apiClient.delete<{ message: string }>(`/v1/assessment/workflows/${id}`);
+        return data;
+    },
+
+    // Workflow Steps API
+    getWorkflowSteps: async (workflowId: string) => {
+        const { data } = await apiClient.get<WorkflowStep[]>(`/v1/assessment/workflows/${workflowId}/steps`);
+        return data;
+    },
+
+    addWorkflowStep: async (workflowId: string, payload: Partial<WorkflowStep>) => {
+        const { data } = await apiClient.post<WorkflowStep>(`/v1/assessment/workflows/${workflowId}/steps`, payload);
+        return data;
+    },
+
+    updateWorkflowStep: async (stepId: string, payload: Partial<WorkflowStep>) => {
+        const { data } = await apiClient.put<WorkflowStep>(`/v1/assessment/workflow-steps/${stepId}`, payload);
+        return data;
+    },
+
+    deleteWorkflowStep: async (stepId: string) => {
+        const { data } = await apiClient.delete<{ message: string }>(`/v1/assessment/workflow-steps/${stepId}`);
+        return data;
+    },
+
+    // Workflow Transitions API
+    getWorkflowTransitions: async (workflowId: string) => {
+        const { data } = await apiClient.get<WorkflowTransition[]>(`/v1/assessment/workflows/${workflowId}/transitions`);
+        return data;
+    },
+
+    addWorkflowTransition: async (workflowId: string, payload: Partial<WorkflowTransition>) => {
+        const { data } = await apiClient.post<WorkflowTransition>(`/v1/assessment/workflows/${workflowId}/transitions`, payload);
+        return data;
+    },
+
+    updateWorkflowTransition: async (transitionId: string, payload: Partial<WorkflowTransition>) => {
+        const { data } = await apiClient.put<WorkflowTransition>(`/v1/assessment/workflow-transitions/${transitionId}`, payload);
+        return data;
+    },
+
+    deleteWorkflowTransition: async (transitionId: string) => {
+        const { data } = await apiClient.delete<{ message: string }>(`/v1/assessment/workflow-transitions/${transitionId}`);
         return data;
     }
 };

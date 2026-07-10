@@ -1,117 +1,65 @@
-import { useState } from 'react';
-import { useLeave } from '../hooks/useLeave';
-import { LeaveCard } from '../components/leave/LeaveCard';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { PlaneTakeoff, Inbox, CheckCircle2, ShieldAlert } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { useLeave } from '../hooks/useAttendance';
 
-export function LeaveManagementPage() {
-    const { requests, approveLeave, rejectLeave } = useLeave();
-    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+export const LeaveManagementPage: React.FC = () => {
+    const navigate = useNavigate();
+    const { submitLeave } = useLeave();
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleApprove = async (id: string) => {
+    const handleLeave = async () => {
+        const studentId = prompt("Enter Student UUID:");
+        const start = prompt("Enter Start Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        const end = prompt("Enter End Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        const type = prompt("Enter Leave Type (MEDICAL, SPORTS, CASUAL):", "MEDICAL");
+        const reason = prompt("Enter Leave Reason:");
+
+        if (!studentId || !start || !end || !type || !reason) return;
+
+        setSubmitting(true);
         try {
-            await approveLeave({ id, remarks: 'Approved by principal' });
-            alert('Leave request approved!');
-        } catch (err) {
-            console.error('Approve failed', err);
+            const res = await submitLeave(studentId, start, end, type, reason);
+            alert(`Leave request submitted successfully! Status: ${res.status}`);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSubmitting(false);
         }
     };
-
-    const handleReject = async (id: string) => {
-        try {
-            await rejectLeave({ id, remarks: 'Insufficient reasons' });
-            alert('Leave request rejected!');
-        } catch (err) {
-            console.error('Reject failed', err);
-        }
-    };
-
-    const mockRequests = [
-        { id: 'l1', student_name: 'Rahul Soni', leave_type: 'Sick Leave', start_date: '2026-07-02', end_date: '2026-07-04', reason: 'High fever and cold symptoms.', status: 'PENDING' as const },
-        { id: 'l2', student_name: 'Diya Sharma', leave_type: 'Casual Leave', start_date: '2026-07-10', end_date: '2026-07-11', reason: 'Attending family marriage ceremony.', status: 'PENDING' as const },
-    ];
-
-    const activeList = requests.length > 0 ? requests : mockRequests;
 
     return (
-        <div className="space-y-6 pb-6">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6 lg:space-y-8 p-6 max-w-4xl mx-auto">
+            {/* Header banner */}
+            <div className="flex items-center gap-4 bg-white dark:bg-card p-4 rounded-2xl border border-gray-100 shadow-premium-sm">
+                <button onClick={() => navigate('/app/attendance')} className="p-2 text-gray-400 hover:text-gray-900 rounded-xl">
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                        <PlaneTakeoff className="w-8 h-8 text-indigo-600" /> Leave Management Desk
+                    <h1 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                        Student Leave Requests
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Review student leave applications, check balances, and track approvals.</p>
+                    <p className="text-[10px] text-gray-400">
+                        Submit and approve medical leaves, Casual leaves, and Sports representation duty requests.
+                    </p>
                 </div>
             </div>
 
-            <div className="flex border-b border-gray-100 gap-6 text-xs font-black uppercase tracking-wider mb-4">
-                <button
-                    onClick={() => setActiveTab('pending')}
-                    className={`pb-3 border-b-2 transition-all ${
-                        activeTab === 'pending' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
-                    }`}
-                >
-                    Inbox Applications
-                </button>
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`pb-3 border-b-2 transition-all ${
-                        activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-400'
-                    }`}
-                >
-                    Approval Logs
-                </button>
-            </div>
+            {/* Actions panel */}
+            <div className="bg-white dark:bg-card p-6 rounded-3xl border border-gray-100 shadow-premium-md space-y-4">
+                <h3 className="text-xs font-black text-gray-900 uppercase">Trigger Leave workflow</h3>
+                <p className="text-xs text-gray-400">Apply leave range overlaps validation rules check.</p>
 
-            <div className="grid md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 space-y-4">
-                    {activeTab === 'pending' ? (
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {activeList.map((req: any) => (
-                                <LeaveCard
-                                    key={req.id}
-                                    request={req as any}
-                                    onApprove={handleApprove}
-                                    onReject={handleReject}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <Card className="p-6 border-0 shadow-sm space-y-4">
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Archived Application Logs
-                            </h3>
-                            <div className="text-xs font-bold text-gray-400 italic py-6 text-center">
-                                No historical entries in this register.
-                            </div>
-                        </Card>
-                    )}
-                </div>
-
-                {/* Balances widgets */}
-                <Card className="p-6 border-0 shadow-sm space-y-4 h-fit">
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-                        <ShieldAlert className="w-4 h-4 text-indigo-600" /> Active School Leave Limits
-                    </h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-600">
-                            <span>Sick Leave (SL) Limit</span>
-                            <span>12 days / yr</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-600">
-                            <span>Casual Leave (CL) Limit</span>
-                            <span>8 days / yr</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-600">
-                            <span>Medical Leave (ML) Limit</span>
-                            <span>15 days / yr</span>
-                        </div>
-                    </div>
-                </Card>
+                <button
+                    onClick={handleLeave}
+                    disabled={submitting}
+                    className="w-full bg-primary hover:bg-primary/95 text-white py-3 rounded-xl font-bold transition-all shadow-premium-md text-xs flex items-center justify-center gap-1.5"
+                >
+                    <RefreshCw className={`w-4 h-4 ${submitting ? 'animate-spin' : ''}`} />
+                    {submitting ? 'Submitting request...' : 'Apply Student Leave'}
+                </button>
             </div>
         </div>
     );
-}
-
+};
 export default LeaveManagementPage;

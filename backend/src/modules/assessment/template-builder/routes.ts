@@ -1,13 +1,73 @@
 import { Router } from 'express';
 import { TemplateController } from './controllers/template.controller';
-import { authenticate } from '../../../auth/auth.middleware';
+import { TemplateLayoutController } from './controllers/TemplateLayoutController';
+import { TemplateWorkflowController } from './controllers/TemplateWorkflowController';
+import { TemplateAnalyticsController } from './controllers/TemplateAnalyticsController';
+import { TemplateVersionController } from './controllers/TemplateVersionController';
 import { checkPermission } from '../../../rbac/rbac.middleware';
 
 export const templateBuilderRouter = Router();
 
-// Apply auth middleware universally to all template endpoints
-templateBuilderRouter.use(authenticate);
+// ==========================================
+// ANALYTICS & METRICS
+// ==========================================
+templateBuilderRouter.get(
+    '/analytics',
+    checkPermission('assessment.template.analytics' as any),
+    TemplateAnalyticsController.getMetrics
+);
 
+// ==========================================
+// TEMPLATE LAYOUT & RENDER
+// ==========================================
+templateBuilderRouter.post(
+    '/:id/layout',
+    checkPermission('assessment.template.manage'),
+    TemplateLayoutController.saveLayout
+);
+
+templateBuilderRouter.get(
+    '/:id/preview',
+    checkPermission('assessment.template.view'),
+    TemplateLayoutController.getPreview
+);
+
+// ==========================================
+// VALIDATION LOGS PIPELINE
+// ==========================================
+templateBuilderRouter.get(
+    '/:id/validate',
+    checkPermission('assessment.template.view'),
+    TemplateController.validateTemplateRules
+);
+
+// ==========================================
+// VERSIONS ROLLBACK & DIFFS
+// ==========================================
+templateBuilderRouter.get(
+    '/:id/versions',
+    checkPermission('assessment.template.view'),
+    TemplateVersionController.getHistory
+);
+
+templateBuilderRouter.post(
+    '/:id/versions/restore',
+    checkPermission('assessment.template.manage'),
+    TemplateVersionController.restoreVersion
+);
+
+// ==========================================
+// STATUS WORKFLOW TRANSITION
+// ==========================================
+templateBuilderRouter.post(
+    '/:id/workflow/transition',
+    checkPermission('assessment.template.publish'),
+    TemplateWorkflowController.transitionTemplate
+);
+
+// ==========================================
+// GENERAL CRUD
+// ==========================================
 templateBuilderRouter.get(
     '/',
     checkPermission('assessment.template.view'),

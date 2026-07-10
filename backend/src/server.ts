@@ -31,7 +31,12 @@ const NEW_PERMISSIONS = [
     { code: 'assessment.result.publish', description: 'Publish assessment results' },
     { code: 'assessment.analytics.view', description: 'View assessment analytics' },
     { code: 'assessment.settings.view', description: 'View settings' },
-    { code: 'assessment.settings.manage', description: 'Update settings' }
+    { code: 'assessment.settings.manage', description: 'Update settings' },
+    { code: 'assessment.configuration.view', description: 'View assessment configurations' },
+    { code: 'assessment.configuration.manage', description: 'Create and update assessment configurations' },
+    { code: 'assessment.workflow.view', description: 'View assessment review workflows' },
+    { code: 'assessment.workflow.publish', description: 'Publish assessment review workflows' },
+    { code: 'assessment.workflow.archive', description: 'Archive assessment review workflows' }
 ];
 
 const ROLE_PERMISSIONS_MAPPING: Record<string, string[]> = {
@@ -53,7 +58,12 @@ const ROLE_PERMISSIONS_MAPPING: Record<string, string[]> = {
         'assessment.result.publish',
         'assessment.analytics.view',
         'assessment.settings.view',
-        'assessment.settings.manage'
+        'assessment.settings.manage',
+        'assessment.configuration.view',
+        'assessment.configuration.manage',
+        'assessment.workflow.view',
+        'assessment.workflow.publish',
+        'assessment.workflow.archive'
     ],
     EXAM_CELL: [
         'exam.dashboard.view',
@@ -63,7 +73,9 @@ const ROLE_PERMISSIONS_MAPPING: Record<string, string[]> = {
         'assessment.schedule.view',
         'assessment.attempt.view',
         'assessment.result.view',
-        'assessment.analytics.view'
+        'assessment.analytics.view',
+        'assessment.configuration.view',
+        'assessment.workflow.view'
     ],
     EXAM_PLATFORM_ADMIN: [
         'assessment.dashboard.view',
@@ -80,7 +92,12 @@ const ROLE_PERMISSIONS_MAPPING: Record<string, string[]> = {
         'assessment.result.publish',
         'assessment.analytics.view',
         'assessment.settings.view',
-        'assessment.settings.manage'
+        'assessment.settings.manage',
+        'assessment.configuration.view',
+        'assessment.configuration.manage',
+        'assessment.workflow.view',
+        'assessment.workflow.publish',
+        'assessment.workflow.archive'
     ],
     FINANCE_OFFICER: ['fees.dashboard.view'],
     ACCOUNTANT: ['fees.dashboard.view'],

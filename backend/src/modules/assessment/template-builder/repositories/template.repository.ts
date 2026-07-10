@@ -6,12 +6,9 @@ export class TemplateRepository extends BaseRepository<any> {
         super('assessment_templates');
     }
 
-    /**
-     * Lists templates with optional subject filters and pagination.
-     */
     public async listTemplates(
         schoolId: string,
-        filters: { subjectId?: string; page: number; limit: number }
+        filters: { subjectId?: string; blueprintId?: string; page: number; limit: number }
     ): Promise<{ data: any[]; totalCount: number }> {
         let query = supabase
             .from(this.tableName)
@@ -19,9 +16,8 @@ export class TemplateRepository extends BaseRepository<any> {
             .eq('school_id', schoolId)
             .eq('is_deleted', false);
 
-        if (filters.subjectId) {
-            query = query.eq('subject_id', filters.subjectId);
-        }
+        if (filters.subjectId) query = query.eq('subject_id', filters.subjectId);
+        if (filters.blueprintId) query = query.eq('blueprint_id', filters.blueprintId);
 
         const from = (filters.page - 1) * filters.limit;
         const to = from + filters.limit - 1;
@@ -36,9 +32,6 @@ export class TemplateRepository extends BaseRepository<any> {
         };
     }
 
-    /**
-     * Resolves a template including sections and section rules.
-     */
     public async findTemplateById(templateId: string, schoolId: string): Promise<any | null> {
         const { data: template, error: tError } = await supabase
             .from(this.tableName)
@@ -51,6 +44,7 @@ export class TemplateRepository extends BaseRepository<any> {
         if (tError) throw tError;
         if (!template) return null;
 
+        // Sections
         const { data: sections, error: sError } = await supabase
             .from('assessment_template_sections')
             .select('*')
@@ -76,15 +70,51 @@ export class TemplateRepository extends BaseRepository<any> {
             rules: rules.filter(r => r.section_id === sec.id)
         }));
 
+        // Layout rules
+        const { data: layouts, error: layError } = await supabase
+            .from('assessment_template_layout_rules')
+            .select('property, value')
+            .eq('template_id', templateId);
+
+        if (layError) throw layError;
+
+        // Header
+        const { data: header, error: headError } = await supabase
+            .from('assessment_template_headers')
+            .select('*')
+            .eq('template_id', templateId)
+            .maybeSingle();
+
+        if (headError) throw headError;
+
+        // Footer
+        const { data: footer, error: footError } = await supabase
+            .from('assessment_template_footers')
+            .select('*')
+            .eq('template_id', templateId)
+            .maybeSingle();
+
+        if (footError) throw footError;
+
+        // Instructions
+        const { data: instructions, error: instError } = await supabase
+            .from('assessment_template_instructions')
+            .select('instructions_text')
+            .eq('template_id', templateId)
+            .maybeSingle();
+
+        if (instError) throw instError;
+
         return {
             ...template,
-            sections: enrichedSections
+            sections: enrichedSections,
+            layoutRules: layouts || [],
+            header: header || null,
+            footer: footer || null,
+            instructions: instructions?.instructions_text || ''
         };
     }
 
-    /**
-     * Creates a draft template header.
-     */
     public async createTemplate(schoolId: string, payload: any): Promise<any> {
         const { data, error } = await supabase
             .from(this.tableName)
@@ -101,9 +131,6 @@ export class TemplateRepository extends BaseRepository<any> {
         return data;
     }
 
-    /**
-     * Updates template details.
-     */
     public async updateTemplate(templateId: string, schoolId: string, payload: any): Promise<any> {
         const { data, error } = await supabase
             .from(this.tableName)
@@ -120,9 +147,6 @@ export class TemplateRepository extends BaseRepository<any> {
         return data;
     }
 
-    /**
-     * Soft deletes a template.
-     */
     public async deleteTemplate(templateId: string, schoolId: string): Promise<void> {
         const { error } = await supabase
             .from(this.tableName)
@@ -136,11 +160,7 @@ export class TemplateRepository extends BaseRepository<any> {
         if (error) throw error;
     }
 
-    /**
-     * Transactional replace of template sections and rules.
-     */
     public async updateTemplateSections(templateId: string, schoolId: string, sections: any[]): Promise<any> {
-        // Verify template belongs to school
         const { data: template, error: checkError } = await supabase
             .from(this.tableName)
             .select('id')
@@ -151,7 +171,7 @@ export class TemplateRepository extends BaseRepository<any> {
         if (checkError) throw checkError;
         if (!template) throw new Error('Template not found or unauthorized.');
 
-        // 1. Delete all current rules for sections belonging to this template
+        // Delete existing rules
         const { data: existingSecs, error: getSecsErr } = await supabase
             .from('assessment_template_sections')
             .select('id')
@@ -168,7 +188,7 @@ export class TemplateRepository extends BaseRepository<any> {
             if (delRulesErr) throw delRulesErr;
         }
 
-        // 2. Delete existing sections
+        // Delete existing sections
         const { error: delSecsErr } = await supabase
             .from('assessment_template_sections')
             .delete()
@@ -176,7 +196,7 @@ export class TemplateRepository extends BaseRepository<any> {
 
         if (delSecsErr) throw delSecsErr;
 
-        // 3. Insert new sections and rules sequentially
+        // Insert new sections
         for (const sec of sections) {
             const { rules, ...sectionData } = sec;
             const { data: newSec, error: insSecErr } = await supabase
@@ -208,16 +228,12 @@ export class TemplateRepository extends BaseRepository<any> {
         return this.findTemplateById(templateId, schoolId);
     }
 
-    /**
-     * Publishes a template, setting its status to PUBLISHED and saving a snapshot.
-     */
     public async publishTemplate(
         templateId: string,
         schoolId: string,
         version: number,
         schemaSnapshot: any
     ): Promise<any> {
-        // 1. Save snapshot in assessment_template_versions
         const { error: snapError } = await supabase
             .from('assessment_template_versions')
             .insert({
@@ -228,7 +244,6 @@ export class TemplateRepository extends BaseRepository<any> {
 
         if (snapError) throw snapError;
 
-        // 2. Update status of template to PUBLISHED
         const { data, error: updateError } = await supabase
             .from(this.tableName)
             .update({
