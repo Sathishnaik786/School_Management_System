@@ -5,18 +5,18 @@ import { AttendanceWorkflowController } from './controllers/AttendanceWorkflowCo
 import { LeaveManagementController } from './controllers/LeaveManagementController';
 import { checkPermission } from '../../rbac/rbac.middleware';
 
-export const attendanceRouter = Router();
+export const enterpriseAttendanceRouter = Router();
 
 // ==========================================
 // ATTENDANCE SESSIONS
 // ==========================================
-attendanceRouter.get(
+enterpriseAttendanceRouter.get(
     '/sessions',
     checkPermission('attendance.view' as any),
     AttendanceSessionController.listSessions
 );
 
-attendanceRouter.post(
+enterpriseAttendanceRouter.post(
     '/sessions',
     checkPermission('attendance.manage' as any),
     AttendanceSessionController.createSession
@@ -25,7 +25,7 @@ attendanceRouter.post(
 // ==========================================
 // CAPTURE CHECKINS
 // ==========================================
-attendanceRouter.post(
+enterpriseAttendanceRouter.post(
     '/mark',
     checkPermission('attendance.mark' as any),
     AttendanceCaptureController.markStudent
@@ -34,7 +34,7 @@ attendanceRouter.post(
 // ==========================================
 // HOD APPROVALS
 // ==========================================
-attendanceRouter.post(
+enterpriseAttendanceRouter.post(
     '/workflow',
     checkPermission('attendance.manage' as any),
     AttendanceWorkflowController.transitionSession
@@ -43,16 +43,16 @@ attendanceRouter.post(
 // ==========================================
 // LEAVE SCHEDULING
 // ==========================================
-attendanceRouter.post(
+enterpriseAttendanceRouter.post(
     '/leave',
     checkPermission('attendance.leave' as any),
     LeaveManagementController.submitLeave
 );
 
-attendanceRouter.post(
+enterpriseAttendanceRouter.post(
     '/leave/approve',
     checkPermission('attendance.leave' as any),
     LeaveManagementController.approveLeave
 );
 
-export default attendanceRouter;
+export default enterpriseAttendanceRouter;
