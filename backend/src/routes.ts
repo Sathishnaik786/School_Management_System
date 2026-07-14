@@ -38,7 +38,7 @@ import { evaluationRouter as assessmentEvaluationRouter } from './modules/assess
 import { resultEngineRouter } from './modules/assessment/result-engine/routes';
 import { analyticsRouter } from './modules/assessment/analytics/routes';
 import { academicRecordsRouter } from './modules/assessment/academic-records/routes';
-import { enterpriseAttendanceRouter } from './modules/attendance/routes';
+import { attendanceRouter } from './modules/attendance/routes';
 
 import { env } from './config/env';
 
@@ -459,7 +459,7 @@ router.use('/v1/assessment/evaluations', assessmentEvaluationRouter);
 router.use('/v1/assessment/results', resultEngineRouter);
 router.use('/v1/assessment/analytics', analyticsRouter);
 router.use('/v1/assessment/academic-records', academicRecordsRouter);
-router.use('/v1/attendance', enterpriseAttendanceRouter);
+router.use('/v1/attendance', attendanceRouter);
 
 
 // System RBAC Audit Endpoint

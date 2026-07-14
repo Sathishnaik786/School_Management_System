@@ -5,18 +5,18 @@ import { AttendanceWorkflowController } from './controllers/AttendanceWorkflowCo
 import { LeaveManagementController } from './controllers/LeaveManagementController';
 import { checkPermission } from '../../rbac/rbac.middleware';
 
-export const enterpriseAttendanceRouter = Router();
+export const attendanceRouter = Router();
 
 // ==========================================
 // ATTENDANCE SESSIONS
 // ==========================================
-enterpriseAttendanceRouter.get(
+attendanceRouter.get(
     '/sessions',
     checkPermission('attendance.view' as any),
     AttendanceSessionController.listSessions
 );
 
-enterpriseAttendanceRouter.post(
+attendanceRouter.post(
     '/sessions',
     checkPermission('attendance.manage' as any),
     AttendanceSessionController.createSession
@@ -25,7 +25,7 @@ enterpriseAttendanceRouter.post(
 // ==========================================
 // CAPTURE CHECKINS
 // ==========================================
-enterpriseAttendanceRouter.post(
+attendanceRouter.post(
     '/mark',
     checkPermission('attendance.mark' as any),
     AttendanceCaptureController.markStudent
@@ -34,7 +34,7 @@ enterpriseAttendanceRouter.post(
 // ==========================================
 // HOD APPROVALS
 // ==========================================
-enterpriseAttendanceRouter.post(
+attendanceRouter.post(
     '/workflow',
     checkPermission('attendance.manage' as any),
     AttendanceWorkflowController.transitionSession
@@ -43,16 +43,16 @@ enterpriseAttendanceRouter.post(
 // ==========================================
 // LEAVE SCHEDULING
 // ==========================================
-enterpriseAttendanceRouter.post(
+attendanceRouter.post(
     '/leave',
     checkPermission('attendance.leave' as any),
     LeaveManagementController.submitLeave
 );
 
-enterpriseAttendanceRouter.post(
+attendanceRouter.post(
     '/leave/approve',
     checkPermission('attendance.leave' as any),
     LeaveManagementController.approveLeave
 );
 
-export default enterpriseAttendanceRouter;
+export default attendanceRouter;
