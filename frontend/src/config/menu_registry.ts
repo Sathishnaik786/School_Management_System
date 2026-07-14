@@ -206,6 +206,7 @@ export const MENU_REGISTRY: MenuGroup[] = [
         permission: 'admission.visitors.manage',
         module: 'admission',
         items: [
+            { label: 'Operations', icon: LayoutDashboard, path: '/app/admissions/dashboard', permission: 'admission.visitors.manage' },
             { label: 'Walk-ins Log', icon: Users, path: '/app/admissions/inquiries', permission: 'admission.visitors.manage' },
             { label: 'New Inquiry', icon: FileText, path: '/app/admissions/inquiries#new', permission: 'admission.visitors.manage' }
         ]
