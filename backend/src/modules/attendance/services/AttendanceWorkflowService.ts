@@ -1,6 +1,6 @@
 import { BaseService } from '../../admission/services/BaseService';
 import { AttendanceSessionRepository } from '../repositories/AttendanceSessionRepository';
-import { supabase } from '../../../config/supabase';
+import { supabase } from '../../../../config/supabase';
 
 export class AttendanceWorkflowService extends BaseService {
     private readonly repo = new AttendanceSessionRepository();

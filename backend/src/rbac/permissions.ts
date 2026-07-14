@@ -131,17 +131,8 @@ export const PERMISSIONS = {
     ASSESSMENT_RESULT_VIEW: 'assessment.result.view',
     ASSESSMENT_RESULT_PUBLISH: 'assessment.result.publish',
     ASSESSMENT_ANALYTICS_VIEW: 'assessment.analytics.view',
-    ASSESSMENT_SETTINGS_VIEW: 'assessment.analytics.view', // Note: mapped to view
+    ASSESSMENT_SETTINGS_VIEW: 'assessment.settings.view',
     ASSESSMENT_SETTINGS_MANAGE: 'assessment.settings.manage',
-
-    // Phase 6 Question Bank Permissions
-    ASSESSMENT_FOLDER_MANAGE: 'assessment.folder.manage',
-    ASSESSMENT_ASSET_UPLOAD: 'assessment.asset.upload',
-    ASSESSMENT_ASSET_DELETE: 'assessment.asset.delete',
-    ASSESSMENT_QUESTION_CREATE: 'assessment.question.create',
-    ASSESSMENT_QUESTION_UPDATE: 'assessment.question.update',
-    ASSESSMENT_QUESTION_REVIEW: 'assessment.question.review',
-    ASSESSMENT_QUESTION_DELETE: 'assessment.question.delete',
 };
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

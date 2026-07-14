@@ -1,5 +1,5 @@
 import { BaseService } from '../../admission/services/BaseService';
-import { supabase } from '../../../config/supabase';
+import { supabase } from '../../../../config/supabase';
 
 export class AttendanceNotificationService extends BaseService {
     public async triggerShortageNotification(

@@ -1,5 +1,5 @@
 import { BaseService } from '../../admission/services/BaseService';
-import { supabase } from '../../../config/supabase';
+import { supabase } from '../../../../config/supabase';
 
 export class AttendanceOutboxService extends BaseService {
     public async processPendingEvents(correlationId?: string): Promise<void> {

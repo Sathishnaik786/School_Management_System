@@ -1,4 +1,4 @@
-import { supabase } from '../../../config/supabase';
+import { supabase } from '../../../../config/supabase';
 import { BaseRepository } from '../../admission/repositories/BaseRepository';
 
 export class AttendanceSessionRepository extends BaseRepository<any> {

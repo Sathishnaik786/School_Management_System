@@ -19,7 +19,7 @@ export class ImportController {
                 userId,
                 validated.academicYearId,
                 validated.subjectId,
-                validated.folderId || null,
+                validated.folderId,
                 validated.csv
             );
 

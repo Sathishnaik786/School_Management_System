@@ -46,10 +46,7 @@ export class PaperController {
             if (!schoolId || !userId) return res.status(400).json({ error: 'Context credentials could not be resolved.' });
 
             const validated = PaperValidator.validateCreate(req.body);
-            const paper = await PaperController.generator.generatePaper(schoolId, userId, {
-                ...validated,
-                description: validated.description || undefined
-            });
+            const paper = await PaperController.generator.generatePaper(schoolId, userId, validated);
             return res.status(201).json(paper);
         } catch (error: any) {
             return res.status(error.status || 400).json({ error: error.message || 'Failed to generate paper.' });

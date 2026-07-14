@@ -26,15 +26,11 @@ export class ModerationController {
             if (!moderatorId) return res.status(400).json({ error: 'Moderator session credentials missing.' });
 
             const validated = EvaluationValidator.validateModeration(req.body);
-            if (validated.status === 'PENDING') {
-                return res.status(400).json({ error: 'Cannot resolve a moderation queue item to PENDING.' });
-            }
-
             const result = await ModerationController.service.resolveModeration(
                 id,
                 moderatorId,
                 validated.moderator_marks,
-                validated.status as 'RESOLVED' | 'REJECTED'
+                validated.status
             );
 
             return res.status(200).json(result);
