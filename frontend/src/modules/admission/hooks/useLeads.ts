@@ -80,10 +80,11 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
         enabled: canManageVisitors,
         staleTime: ADMISSION_STALE_TIME,
     });
+    const canFetchStats = hasPermission('admission.review') || hasPermission('admission.view_all');
     const statsQuery = useQuery({
         queryKey: AdmissionEngine.cacheKeys.stats(),
         queryFn: () => admissionApi.getStats().then(res => res.data).catch(() => null),
-        enabled: canManageLeads || canViewEnquiries,
+        enabled: canFetchStats,
         staleTime: ADMISSION_STALE_TIME,
     });
 
@@ -117,7 +118,7 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
             if (canViewEnquiries) void inquiriesQuery.refetch();
             if (canManageLeads) void followupsQuery.refetch();
             if (canManageVisitors) void visitorsQuery.refetch();
-            if (canManageLeads || canViewEnquiries) void statsQuery.refetch();
+            if (canFetchStats) void statsQuery.refetch();
         };
         const unsubs = [
             ADMISSION_EVENTS.INQUIRY_CREATED,
@@ -141,7 +142,8 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
         statsQuery.refetch,
         canManageLeads,
         canViewEnquiries,
-        canManageVisitors
+        canManageVisitors,
+        canFetchStats
     ]);
 
     return {
@@ -162,7 +164,7 @@ export function useLeadDashboard(params?: Record<string, unknown>) {
                 canViewEnquiries ? inquiriesQuery.refetch() : Promise.resolve(null),
                 canManageLeads ? followupsQuery.refetch() : Promise.resolve(null),
                 canManageVisitors ? visitorsQuery.refetch() : Promise.resolve(null),
-                (canManageLeads || canViewEnquiries) ? statsQuery.refetch() : Promise.resolve(null),
+                canFetchStats ? statsQuery.refetch() : Promise.resolve(null),
             ]),
     };
 }

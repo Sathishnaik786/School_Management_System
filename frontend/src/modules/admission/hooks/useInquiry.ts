@@ -112,5 +112,16 @@ export function useCreateVisitor() {
     });
 }
 
+export function useUpdateVisitor() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => admissionApi.updateVisitor(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admission', 'crm', 'visitors'] });
+            AdmissionEngine.dispatch(queryClient, ADMISSION_EVENTS.DASHBOARD_REFRESH);
+        },
+    });
+}
+
 /** Alias for registry naming */
 export const useInquiry = useInquiries;

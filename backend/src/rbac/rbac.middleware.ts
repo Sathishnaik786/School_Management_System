@@ -191,6 +191,14 @@ export const checkPermission = (requiredPermission: PermissionCode) => {
             return next();
         }
 
+        // 2p. Receptionist / Counselor student lookup bypass
+        if (
+            (requiredPermission === 'student.view' || requiredPermission === 'student.read') &&
+            (roles.includes('RECEPTIONIST') || roles.includes('COUNSELOR'))
+        ) {
+            return next();
+        }
+
         // 2k. Applicant360 read enrichment — GET only, mirrors admission.application.view access
         if (
             req.method === 'GET' &&
