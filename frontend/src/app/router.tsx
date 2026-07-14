@@ -120,22 +120,6 @@ export const AppRouter = () => {
                             ))}
                         </Route>
                     </Route>
-
-                    {/* EXAM ADMIN DASHBOARD (ExamAdminLayout) */}
-                    <Route path="exam-admin" element={
-                        <PermissionGuard permission="exam.dashboard.view">
-                            <ExamAdminLayout />
-                        </PermissionGuard>
-                    }>
-                        {EXAM_ADMIN_ROUTES.map(route => (
-                            <Route 
-                                key={route.path} 
-                                path={route.path} 
-                                element={route.element} 
-                            />
-                        ))}
-                    </Route>
-
                     <Route path="unauthorized" element={<UnauthorizedPage />} />
                     <Route path="" element={<Navigate to="dashboard" replace />} />
                 </Route>

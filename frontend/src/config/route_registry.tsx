@@ -405,20 +405,25 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'workflows/analytics', element: <WorkflowAnalytics />, layout: 'dashboard', permission: 'admin.dashboard.view' },
 
     // IMPORT TOOLKIT
-    { path: 'import/history', element: <ImportHistoryPage />, layout: 'dashboard', permission: 'admin.dashboard.view' }
+    { path: 'import/history', element: <ImportHistoryPage />, layout: 'dashboard', permission: 'admin.dashboard.view' },
+
+    // DEDICATED EXAM CELL ROUTES IN GENERAL DASHBOARD LAYOUT
+    { path: 'exam-admin/dashboard', element: <ExamDashboard />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/timetable', element: <ExamTimetablePage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/eligibility', element: <ExamEligibilityPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/seating', element: <ExamSeating />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/halls', element: <ExamHallManagement />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/hall-tickets', element: <ExamHallTickets />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/question-papers', element: <ExamQuestionPapers />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/results', element: <ExamResults />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/analytics', element: <ExamAnalytics />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/manage', element: <ExamManagement />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/marks-entry', element: <MarksEntry />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/exams', element: <EntranceExamPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/interviews', element: <InterviewPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/merit', element: <MeritListPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-admin/offers', element: <OfferLetterPage />, layout: 'dashboard', permission: 'exam.dashboard.view' }
 ];
 
-// EXAM_ADMIN PLATFORM (Dedicated Layout)
-export const EXAM_ADMIN_ROUTES: RouteConfig[] = [
-    { path: 'dashboard', element: <ExamDashboard />, layout: 'exam_admin' },
-    { path: 'timetable', element: <ExamTimetablePage />, layout: 'exam_admin' },
-    { path: 'eligibility', element: <ExamEligibilityPage />, layout: 'exam_admin' },
-    { path: 'seating', element: <ExamSeating />, layout: 'exam_admin' },
-    { path: 'halls', element: <ExamHallManagement />, layout: 'exam_admin' },
-    { path: 'hall-tickets', element: <ExamHallTickets />, layout: 'exam_admin' },
-    { path: 'question-papers', element: <ExamQuestionPapers />, layout: 'exam_admin' },
-    { path: 'results', element: <ExamResults />, layout: 'exam_admin' },
-    { path: 'analytics', element: <ExamAnalytics />, layout: 'exam_admin' },
-    { path: 'manage', element: <ExamManagement />, layout: 'exam_admin' },
-    { path: 'marks-entry', element: <MarksEntry />, layout: 'exam_admin' }
-];
+// EXAM_ADMIN PLATFORM (Empty to preserve imports)
+export const EXAM_ADMIN_ROUTES: RouteConfig[] = [];

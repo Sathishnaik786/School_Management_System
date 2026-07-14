@@ -239,10 +239,10 @@ export const MENU_REGISTRY: MenuGroup[] = [
         permission: 'exam.dashboard.view',
         module: 'exam',
         items: [
-            { label: 'Entrance Exams', icon: Calendar, path: '/app/admissions/exams', permission: 'admission.exam.manage' },
-            { label: 'Interviews Panel', icon: Users, path: '/app/admissions/interviews', permission: 'admission.interview.manage' },
-            { label: 'Merit List Desk', icon: FileText, path: '/app/admissions/merit', permission: 'admission.merit.generate' },
-            { label: 'Offer Dispatch Desk', icon: GraduationCap, path: '/app/admissions/offers', permission: 'admission.merit.generate' }
+            { label: 'Entrance Exams', icon: Calendar, path: '/app/exam-admin/exams', permission: 'admission.exam.manage' },
+            { label: 'Interviews Panel', icon: Users, path: '/app/exam-admin/interviews', permission: 'admission.interview.manage' },
+            { label: 'Merit List Desk', icon: FileText, path: '/app/exam-admin/merit', permission: 'admission.merit.generate' },
+            { label: 'Offer Dispatch Desk', icon: GraduationCap, path: '/app/exam-admin/offers', permission: 'admission.merit.generate' }
         ]
     },
     // PRINCIPAL DESK

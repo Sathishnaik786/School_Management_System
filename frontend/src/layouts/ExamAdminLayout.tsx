@@ -42,6 +42,15 @@ export const ExamAdminLayout = () => {
                 { label: 'Results Control', icon: GraduationCap, path: '/app/exam-admin/results' },
                 { label: 'Analytics', icon: BarChart3, path: '/app/exam-admin/analytics' },
             ]
+        },
+        {
+            label: 'Admissions Operations',
+            items: [
+                { label: 'Entrance Exams', icon: Calendar, path: '/app/exam-admin/exams' },
+                { label: 'Interviews Panel', icon: Users, path: '/app/exam-admin/interviews' },
+                { label: 'Merit List Desk', icon: FileText, path: '/app/exam-admin/merit' },
+                { label: 'Offer Dispatch Desk', icon: GraduationCap, path: '/app/exam-admin/offers' },
+            ]
         }
     ];
 
