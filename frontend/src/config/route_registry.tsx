@@ -156,7 +156,7 @@ import { EvaluationAnalyticsPage } from '../modules/assessment/evaluation/pages/
 import { ResultDashboardPage } from '../modules/assessment/result-engine/pages/ResultDashboardPage';
 import { StudentResultsPage } from '../modules/assessment/result-engine/pages/StudentResultsPage';
 import { RankingPage } from '../modules/assessment/result-engine/pages/RankingPage';
-import { PromotionPage } from '../modules/assessment/result-engine/pages/PromotionPage';
+import { PromotionPage as AssessmentPromotionPage } from '../modules/assessment/result-engine/pages/PromotionPage';
 import { GradeCardPage } from '../modules/assessment/result-engine/pages/GradeCardPage';
 import { TranscriptPage } from '../modules/assessment/result-engine/pages/TranscriptPage';
 import { ResultAnalyticsPage } from '../modules/assessment/result-engine/pages/ResultAnalyticsPage';
@@ -178,9 +178,8 @@ import { AcademicStandingPage } from '../modules/assessment/academic-records/pag
 import { AttendanceDashboard } from '../modules/attendance/pages/AttendanceDashboard';
 import { AttendanceCalendarManager } from '../modules/attendance/pages/AttendanceCalendarManager';
 import { AttendanceExceptionsPage } from '../modules/attendance/pages/AttendanceExceptionsPage';
-import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
 import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
-import { AttendanceAnalyticsPage } from '../modules/attendance/pages/AttendanceAnalyticsPage';
+import { AttendanceAnalyticsPage as AttendanceAnalyticsPageV2 } from '../modules/attendance/pages/AttendanceAnalyticsPage';
 import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
 export interface RouteConfig {
@@ -208,7 +207,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'admissions/my', element: <MyApplications />, layout: 'dashboard', permission: 'admission.view_own' },
 
     // ADMISSIONS DESK (AdmissionWorkspaceLayout)
-    { path: 'admissions/dashboard', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/dashboard', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.dashboard.view' },
     { path: 'admissions/analytics', element: <AnalyticsPage />, layout: 'admission_workspace', permission: 'admission.review' },
     { path: 'admissions/inquiries', element: <InquiryListPage />, layout: 'admission_workspace', guardType: 'admission_inquiry' },
     { path: 'admissions/enquiry', element: <InquiryListPage />, layout: 'admission_workspace', guardType: 'admission_inquiry' },
@@ -277,7 +276,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'assessment/results', element: <ResultDashboardPage />, layout: 'dashboard', permission: 'assessment.result.view' },
     { path: 'assessment/results/student-results', element: <StudentResultsPage />, layout: 'dashboard', permission: 'assessment.result.view' },
     { path: 'assessment/results/rankings', element: <RankingPage />, layout: 'dashboard', permission: 'assessment.result.statistics' },
-    { path: 'assessment/results/promotions', element: <PromotionPage />, layout: 'dashboard', permission: 'assessment.result.promotion' },
+    { path: 'assessment/results/promotions', element: <AssessmentPromotionPage />, layout: 'dashboard', permission: 'assessment.result.promotion' },
     { path: 'assessment/results/grade-cards', element: <GradeCardPage />, layout: 'dashboard', permission: 'assessment.result.gradecard' },
     { path: 'assessment/results/transcripts', element: <TranscriptPage />, layout: 'dashboard', permission: 'assessment.result.transcript' },
     { path: 'assessment/results/analytics', element: <ResultAnalyticsPage />, layout: 'dashboard', permission: 'assessment.result.analytics' },
@@ -363,7 +362,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'attendance/holidays', element: <HolidayPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
     { path: 'attendance/biometric', element: <BiometricPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
     { path: 'attendance/reports', element: <AttendanceReportsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/analytics', element: <AttendanceAnalyticsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
+    { path: 'attendance/analytics', element: <AttendanceAnalyticsPageV2 />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
     { path: 'attendance/settings', element: <AttendanceSettingsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
 
     // TIMETABLE OPERATIONS

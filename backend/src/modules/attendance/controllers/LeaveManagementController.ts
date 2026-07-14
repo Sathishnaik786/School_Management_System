@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AttendanceValidator } from '../validators/AttendanceValidator';
-import { supabase } from '../../../../config/supabase';
+import { supabase } from '../../../config/supabase';
 
 export class LeaveManagementController {
     public static async submitLeave(req: Request, res: Response): Promise<Response> {

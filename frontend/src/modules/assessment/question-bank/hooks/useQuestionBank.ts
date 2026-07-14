@@ -317,3 +317,23 @@ export function useImportQuestions() {
     const { importQuestions, isImporting } = useQuestionEditor();
     return { mutateAsync: importQuestions, isPending: isImporting };
 }
+
+export function useFoldersList() {
+    const { folders, isLoading } = useQuestionFolders();
+    return { data: folders, isLoading };
+}
+
+export function useCreateFolder() {
+    const { createFolder } = useQuestionFolders();
+    return { mutateAsync: createFolder };
+}
+
+export function useUpdateFolder() {
+    const { updateFolder } = useQuestionFolders();
+    return { mutateAsync: updateFolder };
+}
+
+export function useDeleteFolder() {
+    const { deleteFolder } = useQuestionFolders();
+    return { mutateAsync: deleteFolder };
+}

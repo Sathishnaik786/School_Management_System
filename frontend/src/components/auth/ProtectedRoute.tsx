@@ -80,7 +80,12 @@ export const PermissionGuard = ({
             return <Navigate to="/app/unauthorized" replace />;
         }
         
-        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`);
+        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`, {
+            user: user.email,
+            roles: user.roles,
+            requiredPermission: permission,
+            reason: 'Missing required permission'
+        });
         return <Navigate to={targetRoute} replace />;
     }
 
@@ -118,7 +123,12 @@ export const AnyPermissionGuard = ({
             return <Navigate to="/app/unauthorized" replace />;
         }
         
-        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`);
+        console.warn(`[Route Guard] Access to ${location.pathname} denied. Redirecting to landing: ${targetRoute}`, {
+            user: user.email,
+            roles: user.roles,
+            requiredPermissions: permissions,
+            reason: 'Missing all of the required permissions'
+        });
         return <Navigate to={targetRoute} replace />;
     }
 

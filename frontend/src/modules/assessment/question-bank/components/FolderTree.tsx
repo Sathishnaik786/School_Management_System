@@ -4,6 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Folder, FolderPlus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { useFoldersList, useCreateFolder, useUpdateFolder, useDeleteFolder } from '../hooks/useQuestionBank';
+import { FolderNode } from '../services/question.api';
 import { useToast } from '../../../../components/ui/use-toast';
 
 interface FolderTreeProps {
@@ -125,7 +126,7 @@ export function FolderTree({ activeFolderId, onSelectFolder }: FolderTreeProps) 
                     <div className="text-center py-4 text-[10px] text-gray-400 font-semibold">No folders created yet.</div>
                 ) : (
                     <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
-                        {folders.map((folder) => (
+                        {folders.map((folder: FolderNode) => (
                             <div key={folder.id} className="group flex justify-between items-center rounded-xl hover:bg-gray-50">
                                 {editingFolderId === folder.id ? (
                                     <div className="flex gap-1 items-center p-1 w-full">

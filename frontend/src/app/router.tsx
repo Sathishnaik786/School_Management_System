@@ -108,17 +108,17 @@ export const AppRouter = () => {
                                 element={wrapWithGuards(route)} 
                             />
                         ))}
-                    </Route>
 
-                    {/* AdmissionWorkspaceLayout routes */}
-                    <Route element={<AdmissionWorkspaceLayout />}>
-                        {admissionWorkspaceRoutes.map(route => (
-                            <Route 
-                                key={route.path} 
-                                path={route.path} 
-                                element={wrapWithGuards(route)} 
-                            />
-                        ))}
+                        {/* Admissions Module routes nested under App Shell and Master Data Provider */}
+                        <Route element={<AdmissionWorkspaceLayout />}>
+                            {admissionWorkspaceRoutes.map(route => (
+                                <Route 
+                                    key={route.path} 
+                                    path={route.path} 
+                                    element={wrapWithGuards(route)} 
+                                />
+                            ))}
+                        </Route>
                     </Route>
 
                     {/* EXAM ADMIN DASHBOARD (ExamAdminLayout) */}

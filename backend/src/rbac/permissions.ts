@@ -133,6 +133,15 @@ export const PERMISSIONS = {
     ASSESSMENT_ANALYTICS_VIEW: 'assessment.analytics.view',
     ASSESSMENT_SETTINGS_VIEW: 'assessment.settings.view',
     ASSESSMENT_SETTINGS_MANAGE: 'assessment.settings.manage',
+    
+    // QUESTION BANK & FOLDER MANAGE
+    ASSESSMENT_FOLDER_MANAGE: 'assessment.folder.manage',
+    ASSESSMENT_ASSET_UPLOAD: 'assessment.asset.upload',
+    ASSESSMENT_ASSET_DELETE: 'assessment.asset.delete',
+    ASSESSMENT_QUESTION_CREATE: 'assessment.question.create',
+    ASSESSMENT_QUESTION_UPDATE: 'assessment.question.update',
+    ASSESSMENT_QUESTION_DELETE: 'assessment.question.delete',
+    ASSESSMENT_QUESTION_REVIEW: 'assessment.question.review',
 };
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

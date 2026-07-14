@@ -7,7 +7,7 @@ import { Textarea } from '../../../../components/ui/textarea';
 import { useFoldersList, useCreateQuestion, useUpdateQuestion } from '../hooks/useQuestionBank';
 import { useToast } from '../../../../components/ui/use-toast';
 import { Plus, Trash2, Save, X, HelpCircle, ArrowLeft, Loader2 } from 'lucide-react';
-import { QuestionItem } from '../services/question.api';
+import { QuestionItem, FolderNode } from '../services/question.api';
 
 interface QuestionEditorProps {
     editingQuestion: QuestionItem | null;
@@ -217,7 +217,7 @@ export function QuestionEditor({ editingQuestion, subjectId, academicYearId, onC
                             className="w-full h-9 border border-gray-200 rounded-xl text-xs font-bold bg-white text-gray-700 px-3"
                         >
                             <option value="">Unorganized (Root)</option>
-                            {folders?.map(f => (
+                            {folders?.map((f: FolderNode) => (
                                 <option key={f.id} value={f.id}>{f.name}</option>
                             ))}
                         </select>
