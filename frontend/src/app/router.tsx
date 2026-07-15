@@ -28,6 +28,13 @@ import ResetPasswordPage from '../features/auth/ResetPasswordPage';
 import SessionExpiredPage from '../features/auth/SessionExpiredPage';
 import { AdmissionInquiryGuard } from '../modules/admission/components/AdmissionInquiryGuard';
 import { AdmissionApplicationGuard } from '../modules/admission/components/AdmissionApplicationGuard';
+import ExaminationLandingPage from '../pages/examination-platform/LandingPage';
+import { ExamLayout } from '../modules/examination-platform/layouts/ExamLayout';
+import { ExamSessionLayout } from '../modules/examination-platform/layouts/ExamSessionLayout';
+import { ExamProtectedRoute, ExamSessionGuard } from '../modules/examination-platform/guards';
+import { publicRoutes } from '../modules/examination-platform/routes/public.routes';
+import { protectedDashboardRoutes, protectedSessionRoutes } from '../modules/examination-platform/routes/protected.routes';
+import ErrorBoundary from '../components/feedback/ErrorBoundary';
 
 // Central Route Registry Import
 import { ROUTE_REGISTRY, EXAM_ADMIN_ROUTES, RouteConfig } from '../config/route_registry';
@@ -80,6 +87,19 @@ export const AppRouter = () => {
                     <Route path="/notifications" element={<Notifications />} />
                 </Route>
 
+                {/* Enterprise Examination Platform Public Routes */}
+                {publicRoutes.map(route => (
+                    <Route
+                        key={route.path}
+                        path={route.path}
+                        element={route.element}
+                    />
+                ))}
+
+                {/* Enterprise Examination Platform Landing Page */}
+                <Route path="/examination-platform" element={<ExaminationLandingPage />} />
+                <Route path="/exams" element={<Navigate to="/examination-platform" replace />} />
+
                 {/* Login */}
                 <Route path="/login" element={<LoginPage />} />
 
@@ -122,6 +142,33 @@ export const AppRouter = () => {
                     </Route>
                     <Route path="unauthorized" element={<UnauthorizedPage />} />
                     <Route path="" element={<Navigate to="dashboard" replace />} />
+                </Route>
+
+                {/* Examination Platform Protected Routes */}
+                <Route element={<ExamProtectedRoute />}>
+                    {/* Dashboard Routes wrapped with ExamLayout */}
+                    <Route element={<ExamLayout />}>
+                        {protectedDashboardRoutes.map(route => (
+                            <Route
+                                key={route.path}
+                                path={route.path}
+                                element={<ErrorBoundary>{route.element}</ErrorBoundary>}
+                            />
+                        ))}
+                    </Route>
+
+                    {/* Live Exam Session routes wrapped with ExamSessionLayout & ExamSessionGuard */}
+                    <Route element={<ExamSessionGuard />}>
+                        <Route element={<ExamSessionLayout />}>
+                            {protectedSessionRoutes.map(route => (
+                                <Route
+                                    key={route.path}
+                                    path={route.path}
+                                    element={<ErrorBoundary>{route.element}</ErrorBoundary>}
+                                />
+                            ))}
+                        </Route>
+                    </Route>
                 </Route>
 
                 {/* Redirects */}

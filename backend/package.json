@@ -15,7 +15,9 @@
         "migrate-117": "node scripts/run-migration-117.js",
         "migrate-118": "node scripts/run-migration-118.js",
         "migrate-119": "node scripts/run-migration-119.js",
-        "migrate-120": "node scripts/run-migration-120.js"
+        "migrate-120": "node scripts/run-migration-120.js",
+        "migrate-122": "node scripts/run-migration-122.js",
+        "migrate-123": "node scripts/run-migration-123.js"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.39.0",

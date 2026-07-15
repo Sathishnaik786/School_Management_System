@@ -182,6 +182,16 @@ import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
 import { AttendanceAnalyticsPage as AttendanceAnalyticsPageV2 } from '../modules/attendance/pages/AttendanceAnalyticsPage';
 import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
+// Phase 2C: Examination Operations
+import { ExamOperationsDashboard } from '../modules/examination-operations/views/ExamOperationsDashboard';
+import { RegistrationsPage } from '../modules/examination-operations/views/RegistrationsPage';
+import { VenuesPage } from '../modules/examination-operations/views/VenuesPage';
+import { SeatingPage } from '../modules/examination-operations/views/SeatingPage';
+import { InvigilationPage } from '../modules/examination-operations/views/InvigilationPage';
+import { AttendancePage as ExamAttendancePage } from '../modules/examination-operations/views/AttendancePage';
+import { SchedulingPage } from '../modules/examination-operations/views/SchedulingPage';
+import { PublicationsPage } from '../modules/examination-operations/views/PublicationsPage';
+
 export interface RouteConfig {
     path: string;
     element: React.ReactNode;
@@ -422,7 +432,17 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'exam-admin/exams', element: <EntranceExamPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
     { path: 'exam-admin/interviews', element: <InterviewPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
     { path: 'exam-admin/merit', element: <MeritListPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
-    { path: 'exam-admin/offers', element: <OfferLetterPage />, layout: 'dashboard', permission: 'exam.dashboard.view' }
+    { path: 'exam-admin/offers', element: <OfferLetterPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+
+    // ─── PHASE 2C: EXAMINATION OPERATIONS ────────────────────────────────────────
+    { path: 'exam-operations', element: <ExamOperationsDashboard />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/registrations', element: <RegistrationsPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/venues', element: <VenuesPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/seating', element: <SeatingPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/invigilation', element: <InvigilationPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/attendance', element: <ExamAttendancePage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/scheduling', element: <SchedulingPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
+    { path: 'exam-operations/publications', element: <PublicationsPage />, layout: 'dashboard', permission: 'exam.dashboard.view' },
 ];
 
 // EXAM_ADMIN PLATFORM (Empty to preserve imports)

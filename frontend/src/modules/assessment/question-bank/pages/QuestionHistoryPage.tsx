@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, GitCompare, RotateCcw, AlertTriangle } from 'lucide
 import { Button } from '../../../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../../components/ui/dialog';
 import { useToast } from '../../../../components/ui/use-toast';
+import { Label } from '../../../../components/ui/label';
 import { QuestionItem } from '../services/question.api';
 
 export const QuestionHistoryPage: React.FC = () => {

@@ -5,7 +5,7 @@ import { FileText, Lock, Upload, CheckCircle2, History, AlertCircle } from 'luci
 // import { supabase } from '../../../lib/supabase'; // Assuming supabase import exists or logic is mocked as per previous file
 
 export const QuestionPaperManager = () => {
-    const { hasPermission } = useAuth();
+    const { hasPermission, hasRole } = useAuth();
     // ONLY users with explicit lock permissions can lock question papers.
     const canLock = hasPermission('exam.paper.lock');
     const isAdmin = hasPermission('exam.paper.upload') || canLock;

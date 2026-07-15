@@ -157,8 +157,15 @@ export function useCloneTemplate() {
     return { mutateAsync: cloneTemplate, isPending: isCloning };
 }
 export function usePublishTemplate(id: string) {
-    const { transitionTemplate, isTransitioning } = useTemplateWorkflow();
-    return { mutateAsync: () => transitionTemplate({ id, status: 'PUBLISHED' }), isPending: isTransitioning };
+    const queryClient = useQueryClient();
+    const publishMutation = useMutation({
+        mutationFn: () => templateApi.publishTemplate(id),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: TEMPLATE_LIST_KEY });
+            queryClient.setQueryData([...TEMPLATE_DETAIL_KEY, id], data);
+        }
+    });
+    return { mutateAsync: publishMutation.mutateAsync, isPending: publishMutation.isPending };
 }
 export function useUpdateTemplateSections(id: string) {
     const { updateTemplate, isUpdating } = useTemplateEditor();

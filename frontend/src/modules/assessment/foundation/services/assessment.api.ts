@@ -84,6 +84,28 @@ export const assessmentApi = {
         return data;
     },
 
+    getConfig: async () => {
+        const { data } = await apiClient.get<AssessmentConfig[]>('/v1/assessment/configurations');
+        return data && data.length > 0 ? data[0] : null;
+    },
+
+    updateConfig: async (payload: Partial<AssessmentConfig>) => {
+        let configId = payload.id;
+        if (!configId) {
+            const configs = await assessmentApi.listConfigurations();
+            if (configs && configs.length > 0) {
+                configId = configs[0].id;
+            }
+        }
+        if (configId) {
+            const { data } = await apiClient.put<AssessmentConfig>(`/v1/assessment/configurations/${configId}`, payload);
+            return data;
+        } else {
+            const { data } = await apiClient.post<AssessmentConfig>('/v1/assessment/configurations', payload);
+            return data;
+        }
+    },
+
     getConfigurationById: async (id: string) => {
         const { data } = await apiClient.get<AssessmentConfig>(`/v1/assessment/configurations/${id}`);
         return data;
