@@ -55,7 +55,44 @@ router.get('/system/info', (req: Request, res: Response) => {
     res.json({ mode: env.SYSTEM_MODE });
 });
 
-
+router.get('/public/student-email', async (req: Request, res: Response) => {
+    try {
+        const code = req.query.code as string;
+        if (!code) {
+            return res.status(400).json({ error: 'Student code is required' });
+        }
+        
+        // Find in students table using student_code or admission_no
+        const { data: student, error: studentErr } = await supabase
+            .from('students')
+            .select('user_id, admission_no, student_code')
+            .or(`student_code.eq.${code},admission_no.eq.${code}`)
+            .maybeSingle();
+            
+        if (studentErr || !student) {
+            return res.status(404).json({ error: 'Student not found in database. Please verify your Student ID.' });
+        }
+        
+        if (!student.user_id) {
+            return res.status(404).json({ error: 'Student record is not linked to a user account.' });
+        }
+        
+        // Get the email from users table
+        const { data: userProfile, error: userErr } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', student.user_id)
+            .maybeSingle();
+            
+        if (userErr || !userProfile) {
+            return res.status(404).json({ error: 'Student user account not found.' });
+        }
+        
+        res.json({ email: userProfile.email });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // Exposed Admission Route for registration & Guest Drafts (CRM pipeline)
 router.post('/v1/admission/public-apply', publicApplicationController.apply);
 router.post('/admissions/public-apply', publicApplicationController.apply);

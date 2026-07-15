@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/api-client';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Home, Sparkles, ShieldCheck, Sun, Moon } from 'lucide-react';
@@ -52,8 +53,26 @@ export default function LoginPage() {
         setLoading(true);
         setError(null);
 
+        let loginEmail = email;
+
+        // If the identifier is a Student ID/Code (does not contain @)
+        if (!email.includes('@')) {
+            try {
+                const res = await apiClient.get(`/public/student-email?code=${encodeURIComponent(email)}`);
+                if (res.data?.email) {
+                    loginEmail = res.data.email;
+                } else {
+                    throw new Error('Student account not found');
+                }
+            } catch (err: any) {
+                setError(err.response?.data?.error || 'Invalid Student ID. Please check your credentials.');
+                setLoading(false);
+                return;
+            }
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-            email,
+            email: loginEmail,
             password,
         });
 
@@ -228,7 +247,7 @@ export default function LoginPage() {
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary w-4 h-4"
+                                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                                     />
                                     <span className="text-muted-foreground">Keep me signed in</span>
                                 </label>

@@ -48,6 +48,7 @@ import { ExamHallManagement } from '../modules/exam/pages/ExamHallManagement';
 import { FacultyExamDashboard } from '../modules/exam/pages/FacultyExamDashboard';
 import { FacultyInvigilationView } from '../modules/exam/pages/FacultyInvigilationView';
 import { MyExams } from '../modules/exam/pages/MyExams';
+import { WriteExamPage } from '../modules/exam/pages/WriteExamPage';
 import { ExamDashboard } from '../modules/exam/pages/ExamDashboard';
 import { ExamTimetablePage } from '../modules/exam/pages/ExamTimetablePage';
 import { ExamEligibilityPage } from '../modules/exam/pages/ExamEligibilityPage';
@@ -344,6 +345,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'student/exams/hall-ticket', element: <MyHallTicket />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
     { path: 'student/exams/report-card', element: <MyReportCard />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
     { path: 'student/exams/dashboard', element: <MyExams />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
+    { path: 'student/exams/write', element: <WriteExamPage />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
     { path: 'faculty/exams/dashboard', element: <FacultyExamDashboard />, layout: 'dashboard', permission: 'EXAM_VIEW' },
     { path: 'faculty/exams/invigilation', element: <FacultyInvigilationView />, layout: 'dashboard', permission: 'EXAM_VIEW' },
     { path: 'faculty/exams/marks-entry', element: <MarksEntry />, layout: 'dashboard', permission: 'MARKS_ENTER' },

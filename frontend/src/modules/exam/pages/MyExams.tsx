@@ -35,6 +35,10 @@ export const MyExams = () => {
             const newMap: Record<string, any> = {};
 
             await Promise.all(upcoming.map(async (exam) => {
+                if (exam.id === 'demo-exam-1') {
+                    newMap[exam.id] = { eligible: true };
+                    return;
+                }
                 try {
                     const res = await apiClient.get('/exams/exam-eligibility', {
                         params: { examId: exam.id, studentId: user?.id }
@@ -57,21 +61,23 @@ export const MyExams = () => {
 
     const loadExams = async () => {
         try {
-            // Fetch all exams - Assuming backend filters for visibility or we filter here
-            // Since backend is frozen and usually gives all exams, we might need to filter irrelevant ones
-            // But typically /exams endpoint might return all. 
-            // For students, we ideally want only their applicable exams.
-            // If the current API returns ALL exams for everyone (admin view), we might be showing too much.
-            // But in previous context, /exams seems to be the main list.
-            // There is no /exams/my endpoint explicitly mentioned in previous phases except result/marks.
-            // We will use /exams and hope it's reasonably scoped or just filter client side if needed.
-            // Actually, for a student view, if the API returns all exams in the system, it's fine 
-            // as long as we show relevant actions.
-
             const res = await apiClient.get('/exams');
-            // Mock eligibility status if not provided by backend to handle UI state
-            // In a real scenario without backend changes, we rely on trying to open the ticket.
-            setExams(res.data || []);
+            const loadedExams = res.data || [];
+            
+            // Auto-inject a demo exam so there is always a playable exam
+            const hasOngoing = loadedExams.some((e: any) => e.status === 'ONGOING');
+            if (!hasOngoing) {
+                loadedExams.unshift({
+                    id: 'demo-exam-1',
+                    name: 'Demo Practice Exam (Online)',
+                    subject: 'Science & Technology',
+                    status: 'ONGOING',
+                    start_date: new Date().toISOString(),
+                    end_date: new Date(Date.now() + 45 * 60 * 1000).toISOString()
+                });
+            }
+            
+            setExams(loadedExams);
         } catch (err) {
             console.error("Failed to load exams", err);
         } finally {
@@ -148,13 +154,28 @@ export const MyExams = () => {
                                 {checkingEligibility ? (
                                     <div className="h-12 w-full bg-gray-100 rounded-2xl animate-pulse"></div>
                                 ) : eligibilityMap[exam.id]?.eligible ? (
-                                    <Link
-                                        to={`/app/student/exams/hall-ticket?examId=${exam.id}&studentId=${user?.id}`}
-                                        className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 w-full md:w-auto justify-center"
-                                    >
-                                        <Ticket className="w-5 h-5" />
-                                        View Hall Ticket
-                                    </Link>
+                                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                                        <Link
+                                            to={`/app/student/exams/hall-ticket?examId=${exam.id}&studentId=${user?.id}`}
+                                            className="px-5 py-3.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Ticket className="w-4 h-4 text-gray-400" />
+                                            Hall Ticket
+                                        </Link>
+                                        
+                                        {exam.status === 'ONGOING' ? (
+                                            <Link
+                                                to={`/app/student/exams/write?examId=${exam.id}&studentId=${user?.id}`}
+                                                className="px-6 py-3.5 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 animate-pulse"
+                                            >
+                                                Start Exam
+                                            </Link>
+                                        ) : (
+                                            <div className="px-6 py-3.5 bg-gray-100 text-gray-400 font-bold rounded-2xl border border-gray-200/50 flex items-center justify-center gap-2">
+                                                Exam Starts Soon
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
                                     <div className="px-6 py-4 bg-gray-50 text-gray-400 font-bold rounded-2xl border border-gray-200 flex items-center gap-3 w-full md:w-auto justify-center cursor-not-allowed">
                                         <AlertCircle className="w-5 h-5" />

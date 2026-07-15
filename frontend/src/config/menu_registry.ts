@@ -139,7 +139,7 @@ export const MENU_REGISTRY: MenuGroup[] = [
             { label: 'Assignments', icon: ClipboardList, path: '/app/student/assignments', permission: 'STUDENT_VIEW_SELF' },
             { label: 'Academic History', icon: History, path: '/app/student/academic-history', permission: 'STUDENT_VIEW_SELF' },
             { label: 'My Timetable', icon: Clock, path: '/app/timetable/my', permission: 'TIMETABLE_VIEW_SELF' },
-            { label: 'Results', icon: GraduationCap, path: '/app/student/exams/dashboard', permission: 'STUDENT_VIEW_SELF' },
+            { label: 'Examinations', icon: GraduationCap, path: '/app/student/exams/dashboard', permission: 'STUDENT_VIEW_SELF' },
             { label: 'My Attendance', icon: Calendar, path: '/app/attendance/my', permission: 'ATTENDANCE_VIEW_SELF' },
             { label: 'My Fees', icon: Coins, path: '/app/fees/my', permission: 'PAYMENT_VIEW_SELF' },
             { label: 'My Transport', icon: Bus, path: '/app/transport/my', permission: 'TRANSPORT_VIEW_SELF' }
