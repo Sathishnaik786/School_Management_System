@@ -1,5 +1,5 @@
 import { supabase } from '../../../../config/supabase';
-import type { StudentProvisionReport } from '../../services/enrollment/StudentProvisionService';
+import type { StudentProvisionReport } from '../../types/ProvisionTypes';
 
 export class AtomicProvisionRepository {
     public async provisionAtomic(

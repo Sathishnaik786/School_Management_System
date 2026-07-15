@@ -3,20 +3,7 @@ import { AtomicProvisionRepository } from '../../repositories/enrollment/AtomicP
 import { ApplicationRepository } from '../../repositories/application/ApplicationRepository';
 import { AuditService } from '../AuditService';
 
-export interface ProvisionStepReport {
-    stepName: string;
-    status: 'COMPLETED' | 'FAILED' | 'SKIPPED';
-    message?: string;
-}
-
-export interface StudentProvisionReport {
-    applicationId: string;
-    admissionNumber: string;
-    studentId: string | null;
-    success: boolean;
-    steps: ProvisionStepReport[];
-    error?: string;
-}
+import { ProvisionStepReport, StudentProvisionReport } from '../../types/ProvisionTypes';
 
 export class StudentProvisionService {
     constructor(
