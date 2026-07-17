@@ -14,14 +14,19 @@ export const Sidebar: React.FC = () => {
   const { activeRole } = useExamContext();
   const { sidebarMode, toggleSidebar, isMobile } = useExamLayoutContext();
 
-  if (!user) return null;
+  const displayUser = user || {
+    full_name: 'Guest Candidate',
+    email: 'guest@example.com',
+    roles: ['Student'],
+    permissions: [],
+  };
 
   const rawMenu = ROLE_NAVIGATION_MAP[activeRole] || [];
   const menuItems = filterNavigationByAccess(
     rawMenu,
     activeRole,
-    user.permissions || [],
-    user.roles || []
+    displayUser.permissions || [],
+    displayUser.roles || []
   );
 
   const isCollapsed = sidebarMode === SidebarMode.COLLAPSED;
@@ -87,7 +92,7 @@ export const Sidebar: React.FC = () => {
                   `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all duration-200 ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-premium-sm font-extrabold scale-[1.01]'
-                      : 'hover:bg-slate-800/60 hover:text-white'
+                      : 'text-slate-100 hover:bg-slate-800/60 hover:text-white'
                   } ${isCollapsed ? 'justify-center px-0 w-11 h-11 mx-auto' : 'text-left'}`
                 }
               >
@@ -107,7 +112,7 @@ export const Sidebar: React.FC = () => {
         <div className="p-3.5 border-t border-slate-800/80">
           <button
             onClick={signOut}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold text-rose-450 hover:bg-rose-950/20 hover:text-rose-400 transition-colors ${
+            className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-950/25 hover:text-rose-300 transition-colors ${
               isCollapsed ? 'justify-center px-0 w-11 h-11 mx-auto' : 'text-left'
             }`}
           >

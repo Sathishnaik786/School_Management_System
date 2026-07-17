@@ -4,3 +4,7 @@ export * from './ExamSettingsShell';
 export * from './ExamSessionShell';
 export * from './ExamHelpShell';
 export * from './ExamHallTicketVerificationShell';
+export * from './ExamPlaceholderShell';
+export * from './ExamAttemptShell';
+
+

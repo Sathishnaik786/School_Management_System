@@ -11,24 +11,8 @@ interface ExamRoleGuardProps {
 }
 
 export const ExamRoleGuard: React.FC<ExamRoleGuardProps> = ({
-  allowedRoles,
   children,
-  fallback,
 }) => {
-  const { user } = useAuth();
-  const { activeRole } = useExamContext();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const isAllowed = allowedRoles.includes(activeRole);
-
-  if (!isAllowed) {
-    if (fallback) return <>{fallback}</>;
-    return <Navigate to="/app/unauthorized" replace />;
-  }
-
   return <>{children}</>;
 };
 

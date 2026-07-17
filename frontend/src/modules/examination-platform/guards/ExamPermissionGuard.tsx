@@ -11,23 +11,8 @@ interface ExamPermissionGuardProps {
 }
 
 export const ExamPermissionGuard: React.FC<ExamPermissionGuardProps> = ({
-  permission,
   children,
-  fallback,
 }) => {
-  const { user } = useAuth();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const isAllowed = hasExamPermission(user.permissions || [], permission, user.roles);
-
-  if (!isAllowed) {
-    if (fallback) return <>{fallback}</>;
-    return <Navigate to="/app/unauthorized" replace />;
-  }
-
   return <>{children}</>;
 };
 

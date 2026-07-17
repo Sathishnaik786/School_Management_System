@@ -20,7 +20,7 @@ import { StudentProfilePage } from '../modules/student/pages/StudentProfilePage'
 import { ParentGuardianPage } from '../modules/student/pages/ParentGuardianPage';
 import { AcademicRecordPage } from '../modules/student/pages/AcademicRecordPage';
 import { ClassAllocationPage } from '../modules/student/pages/ClassAllocationPage';
-import { PromotionPage } from '../modules/student/pages/PromotionPage';
+import PromotionPage from '../modules/student/pages/PromotionPage';
 import { TransferPage } from '../modules/student/pages/TransferPage';
 import { IdentityCardPage } from '../modules/student/pages/IdentityCardPage';
 import { TimelinePage } from '../modules/student/pages/TimelinePage';
@@ -64,12 +64,12 @@ import { DashboardPage as AttendanceDashboardPage } from '../modules/attendance/
 import { DailyAttendancePage } from '../modules/attendance/pages/DailyAttendancePage';
 import { PeriodAttendancePage } from '../modules/attendance/pages/PeriodAttendancePage';
 import { StudentAttendancePage } from '../modules/attendance/pages/StudentAttendancePage';
-import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
+import LeaveManagementPage from '../modules/attendance/pages/LeaveManagementPage';
 import { CorrectionPage } from '../modules/attendance/pages/CorrectionPage';
 import { HolidayPage } from '../modules/attendance/pages/HolidayPage';
 import { BiometricPage } from '../modules/attendance/pages/BiometricPage';
 import { ReportsPage as AttendanceReportsPage } from '../modules/attendance/pages/ReportsPage';
-import { AnalyticsPage as AttendanceAnalyticsPage } from '../modules/attendance/pages/AnalyticsPage';
+import { AnalyticsPage as AttendanceAnalyticsPageV1 } from '../modules/attendance/pages/AnalyticsPage';
 import { SettingsPage as AttendanceSettingsPage } from '../modules/attendance/pages/SettingsPage';
 import { TimetableBuilder } from '../modules/timetable/pages/TimetableBuilder';
 import { MyTimetable } from '../modules/timetable/pages/MyTimetable';
@@ -156,7 +156,7 @@ import { EvaluationAnalyticsPage } from '../modules/assessment/evaluation/pages/
 import { ResultDashboardPage } from '../modules/assessment/result-engine/pages/ResultDashboardPage';
 import { StudentResultsPage } from '../modules/assessment/result-engine/pages/StudentResultsPage';
 import { RankingPage } from '../modules/assessment/result-engine/pages/RankingPage';
-import { PromotionPage as AssessmentPromotionPage } from '../modules/assessment/result-engine/pages/PromotionPage';
+import AssessmentPromotionPage from '../modules/assessment/result-engine/pages/PromotionPage';
 import { GradeCardPage } from '../modules/assessment/result-engine/pages/GradeCardPage';
 import { TranscriptPage } from '../modules/assessment/result-engine/pages/TranscriptPage';
 import { ResultAnalyticsPage } from '../modules/assessment/result-engine/pages/ResultAnalyticsPage';
@@ -178,8 +178,8 @@ import { AcademicStandingPage } from '../modules/assessment/academic-records/pag
 import { AttendanceDashboard } from '../modules/attendance/pages/AttendanceDashboard';
 import { AttendanceCalendarManager } from '../modules/attendance/pages/AttendanceCalendarManager';
 import { AttendanceExceptionsPage } from '../modules/attendance/pages/AttendanceExceptionsPage';
-import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
-import { AttendanceAnalyticsPage as AttendanceAnalyticsPageV2 } from '../modules/attendance/pages/AttendanceAnalyticsPage';
+import DefaultersPage from '../modules/attendance/pages/DefaultersPage';
+import AttendanceAnalyticsPageV2 from '../modules/attendance/pages/AttendanceAnalyticsPage';
 import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
 // Phase 2C: Examination Operations
@@ -313,7 +313,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'attendance/exceptions', element: <AttendanceExceptionsPage />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/leaves', element: <LeaveManagementPage />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/defaulters', element: <DefaultersPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/analytics', element: <AttendanceAnalyticsPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/analytics', element: <AttendanceAnalyticsPageV1 />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/devices', element: <DeviceMonitoringPage />, layout: 'dashboard', permission: 'attendance.view' },
 
     // STUDENT MANAGEMENT

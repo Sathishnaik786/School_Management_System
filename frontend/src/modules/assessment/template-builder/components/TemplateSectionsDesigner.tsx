@@ -145,7 +145,7 @@ export function TemplateSectionsDesigner({ template, onSaveSuccess, onCancel }: 
             // Save sections first
             await updateSectionsMutation.mutateAsync(sections);
             // Trigger publish
-            const res = await publishMutation.mutateAsync();
+            const res = await publishMutation.mutateAsync() as any;
             if (res.warnings && res.warnings.length > 0) {
                 setPublishWarnings(res.warnings);
                 setSuccessMsg('Template published successfully with warnings.');

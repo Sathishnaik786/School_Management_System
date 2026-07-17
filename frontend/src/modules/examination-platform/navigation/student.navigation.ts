@@ -1,4 +1,4 @@
-import { BookOpen, Award, FileText, HelpCircle } from 'lucide-react';
+import { BookOpen, Award, FileText, HelpCircle, PenTool } from 'lucide-react';
 import { SidebarItem } from '../types/navigation';
 import { ExamRole } from '../enums/ExamRole';
 
@@ -15,6 +15,13 @@ export const studentNavigation: SidebarItem[] = [
     icon: FileText,
     roles: [ExamRole.STUDENT],
     badge: 'New',
+  },
+  {
+    label: 'Attempt Exam',
+    href: '/app/exams/student/attempt',
+    icon: PenTool,
+    roles: [ExamRole.STUDENT],
+    badge: 'Live',
   },
   {
     label: 'Results & Transcript',

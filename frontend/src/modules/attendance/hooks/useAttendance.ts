@@ -14,10 +14,11 @@ export interface AttendanceSession {
     created_at: string;
 }
 
-export function useAttendance() {
+export function useAttendance(sectionId?: string, date?: string) {
     const [sessions, setSessions] = useState<AttendanceSession[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isBulking, setIsBulking] = useState(false);
 
     const getHeaders = () => {
         const token = localStorage.getItem('token');
@@ -80,6 +81,33 @@ export function useAttendance() {
         }
     };
 
+    const bulkMark = async (data: { session_id: string; records: any[] }) => {
+        setIsBulking(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.post(`http://localhost:3000/v1/student/attendance/daily/bulk`, data, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return res.data;
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        } finally {
+            setIsBulking(false);
+        }
+    };
+
+    const markPeriod = async (data: { student_id: string; academic_year_id: string; date: string; period_number: number; status: string }) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.post(`http://localhost:3000/v1/student/attendance/period/mark`, data, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return res.data;
+        } catch (err: any) {
+            throw new Error(err.response?.data?.error || err.message);
+        }
+    };
+
     useEffect(() => {
         fetchSessions();
     }, []);
@@ -91,7 +119,11 @@ export function useAttendance() {
         fetchSessions,
         createSession,
         markStudent,
-        transitionWorkflow
+        transitionWorkflow,
+        bulkMark,
+        isBulking,
+        markPeriod,
+        session: null
     };
 }
 

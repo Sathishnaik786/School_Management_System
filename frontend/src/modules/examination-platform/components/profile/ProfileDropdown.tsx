@@ -7,18 +7,23 @@ export const ProfileDropdown: React.FC = () => {
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!user) return null;
+  const displayUser = user || {
+    full_name: 'Guest Candidate',
+    email: 'guest@example.com',
+    roles: ['Student'],
+    permissions: [],
+  };
 
   // Resolve user avatar initials
-  const initials = user.full_name
-    ? user.full_name
+  const initials = displayUser.full_name
+    ? displayUser.full_name
         .split(' ')
         .map(n => n[0])
         .slice(0, 2)
         .join('')
         .toUpperCase()
         .slice(0, 2)
-    : user.email[0].toUpperCase();
+    : displayUser.email[0].toUpperCase();
 
   return (
     <div className="relative">
@@ -32,10 +37,10 @@ export const ProfileDropdown: React.FC = () => {
         </div>
         <div className="hidden sm:flex flex-col text-left">
           <span className="text-xs font-bold text-slate-800 leading-tight">
-            {user.full_name || 'User'}
+            {displayUser.full_name || 'User'}
           </span>
-          <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">
-            {user.roles?.[0] || 'Member'}
+          <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5 animate-pulse">
+            {displayUser.roles?.[0] || 'Member'}
           </span>
         </div>
         <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
@@ -51,10 +56,10 @@ export const ProfileDropdown: React.FC = () => {
             {/* Header info */}
             <div className="px-3.5 py-1.5 border-b border-slate-100 pb-2">
               <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                {user.full_name}
+                {displayUser.full_name}
               </p>
               <p className="text-[10px] text-slate-405 truncate font-semibold">
-                {user.email}
+                {displayUser.email}
               </p>
             </div>
 
