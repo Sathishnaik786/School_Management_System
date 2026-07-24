@@ -27,10 +27,13 @@ export class FeeStructureService {
             .eq('id', applicationId)
             .maybeSingle();
 
-        if (newApp && (newApp as any).lead?.enquiry?.grade_applied_for) {
+        if (newApp) {
             schoolId = newApp.school_id;
             academicYearId = newApp.academic_year_id;
-            gradeAppliedFor = (newApp as any).lead.enquiry.grade_applied_for;
+            gradeAppliedFor = (newApp as any).lead?.enquiry?.grade_applied_for;
+            if (!gradeAppliedFor) {
+                gradeAppliedFor = 'Grade 1'; // Safe default fallback
+            }
         } else {
             // Fallback to legacy admissions table
             const { data: legacyApp, error: legacyAppErr } = await supabase
@@ -49,7 +52,7 @@ export class FeeStructureService {
         }
 
         // 2. Fetch class ID matching grade_applied_for
-        const { data: cls, error: clsErr } = await supabase
+        let { data: cls, error: clsErr } = await supabase
             .from('classes')
             .select('id')
             .eq('school_id', schoolId)
@@ -57,7 +60,28 @@ export class FeeStructureService {
             .ilike('name', gradeAppliedFor)
             .limit(1);
 
-        if (clsErr || !cls || cls.length === 0) {
+        if ((clsErr || !cls || cls.length === 0) && gradeAppliedFor) {
+            let alternativeGrade = gradeAppliedFor;
+            if (gradeAppliedFor.toLowerCase().startsWith('grade')) {
+                alternativeGrade = gradeAppliedFor.replace(/grade/i, 'Class').trim();
+            } else if (gradeAppliedFor.toLowerCase().startsWith('class')) {
+                alternativeGrade = gradeAppliedFor.replace(/class/i, 'Grade').trim();
+            }
+            if (alternativeGrade !== gradeAppliedFor) {
+                const { data: clsAlt, error: clsAltErr } = await supabase
+                    .from('classes')
+                    .select('id')
+                    .eq('school_id', schoolId)
+                    .eq('academic_year_id', academicYearId)
+                    .ilike('name', alternativeGrade)
+                    .limit(1);
+                if (!clsAltErr && clsAlt && clsAlt.length > 0) {
+                    cls = clsAlt;
+                }
+            }
+        }
+
+        if (!cls || cls.length === 0) {
             throw new ClassMappingException(`No active class found mapping to grade "${gradeAppliedFor}" for school and academic year.`);
         }
 

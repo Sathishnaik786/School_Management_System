@@ -226,10 +226,17 @@ export const MENU_REGISTRY: MenuGroup[] = [
         permission: 'admission.dashboard.view',
         module: 'admission',
         items: [
-            { label: 'Overview', icon: LayoutDashboard, path: '/app/admissions/dashboard', permission: 'admission.review' },
-            { label: 'Applications Pipeline', icon: FileText, path: '/app/admissions/review', permission: 'admission.review' },
-            { label: 'Document Checklist', icon: ShieldCheck, path: '/app/admissions/verification', permission: 'admission.review' },
-            { label: 'Enrollment Handoff', icon: GraduationCap, path: '/app/admissions/enrollment', permission: 'admission.review' }
+            { label: 'Dashboard Summary', icon: LayoutDashboard, path: '/app/admissions/dashboard', permission: 'admission.review' },
+            { label: 'All Applications', icon: FileText, path: '/app/admissions/review', permission: 'admission.review' },
+            { label: 'My Queue & Tasks', icon: Clock, path: '/app/admissions/queues', permission: 'admission.review' },
+            { label: 'Documents Verification', icon: ShieldCheck, path: '/app/admissions/verification', permission: 'admission.review' },
+            { label: 'Interview Center', icon: Users, path: '/app/admissions/interviews', permission: 'admission.review' },
+            { label: 'Merit Selection', icon: Award, path: '/app/admissions/merit', permission: 'admission.review' },
+            { label: 'Offer Letters', icon: FileText, path: '/app/admissions/offers', permission: 'admission.review' },
+            { label: 'Finance & Billing', icon: DollarSign, path: '/app/admissions/fees', permission: 'admission.review' },
+            { label: 'SIS Enrollment', icon: GraduationCap, path: '/app/admissions/enrollment', permission: 'admission.review' },
+            { label: 'Reports & Analytics', icon: BarChart3, path: '/app/admissions/reports', permission: 'admission.review' },
+            { label: 'Workspace Settings', icon: Settings, path: '/app/admissions/settings', permission: 'admission.review' }
         ]
     },
     // EXAM CELL DESK

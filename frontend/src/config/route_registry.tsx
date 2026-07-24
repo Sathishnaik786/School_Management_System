@@ -20,7 +20,7 @@ import { StudentProfilePage } from '../modules/student/pages/StudentProfilePage'
 import { ParentGuardianPage } from '../modules/student/pages/ParentGuardianPage';
 import { AcademicRecordPage } from '../modules/student/pages/AcademicRecordPage';
 import { ClassAllocationPage } from '../modules/student/pages/ClassAllocationPage';
-import { PromotionPage } from '../modules/student/pages/PromotionPage';
+import { PromotionPage as StudentPromotionPage } from '../modules/student/pages/PromotionPage';
 import { TransferPage } from '../modules/student/pages/TransferPage';
 import { IdentityCardPage } from '../modules/student/pages/IdentityCardPage';
 import { TimelinePage } from '../modules/student/pages/TimelinePage';
@@ -178,9 +178,8 @@ import { AcademicStandingPage } from '../modules/assessment/academic-records/pag
 import { AttendanceDashboard } from '../modules/attendance/pages/AttendanceDashboard';
 import { AttendanceCalendarManager } from '../modules/attendance/pages/AttendanceCalendarManager';
 import { AttendanceExceptionsPage } from '../modules/attendance/pages/AttendanceExceptionsPage';
-import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
 import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
-import { AttendanceAnalyticsPage } from '../modules/attendance/pages/AttendanceAnalyticsPage';
+import { AttendanceAnalyticsPage as AttendanceAnalyticsDashboardPage } from '../modules/attendance/pages/AttendanceAnalyticsPage';
 import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
 export interface RouteConfig {
@@ -209,7 +208,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
 
     // ADMISSIONS DESK (AdmissionWorkspaceLayout)
     { path: 'admissions/dashboard', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
-    { path: 'admissions/analytics', element: <AnalyticsPage />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/analytics', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
     { path: 'admissions/inquiries', element: <InquiryListPage />, layout: 'admission_workspace', guardType: 'admission_inquiry' },
     { path: 'admissions/enquiry', element: <InquiryListPage />, layout: 'admission_workspace', guardType: 'admission_inquiry' },
     { path: 'admissions/assign', element: <InquiryListPage />, layout: 'admission_workspace', guardType: 'admission_inquiry' },
@@ -218,22 +217,23 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'admissions/application/:id', element: <Applicant360Page />, layout: 'admission_workspace', guardType: 'admission_application' },
     { path: 'admissions/documents/:id', element: <Applicant360Page />, layout: 'admission_workspace', guardType: 'admission_application' },
     { path: 'admissions/timeline/:id', element: <Applicant360Page />, layout: 'admission_workspace', guardType: 'admission_application' },
-    { path: 'admissions/review', element: <PipelinePage />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/review', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
     { path: 'admissions/:id', element: <Applicant360Page />, layout: 'admission_workspace', guardType: 'admission_application' },
-    { path: 'admissions/verification', element: <DocumentVerificationPage />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/verification', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/queues', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
     { path: 'admissions/exams', element: <EntranceExamPage />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.exam.manage', 'admission.exam.evaluate'] },
     { path: 'admissions/entrance-assessment', element: <InstructionsPage />, layout: 'admission_workspace', permission: 'admission.assessment.write' },
     { path: 'admissions/entrance-assessment/workspace', element: <TestPortal />, layout: 'admission_workspace', permission: 'admission.assessment.write' },
     { path: 'admissions/entrance-assessment/success', element: <SuccessPage />, layout: 'admission_workspace', permission: 'admission.assessment.write' },
     { path: 'admissions/assessment-monitor', element: <MonitoringDashboard />, layout: 'admission_workspace', permission: 'admission.assessment.manage' },
-    { path: 'admissions/interviews', element: <InterviewPage />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.interview.manage', 'admission.interview.evaluate'] },
-    { path: 'admissions/merit', element: <MeritListPage />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
-    { path: 'admissions/offers', element: <OfferLetterPage />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
-    { path: 'admissions/merit/offers', element: <OfferLetterPage />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
-    { path: 'admissions/fees', element: <AdmissionFeeCollectionPage />, layout: 'admission_workspace', permission: 'fees.payment.collect' },
-    { path: 'admissions/enrollment', element: <EnrollmentPage />, layout: 'admission_workspace', permission: 'admission.review' },
-    { path: 'admissions/reports', element: <ReportsPage />, layout: 'admission_workspace', permission: 'admission.review' },
-    { path: 'admissions/settings', element: <AdmissionSettingsPage />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/interviews', element: <WorkspaceDashboard />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.interview.manage', 'admission.interview.evaluate'] },
+    { path: 'admissions/merit', element: <WorkspaceDashboard />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
+    { path: 'admissions/offers', element: <WorkspaceDashboard />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
+    { path: 'admissions/merit/offers', element: <WorkspaceDashboard />, layout: 'admission_workspace', permissions: ['admission.review', 'admission.merit.generate', 'admission.exam.manage', 'admission.interview.manage'] },
+    { path: 'admissions/fees', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'fees.payment.collect' },
+    { path: 'admissions/enrollment', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/reports', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
+    { path: 'admissions/settings', element: <WorkspaceDashboard />, layout: 'admission_workspace', permission: 'admission.review' },
     
     // ASSESSMENT PLATFORM NAMESPACES (Admin dashboard layouts)
     { path: 'assessment/settings', element: <AssessmentSettings />, layout: 'dashboard', permission: 'assessment.foundation.manage' },
@@ -304,7 +304,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'attendance/exceptions', element: <AttendanceExceptionsPage />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/leaves', element: <LeaveManagementPage />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/defaulters', element: <DefaultersPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/analytics', element: <AttendanceAnalyticsPage />, layout: 'dashboard', permission: 'attendance.view' },
+    { path: 'attendance/analytics', element: <AttendanceAnalyticsDashboardPage />, layout: 'dashboard', permission: 'attendance.view' },
     { path: 'attendance/devices', element: <DeviceMonitoringPage />, layout: 'dashboard', permission: 'attendance.view' },
 
     // STUDENT MANAGEMENT
@@ -315,7 +315,7 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'students/:id/parents', element: <ParentGuardianPage />, layout: 'dashboard', permission: 'STUDENT_UPDATE' },
     { path: 'students/:id/academics', element: <AcademicRecordPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
     { path: 'students/:id/allocation', element: <ClassAllocationPage />, layout: 'dashboard', permission: 'STUDENT_ASSIGN_SECTION' },
-    { path: 'students/promote', element: <PromotionPage />, layout: 'dashboard', permission: 'STUDENT_ASSIGN_SECTION' },
+    { path: 'students/promote', element: <StudentPromotionPage />, layout: 'dashboard', permission: 'STUDENT_ASSIGN_SECTION' },
     { path: 'students/transfer', element: <TransferPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
     { path: 'students/identity', element: <IdentityCardPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
     { path: 'students/:id/timeline', element: <TimelinePage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },

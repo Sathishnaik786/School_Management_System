@@ -1,4 +1,4 @@
--- Enable UUID extension for ID generation
+  -- Enable UUID extension for ID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ==========================================

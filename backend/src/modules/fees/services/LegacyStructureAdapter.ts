@@ -17,7 +17,7 @@ export class LegacyStructureAdapter {
         }
 
         // 2. Resolve matching class ID
-        const { data: cls, error: clsErr } = await supabase
+        let { data: cls, error: clsErr } = await supabase
             .from('classes')
             .select('id')
             .eq('school_id', legacy.school_id)
@@ -25,7 +25,28 @@ export class LegacyStructureAdapter {
             .ilike('name', legacy.grade)
             .limit(1);
 
-        if (clsErr || !cls || cls.length === 0) {
+        if ((clsErr || !cls || cls.length === 0) && legacy.grade) {
+            let alternativeGrade = legacy.grade;
+            if (legacy.grade.toLowerCase().startsWith('grade')) {
+                alternativeGrade = legacy.grade.replace(/grade/i, 'Class').trim();
+            } else if (legacy.grade.toLowerCase().startsWith('class')) {
+                alternativeGrade = legacy.grade.replace(/class/i, 'Grade').trim();
+            }
+            if (alternativeGrade !== legacy.grade) {
+                const { data: clsAlt, error: clsAltErr } = await supabase
+                    .from('classes')
+                    .select('id')
+                    .eq('school_id', legacy.school_id)
+                    .eq('academic_year_id', legacy.academic_year_id)
+                    .ilike('name', alternativeGrade)
+                    .limit(1);
+                if (!clsAltErr && clsAlt && clsAlt.length > 0) {
+                    cls = clsAlt;
+                }
+            }
+        }
+
+        if (!cls || cls.length === 0) {
             throw new Error(`No class found matching legacy grade: ${legacy.grade}`);
         }
 

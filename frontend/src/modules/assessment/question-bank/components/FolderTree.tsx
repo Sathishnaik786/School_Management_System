@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../../components
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Folder, FolderPlus, Trash2, Edit2, Check, X } from 'lucide-react';
-import { useFoldersList, useCreateFolder, useUpdateFolder, useDeleteFolder } from '../hooks/useQuestionBank';
+import { useQuestionFolders } from '../hooks/useQuestionBank';
 import { useToast } from '../../../../components/ui/use-toast';
 
 interface FolderTreeProps {
@@ -12,10 +12,7 @@ interface FolderTreeProps {
 }
 
 export function FolderTree({ activeFolderId, onSelectFolder }: FolderTreeProps) {
-    const { data: folders, isLoading } = useFoldersList();
-    const { mutateAsync: createFolder } = useCreateFolder();
-    const { mutateAsync: updateFolder } = useUpdateFolder();
-    const { mutateAsync: deleteFolder } = useDeleteFolder();
+    const { folders, isLoading, createFolder, updateFolder, deleteFolder } = useQuestionFolders();
     const { toast } = useToast();
 
     const [newFolderName, setNewFolderName] = useState('');

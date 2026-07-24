@@ -1,16 +1,6 @@
-import {
-    FileText,
-    Clock,
-    CheckCircle2,
-    XCircle,
-    GraduationCap,
-    CreditCard,
-    Trophy,
-    Send,
-    Search,
-    ClipboardList,
-    type LucideIcon,
-} from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
+import { ADMISSION_WORKFLOW } from './admissionWorkflow';
+import { AdmissionWorkflowEngine } from './AdmissionWorkflowEngine';
 
 /** Backend state-machine statuses (uppercase) */
 export type BackendAdmissionStatus =
@@ -105,7 +95,6 @@ const LEGACY_TO_UI: Record<string, UIAdmissionStatus> = {
     enrolled: 'ENROLLED',
 };
 
-/** Kanban column statuses → UI */
 const KANBAN_TO_UI: Record<string, UIAdmissionStatus> = {
     NEW: 'NEW',
     UNDER_REVIEW: 'REVIEW',
@@ -143,20 +132,6 @@ const STATUS_COLORS: Record<string, string> = {
     ENROLLMENT: 'bg-cyan-100 text-cyan-700',
     ENROLLED: 'bg-green-100 text-green-700',
     REJECTED: 'bg-red-100 text-red-700',
-};
-
-const STATUS_ICONS: Record<string, LucideIcon> = {
-    NEW: FileText,
-    REVIEW: Search,
-    DOCUMENTS: ClipboardList,
-    EXAM: GraduationCap,
-    INTERVIEW: CheckCircle2,
-    MERIT: Trophy,
-    OFFER: Send,
-    FEE: CreditCard,
-    ENROLLMENT: Clock,
-    ENROLLED: CheckCircle2,
-    REJECTED: XCircle,
 };
 
 function normalize(input: string): string {
@@ -203,21 +178,17 @@ export function getStatusColor(status: string): string {
 }
 
 export function getStatusIcon(status: string): LucideIcon {
-    const ui = mapUIStatus(status);
-    return STATUS_ICONS[ui] ?? FileText;
+    const stage = AdmissionWorkflowEngine.resolveCurrentStage(status);
+    return stage.icon;
 }
 
 export function getProgressPercentage(status: string): number {
-    const ui = mapUIStatus(status);
-    if (ui === 'REJECTED') return 0;
-    if (ui === 'ENROLLED') return 100;
-    const idx = UI_PROGRESS_ORDER.indexOf(ui);
-    if (idx < 0) return 0;
-    return Math.round(((idx + 1) / UI_PROGRESS_ORDER.length) * 100);
+    return AdmissionWorkflowEngine.calculateProgress(status);
 }
 
 export function formatStatusLabel(status: string): string {
-    return mapUIStatus(status).replace(/_/g, ' ');
+    const stage = AdmissionWorkflowEngine.resolveCurrentStage(status);
+    return stage.displayName;
 }
 
 /** Canonical pipeline / kanban columns — single source of truth */
@@ -274,14 +245,17 @@ export function computeApplicationSla(legacyStatus: string, submittedAt?: string
     remainingHours: number;
     totalHours: number;
 } {
-    const progress = getProgressPercentage(legacyStatus);
-    const totalHours = 48;
-    const anchor = submittedAt ?? createdAt;
-    if (!anchor) {
-        return { progress, status: 'normal', remainingHours: totalHours, totalHours };
-    }
-    const elapsed = (Date.now() - new Date(anchor).getTime()) / 3600000;
-    const remaining = Math.max(0, Math.round(totalHours - elapsed));
-    const status = remaining <= 0 ? 'breached' : remaining <= 8 ? 'warning' : 'normal';
-    return { progress, status, remainingHours: remaining, totalHours };
+    const sla = AdmissionWorkflowEngine.calculateSLA(createdAt ?? new Date().toISOString(), legacyStatus, submittedAt);
+    const progress = AdmissionWorkflowEngine.calculateProgress(legacyStatus);
+    
+    let mappedStatus: 'normal' | 'warning' | 'breached' = 'normal';
+    if (sla.status === 'breached') mappedStatus = 'breached';
+    else if (sla.status === 'critical' || sla.status === 'warning') mappedStatus = 'warning';
+
+    return {
+        progress,
+        status: mappedStatus,
+        remainingHours: sla.remainingHours,
+        totalHours: sla.totalHours,
+    };
 }

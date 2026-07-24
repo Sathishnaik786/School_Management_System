@@ -1,11 +1,11 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
 import { AdmissionMasterDataProvider } from '../context/AdmissionMasterDataContext';
+import { DashboardLayout } from '../../../layouts/DashboardLayout';
 
 export function AdmissionWorkspaceLayout() {
     return (
         <AdmissionMasterDataProvider>
-            <Outlet />
+            <DashboardLayout />
         </AdmissionMasterDataProvider>
     );
 }

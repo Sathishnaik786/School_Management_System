@@ -4,7 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Textarea } from '../../../../components/ui/textarea';
-import { useFoldersList, useCreateQuestion, useUpdateQuestion } from '../hooks/useQuestionBank';
+import { useQuestionFolders, useCreateQuestion, useUpdateQuestion } from '../hooks/useQuestionBank';
 import { useToast } from '../../../../components/ui/use-toast';
 import { Plus, Trash2, Save, X, HelpCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { QuestionItem } from '../services/question.api';
@@ -18,7 +18,7 @@ interface QuestionEditorProps {
 }
 
 export function QuestionEditor({ editingQuestion, subjectId, academicYearId, onCancel, onSaveSuccess }: QuestionEditorProps) {
-    const { data: folders } = useFoldersList();
+    const { folders } = useQuestionFolders();
     const { mutateAsync: createQuestion, isPending: isCreating } = useCreateQuestion();
     const { mutateAsync: updateQuestion, isPending: isUpdating } = useUpdateQuestion();
     const { toast } = useToast();
