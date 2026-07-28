@@ -9,19 +9,25 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0284c7',
-          600: '#0284c7',
-          700: '#0369a1',
-          900: '#0c4a6e',
+          50: '#eep2ff',
+          100: '#e0e7ff',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
         surface: {
           light: '#ffffff',
           dark: '#0f172a',
-          cardLight: '#f8fafc',
+          cardLight: '#ffffff',
           cardDark: '#1e293b',
         },
+      },
+      borderRadius: {
+        '2xl': '16px',
+        '3xl': '24px',
+        '4xl': '32px',
       },
     },
   },

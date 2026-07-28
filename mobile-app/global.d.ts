@@ -1,6 +1,6 @@
+/// <reference types="nativewind/types" />
 /// <reference types="node" />
 
-declare module 'nativewind';
 declare module 'react-native-reanimated';
 
 // Test runner ambient declarations

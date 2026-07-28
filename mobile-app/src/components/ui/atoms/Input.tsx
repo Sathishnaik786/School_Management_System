@@ -21,28 +21,30 @@ export const Input: React.FC<InputProps> = ({
   return (
     <View className="w-full mb-4">
       {label && (
-        <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+        <Text className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
           {label}
         </Text>
       )}
       <View
-        className={`flex-row items-center border rounded-lg px-3 py-2.5 bg-white dark:bg-slate-800 ${
-          error ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+        className={`flex-row items-center border rounded-2xl px-4 py-3 bg-white dark:bg-slate-800/90 shadow-sm ${
+          error
+            ? 'border-red-500 bg-red-50/20'
+            : 'border-slate-200 dark:border-slate-700/80 focus:border-indigo-500 dark:focus:border-indigo-400'
         }`}
       >
-        {leftIcon && <View className="mr-2">{leftIcon}</View>}
+        {leftIcon && <View className="mr-3">{leftIcon}</View>}
         <TextInput
           placeholderTextColor="#94a3b8"
-          className="flex-1 text-slate-900 dark:text-slate-100 text-base"
+          className="flex-1 text-slate-900 dark:text-slate-100 text-sm font-medium"
           style={style}
           {...props}
         />
-        {rightIcon && <View className="ml-2">{rightIcon}</View>}
+        {rightIcon && <View className="ml-3">{rightIcon}</View>}
       </View>
       {error ? (
-        <Text className="text-xs text-red-500 mt-1">{error}</Text>
+        <Text className="text-xs font-semibold text-red-500 mt-1.5 ml-1">{error}</Text>
       ) : helperText ? (
-        <Text className="text-xs text-slate-500 dark:text-slate-400 mt-1">{helperText}</Text>
+        <Text className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 ml-1">{helperText}</Text>
       ) : null}
     </View>
   );

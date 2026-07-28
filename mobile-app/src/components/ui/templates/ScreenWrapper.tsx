@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, ViewProps, StatusBar } from 'react-native';
+import { View, ScrollView, ViewProps, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export interface ScreenWrapperProps extends ViewProps {
@@ -16,7 +16,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   ...props
 }) => {
   const content = (
-    <View className={`flex-1 ${padded ? 'px-4 py-2' : ''} ${className}`} style={style} {...props}>
+    <View className={`flex-1 ${padded ? 'px-5 py-3' : ''} ${className}`} style={style} {...props}>
       {children}
     </View>
   );
@@ -24,17 +24,22 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
       <StatusBar barStyle="default" />
-      {scrollable ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {content}
-        </ScrollView>
-      ) : (
-        content
-      )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+      >
+        {scrollable ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {content}
+          </ScrollView>
+        ) : (
+          content
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
