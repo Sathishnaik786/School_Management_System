@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StatusBar, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { ROUTES } from '../../src/constants/routes';
 import { AuthService } from '../../src/core/auth/auth.service';
+import { useTheme } from '../../src/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('john.doe@edutrack.com');
   const [password, setPassword] = useState('••••••••••••');
   const [isSecure, setIsSecure] = useState(true);
@@ -37,19 +39,17 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#312e81]">
-      <StatusBar barStyle="light-content" />
-
+    <View className="flex-1 bg-indigo-950">
       {/* Top Header Background with Faint School Illustration */}
-      <View className="h-52 bg-[#312e81] justify-center items-center relative">
+      <View className="h-52 bg-indigo-950 justify-center items-center relative">
         <View className="absolute opacity-10">
-          <Ionicons name="business-outline" size={140} color="#ffffff" />
+          <Ionicons name="business-outline" size={140} color={colors.white} />
         </View>
 
         <SafeAreaView className="items-center">
           <View className="flex-row items-center justify-center">
             <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center mr-3 border border-white/20">
-              <Ionicons name="school" size={28} color="#ffffff" />
+              <Ionicons name="school" size={28} color={colors.white} />
             </View>
             <View>
               <Text className="text-2xl font-black text-white tracking-tight">
@@ -63,13 +63,13 @@ export default function LoginScreen() {
         </SafeAreaView>
       </View>
 
-      {/* Bottom Sheet Card with White Background */}
+      {/* Bottom Sheet Card */}
       <View className="flex-1 bg-white dark:bg-slate-900 rounded-t-[36px] px-6 pt-8 pb-6 justify-between">
         <View>
           {/* Header Title */}
           <View className="items-center mb-6">
             <Text className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Welcome <Text className="text-[#3730a3]">Back</Text>
+              Welcome <Text className="text-indigo-600 dark:text-indigo-400">Back</Text>
             </Text>
             <Text className="text-xs font-medium text-slate-400 mt-1">
               Sign in to continue to your account
@@ -82,12 +82,12 @@ export default function LoginScreen() {
               Email / Mobile / Username
             </Text>
             <View className="flex-row items-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-2xl px-4 py-3.5 shadow-sm">
-              <Feather name="mail" size={18} color="#64748b" className="mr-3" />
+              <Feather name="mail" size={18} color={colors.iconSecondary} className="mr-3" />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="john.doe@edutrack.com"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.placeholder}
                 className="flex-1 text-sm font-medium text-slate-900 dark:text-slate-100 ml-2"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -100,17 +100,17 @@ export default function LoginScreen() {
               Password
             </Text>
             <View className="flex-row items-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-2xl px-4 py-3.5 shadow-sm">
-              <Feather name="lock" size={18} color="#64748b" className="mr-3" />
+              <Feather name="lock" size={18} color={colors.iconSecondary} className="mr-3" />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={isSecure}
                 placeholder="••••••••••••"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.placeholder}
                 className="flex-1 text-sm font-medium text-slate-900 dark:text-slate-100 ml-2"
               />
               <TouchableOpacity onPress={() => setIsSecure(!isSecure)}>
-                <Feather name={isSecure ? 'eye' : 'eye-off'} size={18} color="#64748b" />
+                <Feather name={isSecure ? 'eye' : 'eye-off'} size={18} color={colors.iconSecondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -123,10 +123,10 @@ export default function LoginScreen() {
             >
               <View
                 className={`w-5 h-5 rounded-md items-center justify-center mr-2 ${
-                  rememberMe ? 'bg-[#312e81]' : 'border border-slate-300 bg-transparent'
+                  rememberMe ? 'bg-indigo-600' : 'border border-slate-300 bg-transparent'
                 }`}
               >
-                {rememberMe && <Ionicons name="checkmark" size={14} color="#ffffff" />}
+                {rememberMe && <Ionicons name="checkmark" size={14} color={colors.white} />}
               </View>
               <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 Remember me
@@ -134,7 +134,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push(ROUTES.AUTH.FORGOT_PASSWORD as any)}>
-              <Text className="text-xs font-bold text-[#3730a3] dark:text-indigo-400">
+              <Text className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
                 Forgot password?
               </Text>
             </TouchableOpacity>
@@ -145,7 +145,7 @@ export default function LoginScreen() {
             activeOpacity={0.88}
             onPress={handleLogin}
             disabled={isLoading}
-            className="w-full bg-[#1e1b4b] py-4 rounded-full items-center justify-center shadow-lg shadow-indigo-900/30"
+            className="w-full bg-indigo-900 py-4 rounded-full items-center justify-center shadow-lg shadow-indigo-900/30"
           >
             <Text className="text-base font-bold text-white">
               {isLoading ? 'Signing in...' : 'Sign In'}
@@ -170,7 +170,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity className="w-14 h-12 border border-slate-200 dark:border-slate-700 rounded-2xl items-center justify-center bg-white dark:bg-slate-800 shadow-sm mx-2">
-              <FontAwesome5 name="apple" size={22} color="#000000" />
+              <FontAwesome5 name="apple" size={22} color={isDark ? colors.white : colors.black} />
             </TouchableOpacity>
           </View>
         </View>
@@ -179,7 +179,7 @@ export default function LoginScreen() {
         <View className="items-center mt-4">
           <Text className="text-xs text-slate-500 font-medium">
             Don't have an account?{' '}
-            <Text className="font-bold text-[#3730a3] dark:text-indigo-400">Sign up</Text>
+            <Text className="font-bold text-indigo-600 dark:text-indigo-400">Sign up</Text>
           </Text>
         </View>
       </View>

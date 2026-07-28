@@ -5,10 +5,12 @@ import { SectionHeader } from '../../src/components/ui/molecules/SectionHeader';
 import { Card } from '../../src/components/ui/organisms/Card';
 import { Badge } from '../../src/components/ui/atoms/Badge';
 import { useThemeStore } from '../../src/stores/theme.store';
+import { useTheme } from '../../src/theme';
 
 export default function SettingsScreen() {
   const mode = useThemeStore((state) => state.mode);
   const setMode = useThemeStore((state) => state.setMode);
+  const { colors } = useTheme();
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
 
@@ -54,7 +56,7 @@ export default function SettingsScreen() {
           <Switch
             value={biometricsEnabled}
             onValueChange={setBiometricsEnabled}
-            trackColor={{ false: '#cbd5e1', true: '#6366f1' }}
+            trackColor={{ false: colors.disabled, true: colors.primary }}
           />
         </View>
 
@@ -66,7 +68,7 @@ export default function SettingsScreen() {
           <Switch
             value={pushEnabled}
             onValueChange={setPushEnabled}
-            trackColor={{ false: '#cbd5e1', true: '#6366f1' }}
+            trackColor={{ false: colors.disabled, true: colors.primary }}
           />
         </View>
 

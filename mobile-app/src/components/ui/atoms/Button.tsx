@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, TouchableOpacityProps, View } from 'react-native';
+import { useTheme } from '../../../theme';
 
 export interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -21,6 +22,8 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   ...props
 }) => {
+  const { colors } = useTheme();
+
   const getContainerStyles = () => {
     switch (variant) {
       case 'secondary':
@@ -75,6 +78,8 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
+  const loaderColor = variant === 'outline' || variant === 'ghost' ? colors.primary : colors.white;
+
   return (
     <TouchableOpacity
       activeOpacity={0.82}
@@ -88,7 +93,7 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? (
-        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? '#6366f1' : '#ffffff'} size="small" />
+        <ActivityIndicator color={loaderColor} size="small" />
       ) : (
         <View className="flex-row items-center justify-center">
           {leftIcon && <View className="mr-2">{leftIcon}</View>}

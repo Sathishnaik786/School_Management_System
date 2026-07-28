@@ -1,32 +1,30 @@
-import React, { createContext, useContext } from 'react';
-import { useColorScheme } from 'react-native';
+import React, { createContext, useContext, useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import { useThemeStore } from '../stores/theme.store';
-import { lightPalette } from '../theme/palettes/light.palette';
-import { darkPalette } from '../theme/palettes/dark.palette';
-import { ThemeColors } from '../types/theme.types';
+import { useTheme } from '../theme/hooks/useTheme';
 
-const ThemeContext = createContext<{
-  colors: ThemeColors;
-  isDark: boolean;
-}>({
-  colors: lightPalette,
-  isDark: false,
-});
+const ThemeContext = createContext<ReturnType<typeof useTheme> | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemColorScheme = useColorScheme();
-  const mode = useThemeStore((state) => state.mode);
+  const theme = useTheme();
+  const initializeTheme = useThemeStore((state) => state.initializeTheme);
 
-  const isDark =
-    mode === 'dark' || (mode === 'system' && systemColorScheme === 'dark');
-
-  const colors = isDark ? darkPalette : lightPalette;
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
 
   return (
-    <ThemeContext.Provider value={{ colors, isDark }}>
+    <ThemeContext.Provider value={theme}>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} animated />
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useThemeContext = () => useContext(ThemeContext);
+export const useThemeContext = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useThemeContext must be used within a ThemeProvider');
+  }
+  return context;
+};
