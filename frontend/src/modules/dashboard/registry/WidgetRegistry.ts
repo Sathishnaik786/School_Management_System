@@ -59,24 +59,6 @@ export function isWidgetVisible(
 
 export const WIDGET_REGISTRY: Record<string, DashboardWidgetV2> = {
     // ── Admin Widgets ────────────────────────────────────────────────────────
-    'admin.kpi.students': {
-        id: 'admin.kpi.students',
-        title: 'Total Students',
-        type: 'kpi',
-        component: 'AdminKPIStudents',
-        module: 'students',
-        permissionConfig: { permission: 'dashboard.admin.view' },
-        visibilityConfig: { roles: ['ADMIN'], permission: 'dashboard.admin.view' }
-    },
-    'admin.kpi.staff': {
-        id: 'admin.kpi.staff',
-        title: 'Total Staff',
-        type: 'kpi',
-        component: 'AdminKPIStaff',
-        module: 'hr',
-        permissionConfig: { permission: 'dashboard.admin.view' },
-        visibilityConfig: { roles: ['ADMIN'], permission: 'dashboard.admin.view' }
-    },
     'admin.kpi.admissions': {
         id: 'admin.kpi.admissions',
         title: 'New Admissions',
@@ -102,7 +84,7 @@ export const WIDGET_REGISTRY: Record<string, DashboardWidgetV2> = {
         title: 'Classes Today',
         type: 'kpi',
         component: 'FacultyKPIClasses',
-        module: 'timetable',
+        module: 'academic',
         permissionConfig: { permission: 'dashboard.faculty.view' },
         visibilityConfig: { roles: ['FACULTY'], permission: 'dashboard.faculty.view' }
     },
@@ -111,7 +93,7 @@ export const WIDGET_REGISTRY: Record<string, DashboardWidgetV2> = {
         title: 'My Sections',
         type: 'kpi',
         component: 'FacultyKPISections',
-        module: 'timetable',
+        module: 'academic',
         permissionConfig: { permission: 'dashboard.faculty.view' },
         visibilityConfig: { roles: ['FACULTY'], permission: 'dashboard.faculty.view' }
     },
@@ -144,15 +126,7 @@ export const WIDGET_REGISTRY: Record<string, DashboardWidgetV2> = {
         permissionConfig: { permission: 'student.view' },
         visibilityConfig: { permission: 'student.view' }
     },
-    'student.list.timetable': {
-        id: 'student.list.timetable',
-        title: 'Daily Schedule',
-        type: 'custom',
-        component: 'StudentTimetableWidget',
-        module: 'timetable',
-        permissionConfig: { permission: 'student.view' },
-        visibilityConfig: { permission: 'student.view' }
-    },
+
 
     // ── Admissions Workspace Widgets ─────────────────────────────────────────
     'reception.kpi.walkins': {

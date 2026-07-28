@@ -11,20 +11,6 @@ export class AdminDashboardService {
         
         return [
             {
-                id: 'admin.kpi.students',
-                label: 'Total Students',
-                value: DashboardMapper.safeNumber(data?.totalStudents ?? data?.students),
-                format: 'number',
-                subtext: 'Currently enrolled'
-            },
-            {
-                id: 'admin.kpi.staff',
-                label: 'Total Staff',
-                value: DashboardMapper.safeNumber(data?.totalStaff ?? data?.staff),
-                format: 'number',
-                subtext: 'Active faculty roster'
-            },
-            {
                 id: 'admin.kpi.admissions',
                 label: 'New Admissions',
                 value: DashboardMapper.safeNumber(data?.totalAdmissions ?? data?.pendingAdmissions),

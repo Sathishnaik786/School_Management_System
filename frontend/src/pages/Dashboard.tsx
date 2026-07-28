@@ -4,8 +4,6 @@ import { useModuleVisibility } from '../services/ModuleVisibilityService';
 import { LandingResolver } from '../services/LandingResolver';
 import { FacultyDashboard } from '../modules/dashboard/pages/FacultyDashboard';
 import { ParentDashboard } from '../modules/dashboard/pages/ParentDashboard';
-import { TransportAdminDashboard } from '../modules/transport/pages/TransportAdminDashboard';
-import { DriverDashboard } from '../modules/transport/pages/DriverDashboard';
 
 export default function Dashboard() {
     const { user, hasPermission } = useAuth();
@@ -26,17 +24,13 @@ export default function Dashboard() {
     // Render components inline if the resolved landing route is /app/dashboard
     const isFaculty = hasPermission('faculty.dashboard.view');
     const isParent = hasPermission('parent.dashboard.view');
-    const isTransportAdmin = hasPermission('transport.dashboard.view');
-    const isDriver = hasPermission('driver.dashboard.view');
 
     return (
         <div className="space-y-6">
             {isFaculty && <FacultyDashboard />}
             {isParent && <ParentDashboard />}
-            {isTransportAdmin && <TransportAdminDashboard />}
-            {isDriver && <DriverDashboard />}
 
-            {!isFaculty && !isParent && !isTransportAdmin && !isDriver && (
+            {!isFaculty && !isParent && (
                 <div className="rounded-2xl bg-white p-12 text-center shadow-sm border border-gray-100">
                     <div className="text-4xl mb-4">🔓</div>
                     <h2 className="text-xl font-bold text-gray-800 mb-2">Account Pending Verification</h2>
@@ -48,3 +42,4 @@ export default function Dashboard() {
         </div>
     );
 }
+

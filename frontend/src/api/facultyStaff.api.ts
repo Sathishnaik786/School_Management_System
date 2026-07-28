@@ -47,25 +47,3 @@ export const FacultyApi = {
     }
 };
 
-export const StaffApi = {
-    // ADMIN: Management
-    getAllProfiles: async (params?: any) => {
-        const response = await apiClient.get('/admin/staff-profiles', { params });
-        return response.data;
-    },
-
-    createProfile: async (data: any) => {
-        const response = await apiClient.post('/admin/staff-profiles', data);
-        return response.data;
-    },
-
-    updateProfile: async (id: string, data: any) => {
-        const response = await apiClient.put(`/admin/staff-profiles/${id}`, data);
-        return response.data;
-    },
-
-    updateStatus: async (id: string, status: string) => {
-        const response = await apiClient.patch(`/admin/staff-profiles/${id}/status`, { status });
-        return response.data;
-    }
-};

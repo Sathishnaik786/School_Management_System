@@ -5,7 +5,8 @@ import { LAYOUT_REGISTRY } from '../registry/LayoutRegistry';
 export const studentConfig: RoleDashboard = {
     role: DASHBOARD_CONSTANTS.ROLES.STUDENT,
     layouts: LAYOUT_REGISTRY[DASHBOARD_CONSTANTS.ROLES.STUDENT],
-    widgets: ['student.kpi.attendance', 'student.kpi.fees_due', 'student.list.timetable'],
+    widgets: ['student.kpi.attendance', 'student.kpi.fees_due'],
+
     refreshConfig: {
         intervalMs: DASHBOARD_CONSTANTS.REFRESH_INTERVALS.KPI,
         enabled: true

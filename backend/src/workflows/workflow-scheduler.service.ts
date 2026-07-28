@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import { NotificationService } from '../modules/transport/notification.service';
+import { NotificationService } from './NotificationService';
 
 export class WorkflowScheduler {
     

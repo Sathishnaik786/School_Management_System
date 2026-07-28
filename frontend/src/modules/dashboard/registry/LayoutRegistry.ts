@@ -9,9 +9,7 @@ export const LAYOUT_REGISTRY: Record<string, DashboardLayout> = {
                 id: 'admin-kpis-row',
                 height: 'auto',
                 widgets: [
-                    { widgetId: 'admin.kpi.students', span: 4 },
-                    { widgetId: 'admin.kpi.staff', span: 4 },
-                    { widgetId: 'admin.kpi.admissions', span: 4 }
+                    { widgetId: 'admin.kpi.admissions', span: 12 }
                 ]
             },
             {
@@ -48,13 +46,6 @@ export const LAYOUT_REGISTRY: Record<string, DashboardLayout> = {
                     { widgetId: 'student.kpi.fees_due', span: 6 }
                 ]
             },
-            {
-                id: 'student-schedule-row',
-                height: 'auto',
-                widgets: [
-                    { widgetId: 'student.list.timetable', span: 12 }
-                ]
-            }
         ]
     },
     [DASHBOARD_CONSTANTS.ROLES.PARENT]: {

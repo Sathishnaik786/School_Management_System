@@ -2,7 +2,6 @@ import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
     CreditCard, 
-    CalendarCheck, 
     BookOpen, 
     Users, 
     TrendingUp, 
@@ -92,14 +91,6 @@ export const AdminCrossModulePanel = memo(() => {
             alertCount: pendingFinance,
         },
         {
-            label: 'Attendance Rate',
-            value: getKPI('attendance', '—'),
-            subtext: 'Campus-wide today',
-            icon: CalendarCheck,
-            link: '/app/attendance',
-            accentClass: 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/10 dark:text-purple-400 dark:border-purple-900/20',
-        },
-        {
             label: 'Upcoming Exams',
             value: getKPI('exams', '—'),
             subtext: 'Scheduled this week',
@@ -174,14 +165,6 @@ export const PrincipalCrossModulePanel = memo(() => {
             icon: CreditCard,
             link: '/app/fees/payments',
             accentClass: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-        },
-        {
-            label: 'Attendance Today',
-            value: getKPI('attendance', '—'),
-            subtext: 'Institution-wide rate',
-            icon: CalendarCheck,
-            link: '/app/attendance',
-            accentClass: 'bg-purple-50 text-purple-600 border-purple-100',
         },
         {
             label: 'Exam Progress',

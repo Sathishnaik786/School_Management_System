@@ -13,17 +13,10 @@ import { assessmentRouter } from './modules/admission/assessment.routes';
 import { enrollmentRouter } from './modules/admission/enrollment.routes';
 import { AdmissionController } from './modules/admission/admission.controller';
 import { applicationController, publicApplicationController } from './modules/admission/index';
-import { studentRouter } from './modules/student/student.routes';
-import { attendanceRouter as studentAttendanceRouter } from './modules/student/attendance.routes';
 import { academicRouter } from './modules/academic/academic.routes';
 import { examRouter } from './modules/exam/exam.routes';
-import { attendanceRouter } from './modules/attendance/attendance.routes';
-import { timetableRouter } from './modules/timetable/timetable.routes';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
-import { feesRouter } from './modules/fees/fees.routes';
-import { transportRouter } from './modules/transport/transport.routes';
 import { importRouter } from './modules/import/import.routes';
-import { staffRouter } from './modules/staff/staff.routes';
 import departmentRouter from './modules/departments/department.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 import { bulkRouter } from './modules/admin/bulk.routes';
@@ -38,7 +31,6 @@ import { evaluationRouter as assessmentEvaluationRouter } from './modules/assess
 import { resultEngineRouter } from './modules/assessment/result-engine/routes';
 import { analyticsRouter } from './modules/assessment/analytics/routes';
 import { academicRecordsRouter } from './modules/assessment/academic-records/routes';
-import { enterpriseAttendanceRouter } from './modules/attendance/routes';
 
 import { env } from './config/env';
 
@@ -438,15 +430,10 @@ router.use('/v1/admission/evaluation', evaluationRouter);
 router.use('/v1/admission/assessment', assessmentRouter);
 router.use('/v1/admission/enrollment', enrollmentRouter);
 router.use('/v1/admission/application', applicationRouter);
-router.use('/v1/student', studentRouter);
-router.use('/v1/student/attendance', studentAttendanceRouter);
 router.use(compatibilityRouter);
 router.use('/academic', academicRouter);
 router.use('/exams', examRouter);
-router.use('/timetable', timetableRouter);
 router.use('/dashboard', dashboardRouter);
-router.use('/fees', feesRouter);
-router.use('/transport', transportRouter);
 router.use('/import', importRouter);
 router.use('/v1/workflows', workflowRouter);
 router.use('/v1/tasks', taskRouter);
@@ -459,7 +446,6 @@ router.use('/v1/assessment/evaluations', assessmentEvaluationRouter);
 router.use('/v1/assessment/results', resultEngineRouter);
 router.use('/v1/assessment/analytics', analyticsRouter);
 router.use('/v1/assessment/academic-records', academicRecordsRouter);
-router.use('/v1/attendance', enterpriseAttendanceRouter);
 
 
 // System RBAC Audit Endpoint
@@ -536,7 +522,6 @@ router.get('/system/rbac/audit', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIE
 
 // Guard all admin routes under admin.dashboard.view
 router.use('/admin', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW));
-router.use('/admin', staffRouter);
 router.use('/admin', adminRouter);
 router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);

@@ -267,15 +267,6 @@ const ParentDashboardInner = () => {
                                 <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
 
-                            <Link to="/app/timetable/my" className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 group transition-all">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                                        <Calendar className="w-4 h-4" />
-                                    </div>
-                                    <span className="text-xs text-muted-foreground group-hover:text-foreground">Campus Timetable</span>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-0.5 transition-transform" />
-                            </Link>
                         </div>
                     </div>
 

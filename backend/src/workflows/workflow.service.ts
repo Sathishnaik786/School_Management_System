@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { RuleEvaluator } from './rule-evaluator';
-import { NotificationService } from '../modules/transport/notification.service';
+import { NotificationService } from './NotificationService';
 
 export class WorkflowService {
     

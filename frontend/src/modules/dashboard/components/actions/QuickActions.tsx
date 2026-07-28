@@ -76,11 +76,9 @@ export const QuickActions: React.FC = () => {
                 { label: 'Schedule Exam', href: '/app/exam-admin/manage', icon: Calendar, color: 'bg-blue-50 border-blue-100 text-blue-600', description: 'Create scheduled slots' }
             ];
         }
-        // Fallback default student/parent shortcuts
-        return [
-            { label: 'My Attendance', href: '/app/attendance/my', icon: Calendar, color: 'bg-green-50 border-green-100 text-green-600', description: 'Track monthly checkins' },
-            { label: 'Pay Fees', href: '/app/fees/my', icon: Coins, color: 'bg-amber-50 border-amber-100 text-amber-600', description: 'Settle online billing' }
-        ];
+        // Fallback default shortcuts
+        return [];
+
     };
 
     const actions = getActions();

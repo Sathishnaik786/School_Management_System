@@ -11,24 +11,6 @@ import { InstructionsPage } from '../modules/admission/pages/InstructionsPage';
 import { TestPortal } from '../modules/admission/pages/TestPortal';
 import { SuccessPage } from '../modules/admission/pages/SuccessPage';
 import { MonitoringDashboard } from '../modules/admission/pages/MonitoringDashboard';
-import { MyChildren } from '../modules/student/pages/MyChildren';
-import { AcademicHistory } from '../modules/student/pages/AcademicHistory';
-import { DashboardPage as StudentDashboardPage } from '../modules/student/pages/DashboardPage';
-import { StudentListPage } from '../modules/student/pages/StudentListPage';
-import { StudentDetailsPage } from '../modules/student/pages/StudentDetailsPage';
-import { StudentProfilePage } from '../modules/student/pages/StudentProfilePage';
-import { ParentGuardianPage } from '../modules/student/pages/ParentGuardianPage';
-import { AcademicRecordPage } from '../modules/student/pages/AcademicRecordPage';
-import { ClassAllocationPage } from '../modules/student/pages/ClassAllocationPage';
-import { PromotionPage as StudentPromotionPage } from '../modules/student/pages/PromotionPage';
-import { TransferPage } from '../modules/student/pages/TransferPage';
-import { IdentityCardPage } from '../modules/student/pages/IdentityCardPage';
-import { TimelinePage } from '../modules/student/pages/TimelinePage';
-import { AuditLogsPage } from '../modules/student/pages/AuditLogsPage';
-import { ReportsPage as StudentReportsPage } from '../modules/student/pages/ReportsPage';
-import { SettingsPage as StudentSettingsPage } from '../modules/student/pages/SettingsPage';
-import { ImportWizardPage } from '../modules/student/pages/ImportWizardPage';
-import { AdmissionHistoryPage } from '../modules/student/pages/AdmissionHistoryPage';
 import { ClassList } from '../modules/academic/pages/ClassList';
 import { SectionList } from '../modules/academic/pages/SectionList';
 import { DepartmentsListPage } from '../modules/academic/pages/DepartmentsListPage';
@@ -56,48 +38,6 @@ import { ExamSeating } from '../modules/exam/pages/ExamSeating';
 import { ExamQuestionPapers } from '../modules/exam/pages/ExamQuestionPapers';
 import { ExamResults } from '../modules/exam/pages/ExamResults';
 import { ExamAnalytics } from '../modules/exam/pages/ExamAnalytics';
-import { AttendanceMarking } from '../modules/attendance/pages/AttendanceMarking';
-import { AdminAttendanceDashboard } from '../modules/attendance/pages/AdminAttendanceDashboard';
-import { SectionAttendanceView } from '../modules/attendance/pages/SectionAttendanceView';
-import { MyAttendance } from '../modules/attendance/pages/MyAttendance';
-import { DashboardPage as AttendanceDashboardPage } from '../modules/attendance/pages/DashboardPage';
-import { DailyAttendancePage } from '../modules/attendance/pages/DailyAttendancePage';
-import { PeriodAttendancePage } from '../modules/attendance/pages/PeriodAttendancePage';
-import { StudentAttendancePage } from '../modules/attendance/pages/StudentAttendancePage';
-import { LeaveManagementPage } from '../modules/attendance/pages/LeaveManagementPage';
-import { CorrectionPage } from '../modules/attendance/pages/CorrectionPage';
-import { HolidayPage } from '../modules/attendance/pages/HolidayPage';
-import { BiometricPage } from '../modules/attendance/pages/BiometricPage';
-import { ReportsPage as AttendanceReportsPage } from '../modules/attendance/pages/ReportsPage';
-import { AnalyticsPage as AttendanceAnalyticsPage } from '../modules/attendance/pages/AnalyticsPage';
-import { SettingsPage as AttendanceSettingsPage } from '../modules/attendance/pages/SettingsPage';
-import { TimetableBuilder } from '../modules/timetable/pages/TimetableBuilder';
-import { MyTimetable } from '../modules/timetable/pages/MyTimetable';
-import { FeeStructureManagement } from '../modules/fees/pages/FeeStructureManagement';
-import { StudentFeeAssignment } from '../modules/fees/pages/StudentFeeAssignment';
-import { PaymentEntry } from '../modules/fees/pages/PaymentEntry';
-import { MyFees } from '../modules/fees/pages/MyFees';
-import { AdminFeeLedger } from '../modules/fees/pages/AdminFeeLedger';
-import { FinanceDashboard } from '../modules/fees/pages/FinanceDashboard';
-import { DemandManagement } from '../modules/fees/pages/DemandManagement';
-import { ReceiptCenter } from '../modules/fees/pages/ReceiptCenter';
-import { StudentLedger } from '../modules/fees/pages/StudentLedger';
-import { Waivers } from '../modules/fees/pages/Waivers';
-import { Refunds } from '../modules/fees/pages/Refunds';
-import { FinanceReports } from '../modules/fees/pages/FinanceReports';
-import { FinanceSettings } from '../modules/fees/pages/FinanceSettings';
-import { TransportSetup } from '../modules/transport/pages/TransportSetup';
-import { TransportBulkAssignmentPage } from '../modules/transport/pages/TransportBulkAssignmentPage';
-import { StudentTransportAssignment } from '../modules/transport/pages/StudentTransportAssignment';
-import { MyTransport } from '../modules/transport/pages/MyTransport';
-import { TransportAnalytics } from '../modules/transport/pages/TransportAnalytics';
-import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
-import { TransportAdminDashboard } from '../modules/transport/pages/TransportAdminDashboard';
-import { TransportDebugPage } from '../modules/transport/pages/TransportDebugPage';
-import { LiveTripMonitor } from '../modules/transport/pages/LiveTripMonitor';
-import { IncidentsPage } from '../modules/transport/pages/IncidentsPage';
-import { ManifestPage } from '../modules/transport/pages/ManifestPage';
-import { DriverDashboard } from '../modules/transport/pages/DriverDashboard';
 import { Profile } from '../pages/Profile';
 import { Settings } from '../pages/Settings';
 import { WorkflowDashboard } from '../modules/workflows/pages/WorkflowDashboard';
@@ -106,6 +46,7 @@ import { TaskCenter } from '../modules/workflows/pages/TaskCenter';
 import { WorkflowAnalytics } from '../modules/workflows/pages/WorkflowAnalytics';
 import { ImportHistoryPage } from '../modules/import/pages/ImportHistory';
 import { StudentDashboard } from '../modules/dashboard/pages/StudentDashboard';
+import { AdminDashboard } from '../modules/dashboard/pages/AdminDashboard';
 import WorkspaceDashboard from '../modules/admission/pages/Workspace';
 import Applicant360Page from '../modules/admission/pages/Applicant360';
 import PipelinePage from '../modules/admission/pages/Pipeline';
@@ -175,12 +116,6 @@ import { GraduationDashboard } from '../modules/assessment/academic-records/page
 import { TranscriptCenterPage } from '../modules/assessment/academic-records/pages/TranscriptCenterPage';
 import { AcademicStandingPage } from '../modules/assessment/academic-records/pages/AcademicStandingPage';
 
-import { AttendanceDashboard } from '../modules/attendance/pages/AttendanceDashboard';
-import { AttendanceCalendarManager } from '../modules/attendance/pages/AttendanceCalendarManager';
-import { AttendanceExceptionsPage } from '../modules/attendance/pages/AttendanceExceptionsPage';
-import { DefaultersPage } from '../modules/attendance/pages/DefaultersPage';
-import { AttendanceAnalyticsPage as AttendanceAnalyticsDashboardPage } from '../modules/attendance/pages/AttendanceAnalyticsPage';
-import { DeviceMonitoringPage } from '../modules/attendance/pages/DeviceMonitoringPage';
 
 export interface RouteConfig {
     path: string;
@@ -298,34 +233,6 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'academic-records/transcripts', element: <TranscriptCenterPage />, layout: 'dashboard', permission: 'academic.records.view' },
     { path: 'academic-records/standing', element: <AcademicStandingPage />, layout: 'dashboard', permission: 'academic.records.view' },
 
-    // ATTENDANCE ENGINE
-    { path: 'attendance', element: <AttendanceDashboard />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/calendar', element: <AttendanceCalendarManager />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/exceptions', element: <AttendanceExceptionsPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/leaves', element: <LeaveManagementPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/defaulters', element: <DefaultersPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/analytics', element: <AttendanceAnalyticsDashboardPage />, layout: 'dashboard', permission: 'attendance.view' },
-    { path: 'attendance/devices', element: <DeviceMonitoringPage />, layout: 'dashboard', permission: 'attendance.view' },
-
-    // STUDENT MANAGEMENT
-    { path: 'students/dashboard', element: <StudentDashboardPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students', element: <StudentListPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id', element: <StudentDetailsPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id/edit', element: <StudentProfilePage />, layout: 'dashboard', permission: 'STUDENT_UPDATE' },
-    { path: 'students/:id/parents', element: <ParentGuardianPage />, layout: 'dashboard', permission: 'STUDENT_UPDATE' },
-    { path: 'students/:id/academics', element: <AcademicRecordPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id/allocation', element: <ClassAllocationPage />, layout: 'dashboard', permission: 'STUDENT_ASSIGN_SECTION' },
-    { path: 'students/promote', element: <StudentPromotionPage />, layout: 'dashboard', permission: 'STUDENT_ASSIGN_SECTION' },
-    { path: 'students/transfer', element: <TransferPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/identity', element: <IdentityCardPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id/timeline', element: <TimelinePage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id/audit', element: <AuditLogsPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/reports', element: <StudentReportsPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/settings', element: <StudentSettingsPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/import', element: <ImportWizardPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/:id/admission-history', element: <AdmissionHistoryPage />, layout: 'dashboard', permission: 'STUDENT_VIEW' },
-    { path: 'students/my-children', element: <MyChildren />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
-    { path: 'student/academic-history', element: <AcademicHistory />, layout: 'dashboard', permission: 'STUDENT_VIEW_SELF' },
 
     // ACADEMIC OPERATIONS
     { path: 'academic/classes', element: <ClassList />, layout: 'dashboard', permission: 'CLASS_VIEW' },
@@ -349,55 +256,9 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     { path: 'faculty/exams/invigilation', element: <FacultyInvigilationView />, layout: 'dashboard', permission: 'EXAM_VIEW' },
     { path: 'faculty/exams/marks-entry', element: <MarksEntry />, layout: 'dashboard', permission: 'MARKS_ENTER' },
 
-    // ATTENDANCE OPERATIONS
-    { path: 'attendance/mark', element: <AttendanceMarking />, layout: 'dashboard', permission: 'ATTENDANCE_MARK' },
-    { path: 'attendance/admin/dashboard', element: <AdminAttendanceDashboard />, layout: 'dashboard', permission: 'DASHBOARD_VIEW_ADMIN' },
-    { path: 'attendance/section', element: <SectionAttendanceView />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/my', element: <MyAttendance />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW_SELF' },
-    { path: 'attendance/dashboard', element: <AttendanceDashboardPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/daily', element: <DailyAttendancePage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/period', element: <PeriodAttendancePage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/student', element: <StudentAttendancePage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/leaves', element: <LeaveManagementPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/corrections', element: <CorrectionPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/holidays', element: <HolidayPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/biometric', element: <BiometricPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/reports', element: <AttendanceReportsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/analytics', element: <AttendanceAnalyticsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
-    { path: 'attendance/settings', element: <AttendanceSettingsPage />, layout: 'dashboard', permission: 'ATTENDANCE_VIEW' },
 
-    // TIMETABLE OPERATIONS
-    { path: 'timetable/manage', element: <TimetableBuilder />, layout: 'dashboard', permission: 'TIMETABLE_CREATE' },
-    { path: 'timetable/my', element: <MyTimetable />, layout: 'dashboard', permission: 'TIMETABLE_VIEW_SELF' },
 
-    // FEE PLATFORM
-    { path: 'finance/structures', element: <FeeStructureManagement />, layout: 'dashboard', permission: 'fees.structure.manage' },
-    { path: 'finance/assign', element: <StudentFeeAssignment />, layout: 'dashboard', permission: 'fees.structure.manage' },
-    { path: 'fees/payments', element: <PaymentEntry />, layout: 'dashboard', permission: 'fees.payment.collect' },
-    { path: 'fees/my', element: <MyFees />, layout: 'dashboard', permission: 'PAYMENT_VIEW_SELF' },
-    { path: 'fees/ledger', element: <AdminFeeLedger />, layout: 'dashboard', permission: 'fees.view' },
-    { path: 'finance/dashboard', element: <FinanceDashboard />, layout: 'dashboard', permission: 'fees.view' },
-    { path: 'finance/demands', element: <DemandManagement />, layout: 'dashboard', permission: 'fees.demand.view' },
-    { path: 'finance/payments', element: <PaymentEntry />, layout: 'dashboard', permission: 'fees.payment.collect' },
-    { path: 'finance/ledger', element: <StudentLedger />, layout: 'dashboard', permission: 'fees.view' },
-    { path: 'finance/receipts', element: <ReceiptCenter />, layout: 'dashboard', permission: 'fees.view' },
-    { path: 'finance/waivers', element: <Waivers />, layout: 'dashboard', permission: 'fees.waiver.approve' },
-    { path: 'finance/refunds', element: <Refunds />, layout: 'dashboard', permission: 'fees.refund.process' },
-    { path: 'finance/reports', element: <FinanceReports />, layout: 'dashboard', permission: 'fees.view' },
-    { path: 'finance/settings', element: <FinanceSettings />, layout: 'dashboard', permission: 'fees.structure.manage' },
 
-    // TRANSPORT PLATFORM
-    { path: 'transport/setup', element: <TransportSetup />, layout: 'dashboard', permission: 'TRANSPORT_SETUP' },
-    { path: 'transport/bulk-assign', element: <TransportBulkAssignmentPage />, layout: 'dashboard', permission: 'TRANSPORT_SETUP' },
-    { path: 'transport/assign', element: <StudentTransportAssignment />, layout: 'dashboard', permission: 'TRANSPORT_SETUP' },
-    { path: 'transport/my', element: <MyTransport />, layout: 'dashboard', permission: 'TRANSPORT_VIEW_SELF' },
-    { path: 'transport/analytics', element: <TransportAnalytics />, layout: 'dashboard', permission: 'TRIP_MONITOR' },
-    { path: 'transport/overview', element: <TransportAdminDashboard />, layout: 'dashboard', permission: 'TRIP_MONITOR' },
-    { path: 'transport/debug', element: <TransportDebugPage />, layout: 'dashboard', permission: 'TRANSPORT_SETUP' },
-    { path: 'transport/monitor', element: <LiveTripMonitor />, layout: 'dashboard', permission: 'TRIP_MONITOR' },
-    { path: 'transport/incidents', element: <IncidentsPage />, layout: 'dashboard', permission: 'TRIP_MONITOR' },
-    { path: 'transport/manifests', element: <ManifestPage />, layout: 'dashboard', permission: 'TRIP_MONITOR' },
-    { path: 'transport/driver', element: <DriverDashboard />, layout: 'dashboard', permission: 'driver.dashboard.view' },
 
     // WORKFLOW PLATFORM
     { path: 'workflows/dashboard', element: <WorkflowDashboard />, layout: 'dashboard', permission: 'admin.dashboard.view' },

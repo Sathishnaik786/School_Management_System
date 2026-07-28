@@ -6,7 +6,6 @@ import { StudentDashboardService } from './StudentDashboardService';
 import { ParentDashboardService } from './ParentDashboardService';
 import { AdmissionDashboardService } from './AdmissionDashboardService';
 import { ReceptionDashboardService } from './ReceptionDashboardService';
-import { FinanceDashboardService } from './FinanceDashboardService';
 import { ExamDashboardService } from './ExamDashboardService';
 import { PrincipalDashboardService } from './PrincipalDashboardService';
 
@@ -26,7 +25,7 @@ export class DashboardService {
             case DASHBOARD_CONSTANTS.ROLES.RECEPTIONIST:
                 return ReceptionDashboardService.getKPIs(filters);
             case DASHBOARD_CONSTANTS.ROLES.FINANCE:
-                return FinanceDashboardService.getKPIs(filters);
+                return [];
             case DASHBOARD_CONSTANTS.ROLES.EXAM_CELL:
                 return ExamDashboardService.getKPIs(filters);
             case DASHBOARD_CONSTANTS.ROLES.PRINCIPAL:
@@ -45,7 +44,7 @@ export {
     ParentDashboardService,
     AdmissionDashboardService,
     ReceptionDashboardService,
-    FinanceDashboardService,
     ExamDashboardService,
     PrincipalDashboardService
 };
+

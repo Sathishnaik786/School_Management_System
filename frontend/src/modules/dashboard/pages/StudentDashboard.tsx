@@ -106,8 +106,6 @@ function StudentDashboardInner() {
         { icon: DollarSign, label: 'Pay Fees', href: '/app/fees/my', color: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' },
         { icon: GraduationCap, label: 'My Results', href: '/app/student/exams/dashboard', color: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' },
         { icon: BookOpen, label: 'Assignments', href: '/app/student/assignments', color: 'bg-blue-500/10 text-blue-500 border border-blue-500/20' },
-        { icon: FileText, label: 'My Timetable', href: '/app/timetable/my', color: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' },
-        { icon: Bus, label: 'My Transport', href: '/app/transport/my', color: 'bg-orange-500/10 text-orange-500 border border-orange-500/20' },
         { icon: Library, label: 'Library', href: '/app/library', color: 'bg-teal-500/10 text-teal-500 border border-teal-500/20' },
         { icon: ClipboardList, label: 'Leave Logs', href: '/app/attendance/my', color: 'bg-rose-500/10 text-rose-500 border border-rose-500/20' },
     ];
@@ -236,38 +234,6 @@ function StudentDashboardInner() {
                     </div>
                 )}
 
-                {/* Timetable / Classes List */}
-                <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/40">
-                        <h2 className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Clock className="w-4 h-4 text-primary" />
-                            Session Timetable
-                        </h2>
-                    </div>
-                    <div className="space-y-0.5">
-                        {todaySchedule.map((cls: any, i: number) => {
-                            const statusStyle = ({
-                                upcoming: 'text-blue-500 bg-blue-500/10 border border-blue-500/20',
-                                ongoing: 'text-green-500 bg-green-500/10 border border-green-500/20 animate-pulse',
-                                done: 'text-muted-foreground bg-muted/40 opacity-60'
-                            } as Record<string, string>)[cls.status as string] || '';
-
-                            return (
-                                <div key={i} className="flex items-center gap-4 py-3 border-b border-border/40 last:border-0">
-                                    <span className="text-xs font-bold text-muted-foreground/80 w-16 text-right shrink-0">{cls.time}</span>
-                                    <div className={`w-2 h-2 rounded-full shrink-0 ${cls.status === 'ongoing' ? 'bg-green-500 animate-ping' : 'bg-border'}`} />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-xs text-gray-900 dark:text-white truncate">{cls.subject}</p>
-                                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{cls.teacher} · {cls.room}</p>
-                                    </div>
-                                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shrink-0 ${statusStyle}`}>
-                                        {cls.status}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
 
                 {/* Quick actions row */}
                 <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
@@ -308,26 +274,6 @@ function StudentDashboardInner() {
                         </div>
                     </div>
 
-                    {/* Transport details widget */}
-                    <div className="bg-white dark:bg-card border border-border/40 rounded-3xl p-6 shadow-premium-sm">
-                        <h3 className="text-xs font-black text-gray-900 dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-border/40">
-                            <Bus className="w-4 h-4 text-primary" />
-                            Transport Route Logs
-                        </h3>
-                        <div className="space-y-2.5 text-xs font-semibold">
-                            {[
-                                { label: 'Route Plan', value: 'Route 7 – Gachibowli Area' },
-                                { label: 'Bus Registry', value: 'TS 09 EF 4521' },
-                                { label: 'Scheduled Pickup', value: '7:45 AM · Stop 3B' },
-                                { label: 'Scheduled Drop', value: '4:30 PM · Stop 3B' },
-                            ].map(item => (
-                                <div key={item.label} className="flex justify-between border-b border-border/20 pb-2 last:border-0">
-                                    <span className="text-muted-foreground">{item.label}</span>
-                                    <span className="text-gray-900 dark:text-white font-bold">{item.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
 
