@@ -12,6 +12,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -24,7 +29,11 @@
         "foregroundImage": "./src/assets/images/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.edutrack.mobile"
+      "package": "com.edutrack.mobile",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
