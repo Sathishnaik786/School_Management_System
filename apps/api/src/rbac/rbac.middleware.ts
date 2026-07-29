@@ -248,3 +248,4 @@ export const checkRole = (allowedRoles: string[]) => {
 // Alias for compatibility if needed (user prompt called it "checkPermission", previous file was "requirePermission")
 export const requirePermission = checkPermission;
 export const requireRole = checkRole;
+

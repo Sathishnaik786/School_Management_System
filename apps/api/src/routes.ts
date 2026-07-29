@@ -525,3 +525,4 @@ router.use('/admin', checkPermission(PERMISSIONS.ADMIN_DASHBOARD_VIEW));
 router.use('/admin', adminRouter);
 router.use('/admin/bulk', bulkRouter);
 router.use('/admin/departments', departmentRouter);
+

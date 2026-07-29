@@ -16,5 +16,9 @@
     "type-check:api": "tsc --noEmit --project apps/api/tsconfig.json",
     "type-check:web": "tsc --noEmit --project apps/web/tsconfig.json",
     "type-check:mobile": "tsc --noEmit --project apps/mobile/tsconfig.json"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "expo-notifications": "~57.0.7"
   }
 }

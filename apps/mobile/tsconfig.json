@@ -6,7 +6,7 @@
       "DOM"
     ],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "baseUrl": ".",
     "paths": {
