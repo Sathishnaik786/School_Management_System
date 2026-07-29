@@ -10,13 +10,14 @@ A production-grade School Management System designed to handle admissions, stude
 - **Auth:** Supabase Auth / Custom JWT.
 
 ## Folder Structure
-- `frontend/`: React application.
-- `backend/`: Node.js Express API.
+- `apps/web/`: React frontend application.
+- `apps/api/`: Node.js Express backend API.
+- `apps/mobile/`: React Native Expo mobile application.
+- `infrastructure/`: Docker, monitoring, and database scripts.
 - `docs/`: Project documentation and specifications.
-- `scripts/`: Utility scripts (e.g., database scaffolding).
 
 ## Setup
 1. Clone the repository.
-2. Install dependencies in `frontend` and `backend`.
-3. Configure `.env` files.
-4. Run development servers.
+2. Install dependencies across workspaces.
+3. Configure `.env` files in respective application folders under `apps/`.
+4. Run development servers (`npm run dev:api`, `npm run dev:web`, `npm run dev:mobile`).
