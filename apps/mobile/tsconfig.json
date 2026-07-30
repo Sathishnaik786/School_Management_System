@@ -1,13 +1,6 @@
 {
+  "extends": "../../packages/config/tsconfig/react-native.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": [
-      "ES2022",
-      "DOM"
-    ],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -19,13 +12,7 @@
       "@tests/*": [
         "./tests/*"
       ]
-    },
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-native"
+    }
   },
   "include": [
     "**/*.ts",
@@ -36,6 +23,5 @@
   ],
   "exclude": [
     "node_modules"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

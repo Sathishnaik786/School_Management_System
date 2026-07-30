@@ -43,6 +43,20 @@ router.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+router.get('/health/liveness', (req: Request, res: Response) => {
+    res.json({ status: 'alive', service: 'edutrack-api', timestamp: new Date().toISOString() });
+});
+
+router.get('/health/readiness', async (req: Request, res: Response) => {
+    try {
+        const { data, error } = await supabase.from('schools').select('id').limit(1);
+        if (error) throw error;
+        res.json({ status: 'ready', service: 'edutrack-api', database: 'connected', timestamp: new Date().toISOString() });
+    } catch (err: any) {
+        res.status(503).json({ status: 'unhealthy', service: 'edutrack-api', database: 'disconnected', error: err.message });
+    }
+});
+
 router.get('/system/info', (req: Request, res: Response) => {
     res.json({ mode: env.SYSTEM_MODE });
 });

@@ -1,23 +1,39 @@
-# School Management System
+# EduTrack Enterprise Platform
 
-## Project Purpose
-A production-grade School Management System designed to handle admissions, student management, exams, payments, and more with a focus on Role-Based Access Control (RBAC).
+Production-grade School Management SaaS System built with an enterprise monorepo architecture.
 
 ## Tech Stack
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS (implied by layout), Global State Management (Zustand/Context).
-- **Backend:** Node.js, Express, TypeScript.
-- **Database:** Supabase (PostgreSQL).
-- **Auth:** Supabase Auth / Custom JWT.
+- **Monorepo Management:** pnpm Workspaces, Turborepo
+- **Frontend App:** React 18, Vite, TypeScript, Tailwind CSS, Radix UI (`apps/web`)
+- **Backend API:** Node.js, Express, TypeScript, Prisma, PostgreSQL (`apps/api`)
+- **Mobile App:** Expo React Native, TypeScript (`apps/mobile`)
+- **Shared Configs:** `@edutrack/config` (`packages/config`)
 
-## Folder Structure
-- `apps/web/`: React frontend application.
-- `apps/api/`: Node.js Express backend API.
-- `apps/mobile/`: React Native Expo mobile application.
-- `infrastructure/`: Docker, monitoring, and database scripts.
-- `docs/`: Project documentation and specifications.
+## Workspace Layout
+```text
+.
+├── apps/
+│   ├── api/        # Node.js Express API (@edutrack/api)
+│   ├── web/        # React + Vite Web App (@edutrack/web)
+│   └── mobile/     # Expo React Native App (@edutrack/mobile)
+├── packages/
+│   └── config/     # Shared TSConfig & ESLint rules (@edutrack/config)
+├── docs/           # Documentation & Architecture Decision Records (ADRs)
+└── tools/          # Monorepo utility tools
+```
 
-## Setup
-1. Clone the repository.
-2. Install dependencies across workspaces.
-3. Configure `.env` files in respective application folders under `apps/`.
-4. Run development servers (`npm run dev:api`, `npm run dev:web`, `npm run dev:mobile`).
+## Quick Start
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Run all dev servers
+pnpm run dev
+
+# 3. Monorepo quality checks
+pnpm run typecheck
+pnpm run lint
+pnpm run build
+```
+
+Detailed developer instructions are available in the [Workspace Guide](file:///c:/Users/DELL/OneDrive/Desktop/School_Management_System/docs/workspace-guide.md).
